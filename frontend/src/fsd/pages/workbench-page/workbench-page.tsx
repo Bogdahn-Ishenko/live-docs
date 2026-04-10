@@ -10,9 +10,10 @@ import { SidebarInset, SidebarProvider } from "@/fsd/shared/ui/sidebar";
 import { useMemo } from "react";
 
 function GeneratedCodeViewer() {
-  const state = useBlockViewer();
-  const code = useMemo(() => generateEditorCode(state), [state]);
-  return <CodeViewer code={code} filename="editor-x.tsx" />;
+  // const state = useBlockViewer();
+  // const code = useMemo(() => generateEditorCode(state), [state]);
+  // return <CodeViewer code={code} filename="editor-x.tsx" />;
+  return <div>markdown</div>
 }
 
 export default function WorkbenchPage() {
