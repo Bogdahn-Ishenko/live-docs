@@ -1,3 +1,4 @@
+'use client'
 import { type JSX, useCallback, useEffect, useMemo, useState } from "react";
 
 import { createPortal } from "react-dom";
@@ -13,13 +14,13 @@ import { TextNode } from "lexical";
 
 import { CircleUserRoundIcon } from "lucide-react";
 
-import { $createMentionNode } from "@/components/editor/nodes/mention-node";
+import { $createMentionNode } from "@/fsd/shared/ui/editor/nodes/mention-node";
 import {
   Command,
   CommandGroup,
   CommandItem,
   CommandList,
-} from "@/components/ui/command";
+} from "@/fsd/shared/ui/command";
 
 // const LexicalTypeaheadMenuPlugin = dynamic(
 //   () =>

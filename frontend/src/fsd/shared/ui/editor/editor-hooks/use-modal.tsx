@@ -1,3 +1,4 @@
+'use client'
 import { type JSX, useCallback, useMemo, useState } from "react";
 
 import {
@@ -5,7 +6,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
+} from "@/fsd/shared/ui/dialog";
 
 export function useEditorModal(): [
   JSX.Element | null,

@@ -1,3 +1,4 @@
+'use client'
 import {
   type Dispatch,
   type JSX,
@@ -35,11 +36,11 @@ import {
   UnderlineIcon,
 } from "lucide-react";
 
-import { getDOMRangeRect } from "@/components/editor/utils/get-dom-range-rect";
-import { getSelectedNode } from "@/components/editor/utils/get-selected-node";
-import { setFloatingElemPosition } from "@/components/editor/utils/set-floating-elem-position";
-import { Separator } from "@/components/ui/separator";
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { getDOMRangeRect } from "@/fsd/shared/ui/editor/utils/get-dom-range-rect";
+import { getSelectedNode } from "@/fsd/shared/ui/editor/utils/get-selected-node";
+import { setFloatingElemPosition } from "@/fsd/shared/ui/editor/utils/set-floating-elem-position";
+import { Separator } from "@/fsd/shared/ui/separator";
+import { ToggleGroup, ToggleGroupItem } from "@/fsd/shared/ui/toggle-group";
 
 function TextFormatFloatingToolbar({
   editor,

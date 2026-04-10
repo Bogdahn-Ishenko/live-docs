@@ -2,7 +2,7 @@ import { DRAG_DROP_PASTE } from "@lexical/rich-text";
 import { isMimeType, mediaFileReader } from "@lexical/utils";
 import { COMMAND_PRIORITY_LOW, defineExtension } from "lexical";
 
-import { INSERT_IMAGE_COMMAND } from "@/components/editor/extensions/images-extension";
+import { INSERT_IMAGE_COMMAND } from "@/fsd/shared/ui/editor/extensions/images-extension";
 
 const ACCEPTABLE_IMAGE_TYPES = [
   "image/",

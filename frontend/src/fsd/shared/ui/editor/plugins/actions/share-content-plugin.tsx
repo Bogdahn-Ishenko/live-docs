@@ -1,3 +1,4 @@
+'use client'
 import { useEffect } from "react";
 
 import {
@@ -14,13 +15,13 @@ import { toast } from "sonner";
 import {
   docFromHash,
   docToHash,
-} from "@/components/editor/utils/doc-serialization";
-import { Button } from "@/components/ui/button";
+} from "@/fsd/shared/ui/editor/utils/doc-serialization";
+import { Button } from "@/fsd/shared/ui/button";
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
-} from "@/components/ui/tooltip";
+} from "@/fsd/shared/ui/tooltip";
 
 export function ShareContentPlugin() {
   const [editor] = useLexicalComposerContext();

@@ -1,7 +1,7 @@
 import { ImageIcon } from "lucide-react";
 
-import { InsertImageDialog } from "@/components/editor/extensions/images-extension";
-import { ComponentPickerOption } from "@/components/editor/plugins/picker/component-picker-option";
+import { InsertImageDialog } from "@/fsd/shared/ui/editor/extensions/images-extension";
+import { ComponentPickerOption } from "@/fsd/shared/ui/editor/plugins/picker/component-picker-option";
 
 export function ImagePickerPlugin() {
   return new ComponentPickerOption("Image", {

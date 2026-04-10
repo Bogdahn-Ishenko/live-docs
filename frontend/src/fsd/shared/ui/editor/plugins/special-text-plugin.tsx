@@ -8,7 +8,7 @@ import { TextNode } from "lexical";
 import {
   $createSpecialTextNode,
   SpecialTextNode,
-} from "@/components/editor/nodes/special-text-node";
+} from "@/fsd/shared/ui/editor/nodes/special-text-node";
 
 const BRACKETED_TEXT_REGEX = /\[([^\[\]]+)\]/; // eslint-disable-line
 

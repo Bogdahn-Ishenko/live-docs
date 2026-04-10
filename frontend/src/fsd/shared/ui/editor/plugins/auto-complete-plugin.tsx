@@ -1,3 +1,4 @@
+'use client'
 import type { JSX } from "react";
 import { useCallback, useEffect } from "react";
 
@@ -25,8 +26,8 @@ import {
 import {
   $createAutocompleteNode,
   AutocompleteNode,
-} from "@/components/editor/nodes/autocomplete-node";
-import { addSwipeRightListener } from "@/components/editor/utils/swipe";
+} from "@/fsd/shared/ui/editor/nodes/autocomplete-node";
+import { addSwipeRightListener } from "../utils/swipe";
 
 const HISTORY_MERGE = { tag: HISTORY_MERGE_TAG };
 

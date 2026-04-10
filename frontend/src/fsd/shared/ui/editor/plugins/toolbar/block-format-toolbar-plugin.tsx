@@ -9,15 +9,15 @@ import {
 
 import { ChevronDownIcon } from "lucide-react";
 
-import { useToolbarContext } from "@/components/editor/context/toolbar-context";
-import { useUpdateToolbarHandler } from "@/components/editor/editor-hooks/use-update-toolbar";
-import { blockTypeToBlockName } from "@/components/editor/plugins/toolbar/block-format/block-format-data";
-import { Button } from "@/components/ui/button";
+import { useToolbarContext } from "@/fsd/shared/ui/editor/context/toolbar-context";
+import { useUpdateToolbarHandler } from "@/fsd/shared/ui/editor/editor-hooks/use-update-toolbar";
+import { blockTypeToBlockName } from "@/fsd/shared/ui/editor/plugins/toolbar/block-format/block-format-data";
+import { Button } from "@/fsd/shared/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+} from "@/fsd/shared/ui/dropdown-menu";
 
 export function BlockFormatDropDown({
   children,

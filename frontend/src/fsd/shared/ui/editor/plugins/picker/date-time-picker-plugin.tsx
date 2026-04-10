@@ -1,7 +1,7 @@
 import { CalendarIcon } from "lucide-react";
 
-import { INSERT_DATETIME_COMMAND } from "@/components/editor/extensions/date-time-extension";
-import { ComponentPickerOption } from "@/components/editor/plugins/picker/component-picker-option";
+import { INSERT_DATETIME_COMMAND } from "@/fsd/shared/ui/editor/extensions/date-time-extension";
+import { ComponentPickerOption } from "@/fsd/shared/ui/editor/plugins/picker/component-picker-option";
 
 export function DateTimePickerPlugin() {
   return new ComponentPickerOption("Date", {

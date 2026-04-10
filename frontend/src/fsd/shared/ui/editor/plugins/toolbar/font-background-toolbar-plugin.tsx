@@ -1,3 +1,4 @@
+'use client'
 import { useCallback, useState } from "react";
 
 import {
@@ -8,8 +9,8 @@ import { $getSelection, $isRangeSelection, type BaseSelection } from "lexical";
 
 import { PaintBucketIcon } from "lucide-react";
 
-import { useToolbarContext } from "@/components/editor/context/toolbar-context";
-import { useUpdateToolbarHandler } from "@/components/editor/editor-hooks/use-update-toolbar";
+import { useToolbarContext } from "@/fsd/shared/ui/editor/context/toolbar-context";
+import { useUpdateToolbarHandler } from "@/fsd/shared/ui/editor/editor-hooks/use-update-toolbar";
 import {
   ColorPicker,
   ColorPickerAlphaSlider,
@@ -20,8 +21,8 @@ import {
   ColorPickerHueSlider,
   ColorPickerInput,
   ColorPickerTrigger,
-} from "@/components/editor/editor-ui/color-picker";
-import { Button } from "@/components/ui/button";
+} from "@/fsd/shared/ui/editor/editor-ui/color-picker";
+import { Button } from "@/fsd/shared/ui/button";
 
 export function FontBackgroundToolbarPlugin() {
   const { activeEditor } = useToolbarContext();

@@ -1,3 +1,4 @@
+'use client'
 import { useCallback, useEffect, useState } from "react";
 
 const SEARCH_PARAMS_EVENT = "search-params-change";

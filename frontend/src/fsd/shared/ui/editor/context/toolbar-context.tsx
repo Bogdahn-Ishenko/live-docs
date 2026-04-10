@@ -1,3 +1,4 @@
+'use client'
 /* eslint-disable react-refresh/only-export-components */
 import { type JSX, createContext, useContext } from "react";
 

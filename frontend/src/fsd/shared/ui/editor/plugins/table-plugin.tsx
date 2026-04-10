@@ -1,3 +1,4 @@
+'use client'
 /**
  * Copyright (c) Meta Platforms, Inc. and affiliates.
  *
@@ -12,10 +13,10 @@ import { INSERT_TABLE_COMMAND } from "@lexical/table";
 import { type LexicalEditor } from "lexical";
 import { useEffect, useState } from "react";
 
-import { Button } from "@/components/ui/button";
-import { DialogFooter } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Button } from "@/fsd/shared/ui/button";
+import { DialogFooter } from "@/fsd/shared/ui/dialog";
+import { Input } from "@/fsd/shared/ui/input";
+import { Label } from "@/fsd/shared/ui/label";
 
 export function InsertTableDialog({
   activeEditor,

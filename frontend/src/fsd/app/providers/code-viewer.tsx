@@ -1,11 +1,12 @@
+'use client'
 import { useEffect, useState } from "react";
 
 import { Check, Copy } from "lucide-react";
 
-import { useCopyToClipboard } from "@/hooks/use-copy-to-clipboard";
-import { highlightCode } from "@/lib/highlight-code";
+import { useCopyToClipboard } from "@/fsd/shared/hooks/use-copy-to-clipboard";
+import { highlightCode } from "@/fsd/shared/lib/highlight-code";
 
-import { Button } from "./ui/button";
+import { Button } from "@/fsd/shared/ui/button";
 
 interface CodeViewerProps {
   code: string;

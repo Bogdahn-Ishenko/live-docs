@@ -1,11 +1,11 @@
 import { Check, Terminal } from "lucide-react";
 
-import { useCopyToClipboard } from "@/hooks/use-copy-to-clipboard";
-import { useSearchParams } from "@/hooks/use-search-params";
+import { useCopyToClipboard } from "@/fsd/shared/hooks/use-copy-to-clipboard";
+import { useSearchParams } from "@/fsd/shared/hooks/use-search-params";
 
-import { Button } from "./ui/button";
-import { Separator } from "./ui/separator";
-import { Tabs, TabsList, TabsTrigger } from "./ui/tabs";
+import { Button } from "@/fsd/shared/ui/button";
+import { Separator } from "@/fsd/shared/ui/separator";
+import { Tabs, TabsList, TabsTrigger } from "@/fsd/shared/ui/tabs";
 
 export function BlockViewerToolbar() {
   const item = {

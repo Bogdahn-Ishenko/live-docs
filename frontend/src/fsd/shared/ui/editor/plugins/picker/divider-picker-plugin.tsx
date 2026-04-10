@@ -2,7 +2,7 @@ import { INSERT_HORIZONTAL_RULE_COMMAND } from "@lexical/react/LexicalHorizontal
 
 import { MinusIcon } from "lucide-react";
 
-import { ComponentPickerOption } from "@/components/editor/plugins/picker/component-picker-option";
+import { ComponentPickerOption } from "@/fsd/shared/ui/editor/plugins/picker/component-picker-option";
 
 export function DividerPickerPlugin() {
   return new ComponentPickerOption("Divider", {

@@ -1,12 +1,12 @@
 import { PlusIcon } from "lucide-react";
 
-import { useEditorModal } from "@/components/editor/editor-hooks/use-modal";
-import { Button } from "@/components/ui/button";
+import { useEditorModal } from "@/fsd/shared/ui/editor/editor-hooks/use-modal";
+import { Button } from "@/fsd/shared/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+} from "@/fsd/shared/ui/dropdown-menu";
 
 export function BlockInsertPlugin({ children }: { children: React.ReactNode }) {
   const [modal] = useEditorModal();

@@ -1,4 +1,4 @@
-import type { BlockViewerContextType } from "@/components/block-viewer-provider";
+import type { BlockViewerContextType } from "@/fsd/shared/ui/block-viewer-provider";
 
 import {
   BASE_SPEC,

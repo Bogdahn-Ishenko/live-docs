@@ -1,8 +1,8 @@
 import { TableIcon } from "lucide-react";
 
-import { useToolbarContext } from "@/components/editor/context/toolbar-context";
-import { InsertTableDialog } from "@/components/editor/plugins/table-plugin";
-import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
+import { useToolbarContext } from "@/fsd/shared/ui/editor/context/toolbar-context";
+import { InsertTableDialog } from "@/fsd/shared/ui/editor/plugins/table-plugin";
+import { DropdownMenuItem } from "@/fsd/shared/ui/dropdown-menu";
 
 export function InsertTable() {
   const { activeEditor, showModal } = useToolbarContext();

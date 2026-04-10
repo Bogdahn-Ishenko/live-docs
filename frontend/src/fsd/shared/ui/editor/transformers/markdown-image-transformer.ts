@@ -4,7 +4,7 @@ import {
   $createImageNode,
   $isImageNode,
   ImageNode,
-} from "@/components/editor/nodes/image-node";
+} from "@/fsd/shared/ui/editor/nodes/image-node";
 
 export const IMAGE: TextMatchTransformer = {
   dependencies: [ImageNode],

@@ -57,21 +57,21 @@ export const BASE_SPEC: FeatureSpec = {
       specifiers: ["configExtension", "defineExtension"],
       typeSpecifiers: ["EditorState", "SerializedEditorState"],
     },
-    { source: "@/components/block-viewer-provider", specifiers: ["useBlockViewer"] },
+    { source: "@/fsd/shared/ui/block-viewer-provider", specifiers: ["useBlockViewer"] },
     {
-      source: "@/components/editor/editor-ui/content-editable",
+      source: "@/fsd/shared/ui/editor/editor-ui/content-editable",
       specifiers: ["ContentEditable"],
     },
     {
-      source: "@/components/editor/plugins/actions/actions-plugin",
+      source: "@/fsd/shared/ui/editor/plugins/actions/actions-plugin",
       specifiers: ["ActionsPlugin"],
     },
     {
-      source: "@/components/editor/plugins/toolbar/toolbar-plugin",
+      source: "@/fsd/shared/ui/editor/plugins/toolbar/toolbar-plugin",
       specifiers: ["ToolbarPlugin"],
     },
-    { source: "@/components/editor/themes/editor-theme", specifiers: ["editorTheme"] },
-    { source: "@/components/ui/tooltip", specifiers: ["TooltipProvider"] },
+    { source: "@/fsd/shared/ui/editor/themes/editor-theme", specifiers: ["editorTheme"] },
+    { source: "@/fsd/shared/ui/tooltip", specifiers: ["TooltipProvider"] },
   ],
   extensions: ["RichTextExtension", "AutoFocusExtension", "SelectionAlwaysOnDisplayExtension"],
   nodes: [],
@@ -89,10 +89,10 @@ export const FEATURE_REGISTRY: Record<string, FeatureSpec> = {
     imports: [
       { source: "@lexical/history", specifiers: ["HistoryExtension"] },
       {
-        source: "@/components/editor/plugins/toolbar/history-toolbar-plugin",
+        source: "@/fsd/shared/ui/editor/plugins/toolbar/history-toolbar-plugin",
         specifiers: ["HistoryToolbarPlugin"],
       },
-      { source: "@/components/ui/separator", specifiers: ["Separator"] },
+      { source: "@/fsd/shared/ui/separator", specifiers: ["Separator"] },
     ],
     extensions: ["HistoryExtension"],
     plugins: {
@@ -106,35 +106,35 @@ export const FEATURE_REGISTRY: Record<string, FeatureSpec> = {
   "toolbarItems.blockFormat": {
     imports: [
       {
-        source: "@/components/editor/plugins/toolbar/block-format-toolbar-plugin",
+        source: "@/fsd/shared/ui/editor/plugins/toolbar/block-format-toolbar-plugin",
         specifiers: ["BlockFormatDropDown"],
       },
       {
-        source: "@/components/editor/plugins/toolbar/block-format/format-bulleted-list",
+        source: "@/fsd/shared/ui/editor/plugins/toolbar/block-format/format-bulleted-list",
         specifiers: ["FormatBulletedList"],
       },
       {
-        source: "@/components/editor/plugins/toolbar/block-format/format-check-list",
+        source: "@/fsd/shared/ui/editor/plugins/toolbar/block-format/format-check-list",
         specifiers: ["FormatCheckList"],
       },
       {
-        source: "@/components/editor/plugins/toolbar/block-format/format-code-block",
+        source: "@/fsd/shared/ui/editor/plugins/toolbar/block-format/format-code-block",
         specifiers: ["FormatCodeBlock"],
       },
       {
-        source: "@/components/editor/plugins/toolbar/block-format/format-heading",
+        source: "@/fsd/shared/ui/editor/plugins/toolbar/block-format/format-heading",
         specifiers: ["FormatHeading"],
       },
       {
-        source: "@/components/editor/plugins/toolbar/block-format/format-numbered-list",
+        source: "@/fsd/shared/ui/editor/plugins/toolbar/block-format/format-numbered-list",
         specifiers: ["FormatNumberedList"],
       },
       {
-        source: "@/components/editor/plugins/toolbar/block-format/format-paragraph",
+        source: "@/fsd/shared/ui/editor/plugins/toolbar/block-format/format-paragraph",
         specifiers: ["FormatParagraph"],
       },
       {
-        source: "@/components/editor/plugins/toolbar/block-format/format-quote",
+        source: "@/fsd/shared/ui/editor/plugins/toolbar/block-format/format-quote",
         specifiers: ["FormatQuote"],
       },
     ],
@@ -148,10 +148,10 @@ export const FEATURE_REGISTRY: Record<string, FeatureSpec> = {
   "toolbarItems.fontFamily": {
     imports: [
       {
-        source: "@/components/editor/plugins/toolbar/font-family-toolbar-plugin",
+        source: "@/fsd/shared/ui/editor/plugins/toolbar/font-family-toolbar-plugin",
         specifiers: ["FontFamilyToolbarPlugin"],
       },
-      { source: "@/components/ui/separator", specifiers: ["Separator"] },
+      { source: "@/fsd/shared/ui/separator", specifiers: ["Separator"] },
     ],
     plugins: {
       toolbar_font: [
@@ -164,10 +164,10 @@ export const FEATURE_REGISTRY: Record<string, FeatureSpec> = {
   "toolbarItems.fontSize": {
     imports: [
       {
-        source: "@/components/editor/plugins/toolbar/font-size-toolbar-plugin",
+        source: "@/fsd/shared/ui/editor/plugins/toolbar/font-size-toolbar-plugin",
         specifiers: ["FontSizeToolbarPlugin"],
       },
-      { source: "@/components/ui/separator", specifiers: ["Separator"] },
+      { source: "@/fsd/shared/ui/separator", specifiers: ["Separator"] },
     ],
     plugins: {
       toolbar_font: [
@@ -180,10 +180,10 @@ export const FEATURE_REGISTRY: Record<string, FeatureSpec> = {
   "toolbarItems.fontFormat": {
     imports: [
       {
-        source: "@/components/editor/plugins/toolbar/font-format-toolbar-plugin",
+        source: "@/fsd/shared/ui/editor/plugins/toolbar/font-format-toolbar-plugin",
         specifiers: ["FontFormatToolbarPlugin"],
       },
-      { source: "@/components/ui/separator", specifiers: ["Separator"] },
+      { source: "@/fsd/shared/ui/separator", specifiers: ["Separator"] },
     ],
     plugins: {
       toolbar_font: [
@@ -196,10 +196,10 @@ export const FEATURE_REGISTRY: Record<string, FeatureSpec> = {
   "toolbarItems.subSuper": {
     imports: [
       {
-        source: "@/components/editor/plugins/toolbar/subsuper-toolbar-plugin",
+        source: "@/fsd/shared/ui/editor/plugins/toolbar/subsuper-toolbar-plugin",
         specifiers: ["SubSuperToolbarPlugin"],
       },
-      { source: "@/components/ui/separator", specifiers: ["Separator"] },
+      { source: "@/fsd/shared/ui/separator", specifiers: ["Separator"] },
     ],
     plugins: {
       toolbar_font: [
@@ -216,11 +216,11 @@ export const FEATURE_REGISTRY: Record<string, FeatureSpec> = {
         specifiers: ["AutoLinkExtension", "ClickableLinkExtension", "LinkExtension"],
       },
       {
-        source: "@/components/editor/plugins/toolbar/link-toolbar-plugin",
+        source: "@/fsd/shared/ui/editor/plugins/toolbar/link-toolbar-plugin",
         specifiers: ["LinkToolbarPlugin"],
       },
-      { source: "@/components/editor/utils/url", specifiers: ["validateUrl"] },
-      { source: "@/components/ui/separator", specifiers: ["Separator"] },
+      { source: "@/fsd/shared/ui/editor/utils/url", specifiers: ["validateUrl"] },
+      { source: "@/fsd/shared/ui/separator", specifiers: ["Separator"] },
     ],
     extensions: [
       `configExtension(LinkExtension, {\n  validateUrl,\n  attributes: { rel: "noopener noreferrer", target: "_blank" },\n})`,
@@ -238,10 +238,10 @@ export const FEATURE_REGISTRY: Record<string, FeatureSpec> = {
   "toolbarItems.clearFormatting": {
     imports: [
       {
-        source: "@/components/editor/plugins/toolbar/clear-formatting-toolbar-plugin",
+        source: "@/fsd/shared/ui/editor/plugins/toolbar/clear-formatting-toolbar-plugin",
         specifiers: ["ClearFormattingToolbarPlugin"],
       },
-      { source: "@/components/ui/separator", specifiers: ["Separator"] },
+      { source: "@/fsd/shared/ui/separator", specifiers: ["Separator"] },
     ],
     plugins: {
       toolbar_font: [
@@ -254,7 +254,7 @@ export const FEATURE_REGISTRY: Record<string, FeatureSpec> = {
   "toolbarItems.fontColor": {
     imports: [
       {
-        source: "@/components/editor/plugins/toolbar/font-color-toolbar-plugin",
+        source: "@/fsd/shared/ui/editor/plugins/toolbar/font-color-toolbar-plugin",
         specifiers: ["FontColorToolbarPlugin"],
       },
     ],
@@ -266,10 +266,10 @@ export const FEATURE_REGISTRY: Record<string, FeatureSpec> = {
   "toolbarItems.fontBackground": {
     imports: [
       {
-        source: "@/components/editor/plugins/toolbar/font-background-toolbar-plugin",
+        source: "@/fsd/shared/ui/editor/plugins/toolbar/font-background-toolbar-plugin",
         specifiers: ["FontBackgroundToolbarPlugin"],
       },
-      { source: "@/components/ui/separator", specifiers: ["Separator"] },
+      { source: "@/fsd/shared/ui/separator", specifiers: ["Separator"] },
     ],
     plugins: {
       toolbar_font: [
@@ -282,10 +282,10 @@ export const FEATURE_REGISTRY: Record<string, FeatureSpec> = {
   "toolbarItems.fontAlignment": {
     imports: [
       {
-        source: "@/components/editor/plugins/toolbar/element-format-toolbar-plugin",
+        source: "@/fsd/shared/ui/editor/plugins/toolbar/element-format-toolbar-plugin",
         specifiers: ["ElementFormatToolbarPlugin"],
       },
-      { source: "@/components/ui/separator", specifiers: ["Separator"] },
+      { source: "@/fsd/shared/ui/separator", specifiers: ["Separator"] },
     ],
     plugins: {
       toolbar_font: [
@@ -298,7 +298,7 @@ export const FEATURE_REGISTRY: Record<string, FeatureSpec> = {
   "toolbarItems.blockInsert": {
     imports: [
       {
-        source: "@/components/editor/plugins/toolbar/block-insert-plugin",
+        source: "@/fsd/shared/ui/editor/plugins/toolbar/block-insert-plugin",
         specifiers: ["BlockInsertPlugin"],
       },
     ],
@@ -311,15 +311,15 @@ export const FEATURE_REGISTRY: Record<string, FeatureSpec> = {
     imports: [
       { source: "@lexical/code", specifiers: ["CodeHighlightNode", "CodeNode"] },
       {
-        source: "@/components/editor/plugins/code-action-menu-plugin",
+        source: "@/fsd/shared/ui/editor/plugins/code-action-menu-plugin",
         specifiers: ["CodeActionMenuPlugin"],
       },
       {
-        source: "@/components/editor/plugins/code-highlight-plugin",
+        source: "@/fsd/shared/ui/editor/plugins/code-highlight-plugin",
         specifiers: ["CodeHighlightPlugin"],
       },
       {
-        source: "@/components/editor/plugins/toolbar/code-language-toolbar-plugin",
+        source: "@/fsd/shared/ui/editor/plugins/toolbar/code-language-toolbar-plugin",
         specifiers: ["CodeLanguageToolbarPlugin"],
       },
     ],
@@ -356,7 +356,7 @@ export const FEATURE_REGISTRY: Record<string, FeatureSpec> = {
     imports: [
       { source: "@lexical/extension", specifiers: ["HorizontalRuleExtension"] },
       {
-        source: "@/components/editor/plugins/toolbar/block-insert/insert-horizontal-rule",
+        source: "@/fsd/shared/ui/editor/plugins/toolbar/block-insert/insert-horizontal-rule",
         specifiers: ["InsertHorizontalRule"],
       },
     ],
@@ -369,11 +369,11 @@ export const FEATURE_REGISTRY: Record<string, FeatureSpec> = {
   "blockInsertItems.image": {
     imports: [
       {
-        source: "@/components/editor/extensions/images-extension",
+        source: "@/fsd/shared/ui/editor/extensions/images-extension",
         specifiers: ["ImagesExtension"],
       },
       {
-        source: "@/components/editor/plugins/toolbar/block-insert/insert-image",
+        source: "@/fsd/shared/ui/editor/plugins/toolbar/block-insert/insert-image",
         specifiers: ["InsertImage"],
       },
     ],
@@ -388,7 +388,7 @@ export const FEATURE_REGISTRY: Record<string, FeatureSpec> = {
       { source: "@lexical/react/LexicalTablePlugin", specifiers: ["TablePlugin"] },
       { source: "@lexical/table", specifiers: ["TableCellNode", "TableNode", "TableRowNode"] },
       {
-        source: "@/components/editor/plugins/toolbar/block-insert/insert-table",
+        source: "@/fsd/shared/ui/editor/plugins/toolbar/block-insert/insert-table",
         specifiers: ["InsertTable"],
       },
     ],
@@ -402,13 +402,13 @@ export const FEATURE_REGISTRY: Record<string, FeatureSpec> = {
   "blockInsertItems.columnsLayout": {
     imports: [
       {
-        source: "@/components/editor/nodes/layout-container-node",
+        source: "@/fsd/shared/ui/editor/nodes/layout-container-node",
         specifiers: ["LayoutContainerNode"],
       },
-      { source: "@/components/editor/nodes/layout-item-node", specifiers: ["LayoutItemNode"] },
-      { source: "@/components/editor/plugins/layout-plugin", specifiers: ["LayoutPlugin"] },
+      { source: "@/fsd/shared/ui/editor/nodes/layout-item-node", specifiers: ["LayoutItemNode"] },
+      { source: "@/fsd/shared/ui/editor/plugins/layout-plugin", specifiers: ["LayoutPlugin"] },
       {
-        source: "@/components/editor/plugins/toolbar/block-insert/insert-columns-layout",
+        source: "@/fsd/shared/ui/editor/plugins/toolbar/block-insert/insert-columns-layout",
         specifiers: ["InsertColumnsLayout"],
       },
     ],
@@ -421,18 +421,18 @@ export const FEATURE_REGISTRY: Record<string, FeatureSpec> = {
 
   "blockInsertItems.embeds": {
     imports: [
-      { source: "@/components/editor/nodes/embeds/tweet-node", specifiers: ["TweetNode"] },
-      { source: "@/components/editor/nodes/embeds/youtube-node", specifiers: ["YouTubeNode"] },
+      { source: "@/fsd/shared/ui/editor/nodes/embeds/tweet-node", specifiers: ["TweetNode"] },
+      { source: "@/fsd/shared/ui/editor/nodes/embeds/youtube-node", specifiers: ["YouTubeNode"] },
       {
-        source: "@/components/editor/plugins/embeds/twitter-plugin",
+        source: "@/fsd/shared/ui/editor/plugins/embeds/twitter-plugin",
         specifiers: ["TwitterPlugin"],
       },
       {
-        source: "@/components/editor/plugins/embeds/youtube-plugin",
+        source: "@/fsd/shared/ui/editor/plugins/embeds/youtube-plugin",
         specifiers: ["YouTubePlugin"],
       },
       {
-        source: "@/components/editor/plugins/toolbar/block-insert/insert-embeds",
+        source: "@/fsd/shared/ui/editor/plugins/toolbar/block-insert/insert-embeds",
         specifiers: ["InsertEmbeds"],
       },
     ],
@@ -448,7 +448,7 @@ export const FEATURE_REGISTRY: Record<string, FeatureSpec> = {
   "pluginItems.componentPicker": {
     imports: [
       {
-        source: "@/components/editor/plugins/component-picker-menu-plugin",
+        source: "@/fsd/shared/ui/editor/plugins/component-picker-menu-plugin",
         specifiers: ["ComponentPickerMenuPlugin"],
       },
     ],
@@ -461,12 +461,12 @@ export const FEATURE_REGISTRY: Record<string, FeatureSpec> = {
   "pluginItems.emojiPicker": {
     imports: [
       {
-        source: "@/components/editor/extensions/emojis-extension",
+        source: "@/fsd/shared/ui/editor/extensions/emojis-extension",
         specifiers: ["EmojisExtension"],
       },
-      { source: "@/components/editor/nodes/emoji-node", specifiers: ["EmojiNode"] },
+      { source: "@/fsd/shared/ui/editor/nodes/emoji-node", specifiers: ["EmojiNode"] },
       {
-        source: "@/components/editor/plugins/emoji-picker-plugin",
+        source: "@/fsd/shared/ui/editor/plugins/emoji-picker-plugin",
         specifiers: ["EmojiPickerPlugin"],
       },
     ],
@@ -480,7 +480,7 @@ export const FEATURE_REGISTRY: Record<string, FeatureSpec> = {
   "pluginItems.autoEmbed": {
     imports: [
       {
-        source: "@/components/editor/plugins/embeds/auto-embed-plugin",
+        source: "@/fsd/shared/ui/editor/plugins/embeds/auto-embed-plugin",
         specifiers: ["AutoEmbedPlugin"],
       },
     ],
@@ -491,8 +491,8 @@ export const FEATURE_REGISTRY: Record<string, FeatureSpec> = {
 
   "pluginItems.mentions": {
     imports: [
-      { source: "@/components/editor/nodes/mention-node", specifiers: ["MentionNode"] },
-      { source: "@/components/editor/plugins/mentions-plugin", specifiers: ["MentionsPlugin"] },
+      { source: "@/fsd/shared/ui/editor/nodes/mention-node", specifiers: ["MentionNode"] },
+      { source: "@/fsd/shared/ui/editor/plugins/mentions-plugin", specifiers: ["MentionsPlugin"] },
     ],
     nodes: ["MentionNode"],
     plugins: {
@@ -503,7 +503,7 @@ export const FEATURE_REGISTRY: Record<string, FeatureSpec> = {
   "pluginItems.draggableBlock": {
     imports: [
       {
-        source: "@/components/editor/plugins/draggable-block-plugin",
+        source: "@/fsd/shared/ui/editor/plugins/draggable-block-plugin",
         specifiers: ["DraggableBlockPlugin"],
       },
     ],
@@ -517,11 +517,11 @@ export const FEATURE_REGISTRY: Record<string, FeatureSpec> = {
   "pluginItems.autoComplete": {
     imports: [
       {
-        source: "@/components/editor/nodes/autocomplete-node",
+        source: "@/fsd/shared/ui/editor/nodes/autocomplete-node",
         specifiers: ["AutocompleteNode"],
       },
       {
-        source: "@/components/editor/plugins/auto-complete-plugin",
+        source: "@/fsd/shared/ui/editor/plugins/auto-complete-plugin",
         specifiers: ["AutoCompletePlugin"],
       },
     ],
@@ -534,7 +534,7 @@ export const FEATURE_REGISTRY: Record<string, FeatureSpec> = {
   "pluginItems.floatingTextToolbar": {
     imports: [
       {
-        source: "@/components/editor/plugins/floating-text-format-plugin",
+        source: "@/fsd/shared/ui/editor/plugins/floating-text-format-plugin",
         specifiers: ["FloatingTextFormatToolbarPlugin"],
       },
     ],
@@ -548,7 +548,7 @@ export const FEATURE_REGISTRY: Record<string, FeatureSpec> = {
   "pluginItems.floatingLinkToolbar": {
     imports: [
       {
-        source: "@/components/editor/plugins/floating-link-editor-plugin",
+        source: "@/fsd/shared/ui/editor/plugins/floating-link-editor-plugin",
         specifiers: ["FloatingLinkEditorPlugin"],
       },
     ],
@@ -562,7 +562,7 @@ export const FEATURE_REGISTRY: Record<string, FeatureSpec> = {
   "pluginItems.contextMenu": {
     imports: [
       {
-        source: "@/components/editor/plugins/context-menu-plugin",
+        source: "@/fsd/shared/ui/editor/plugins/context-menu-plugin",
         specifiers: ["ContextMenuPlugin"],
       },
     ],
@@ -578,11 +578,11 @@ export const FEATURE_REGISTRY: Record<string, FeatureSpec> = {
         specifiers: ["DecoratorTextExtension"],
       },
       {
-        source: "@/components/editor/nodes/special-text-node",
+        source: "@/fsd/shared/ui/editor/nodes/special-text-node",
         specifiers: ["SpecialTextNode"],
       },
       {
-        source: "@/components/editor/plugins/special-text-plugin",
+        source: "@/fsd/shared/ui/editor/plugins/special-text-plugin",
         specifiers: ["SpecialTextPlugin"],
       },
     ],
@@ -595,7 +595,7 @@ export const FEATURE_REGISTRY: Record<string, FeatureSpec> = {
 
   "pluginItems.tabFocus": {
     imports: [
-      { source: "@/components/editor/plugins/tab-focus-plugin", specifiers: ["TabFocusPlugin"] },
+      { source: "@/fsd/shared/ui/editor/plugins/tab-focus-plugin", specifiers: ["TabFocusPlugin"] },
     ],
     plugins: {
       content: ["<TabFocusPlugin />"],
@@ -624,11 +624,11 @@ export const FEATURE_REGISTRY: Record<string, FeatureSpec> = {
         specifiers: ["CharacterLimitPlugin"],
       },
       {
-        source: "@/components/editor/extensions/max-length-extension",
+        source: "@/fsd/shared/ui/editor/extensions/max-length-extension",
         specifiers: ["MaxLengthExtension"],
       },
       {
-        source: "@/components/editor/plugins/actions/counter-character-plugin",
+        source: "@/fsd/shared/ui/editor/plugins/actions/counter-character-plugin",
         specifiers: ["CounterCharacterPlugin"],
       },
     ],
@@ -643,7 +643,7 @@ export const FEATURE_REGISTRY: Record<string, FeatureSpec> = {
   "footerItems.speechToText": {
     imports: [
       {
-        source: "@/components/editor/plugins/actions/speech-to-text-plugin",
+        source: "@/fsd/shared/ui/editor/plugins/actions/speech-to-text-plugin",
         specifiers: ["SpeechToTextPlugin"],
       },
     ],
@@ -653,7 +653,7 @@ export const FEATURE_REGISTRY: Record<string, FeatureSpec> = {
   "footerItems.shareContent": {
     imports: [
       {
-        source: "@/components/editor/plugins/actions/share-content-plugin",
+        source: "@/fsd/shared/ui/editor/plugins/actions/share-content-plugin",
         specifiers: ["ShareContentPlugin"],
       },
     ],
@@ -663,7 +663,7 @@ export const FEATURE_REGISTRY: Record<string, FeatureSpec> = {
   "footerItems.exportImport": {
     imports: [
       {
-        source: "@/components/editor/plugins/actions/import-export-plugin",
+        source: "@/fsd/shared/ui/editor/plugins/actions/import-export-plugin",
         specifiers: ["ImportExportPlugin"],
       },
     ],
@@ -683,31 +683,31 @@ export const FEATURE_REGISTRY: Record<string, FeatureSpec> = {
         ],
       },
       {
-        source: "@/components/editor/extensions/markdown-shortcuts-extension",
+        source: "@/fsd/shared/ui/editor/extensions/markdown-shortcuts-extension",
         specifiers: ["MarkdownShortcutsExtension"],
       },
       {
-        source: "@/components/editor/plugins/actions/markdown-toggle-plugin",
+        source: "@/fsd/shared/ui/editor/plugins/actions/markdown-toggle-plugin",
         specifiers: ["MarkdownTogglePlugin"],
       },
       {
-        source: "@/components/editor/transformers/markdown-emoji-transformer",
+        source: "@/fsd/shared/ui/editor/transformers/markdown-emoji-transformer",
         specifiers: ["EMOJI"],
       },
       {
-        source: "@/components/editor/transformers/markdown-hr-transformer",
+        source: "@/fsd/shared/ui/editor/transformers/markdown-hr-transformer",
         specifiers: ["HR"],
       },
       {
-        source: "@/components/editor/transformers/markdown-image-transformer",
+        source: "@/fsd/shared/ui/editor/transformers/markdown-image-transformer",
         specifiers: ["IMAGE"],
       },
       {
-        source: "@/components/editor/transformers/markdown-table-transformer",
+        source: "@/fsd/shared/ui/editor/transformers/markdown-table-transformer",
         specifiers: ["TABLE"],
       },
       {
-        source: "@/components/editor/transformers/markdown-tweet-transformer",
+        source: "@/fsd/shared/ui/editor/transformers/markdown-tweet-transformer",
         specifiers: ["TWEET"],
       },
     ],
@@ -724,7 +724,7 @@ export const FEATURE_REGISTRY: Record<string, FeatureSpec> = {
   "footerItems.viewOnly": {
     imports: [
       {
-        source: "@/components/editor/plugins/actions/edit-mode-toggle-plugin",
+        source: "@/fsd/shared/ui/editor/plugins/actions/edit-mode-toggle-plugin",
         specifiers: ["EditModeTogglePlugin"],
       },
     ],
@@ -735,7 +735,7 @@ export const FEATURE_REGISTRY: Record<string, FeatureSpec> = {
     imports: [
       { source: "@lexical/extension", specifiers: ["ClearEditorExtension"] },
       {
-        source: "@/components/editor/plugins/actions/clear-editor-plugin",
+        source: "@/fsd/shared/ui/editor/plugins/actions/clear-editor-plugin",
         specifiers: ["ClearEditorActionPlugin"],
       },
     ],
@@ -746,7 +746,7 @@ export const FEATURE_REGISTRY: Record<string, FeatureSpec> = {
   "footerItems.treeView": {
     imports: [
       {
-        source: "@/components/editor/plugins/actions/tree-view-plugin",
+        source: "@/fsd/shared/ui/editor/plugins/actions/tree-view-plugin",
         specifiers: ["TreeViewPlugin"],
       },
     ],
@@ -760,11 +760,11 @@ export const FEATURE_REGISTRY: Record<string, FeatureSpec> = {
   "componentPickerItems.dateTime": {
     imports: [
       {
-        source: "@/components/editor/extensions/date-time-extension",
+        source: "@/fsd/shared/ui/editor/extensions/date-time-extension",
         specifiers: ["DateTimeExtension"],
       },
       {
-        source: "@/components/editor/plugins/picker/date-time-picker-plugin",
+        source: "@/fsd/shared/ui/editor/plugins/picker/date-time-picker-plugin",
         specifiers: ["DateTimePickerPlugin"],
       },
     ],
@@ -773,13 +773,13 @@ export const FEATURE_REGISTRY: Record<string, FeatureSpec> = {
 
   "componentPickerItems.tweetEmbed": {
     imports: [
-      { source: "@/components/editor/nodes/embeds/tweet-node", specifiers: ["TweetNode"] },
+      { source: "@/fsd/shared/ui/editor/nodes/embeds/tweet-node", specifiers: ["TweetNode"] },
       {
-        source: "@/components/editor/plugins/embeds/twitter-plugin",
+        source: "@/fsd/shared/ui/editor/plugins/embeds/twitter-plugin",
         specifiers: ["TwitterPlugin"],
       },
       {
-        source: "@/components/editor/plugins/picker/embeds-picker-plugin",
+        source: "@/fsd/shared/ui/editor/plugins/picker/embeds-picker-plugin",
         specifiers: ["EmbedsPickerPlugin"],
       },
     ],
@@ -791,13 +791,13 @@ export const FEATURE_REGISTRY: Record<string, FeatureSpec> = {
 
   "componentPickerItems.youtubeEmbed": {
     imports: [
-      { source: "@/components/editor/nodes/embeds/youtube-node", specifiers: ["YouTubeNode"] },
+      { source: "@/fsd/shared/ui/editor/nodes/embeds/youtube-node", specifiers: ["YouTubeNode"] },
       {
-        source: "@/components/editor/plugins/embeds/youtube-plugin",
+        source: "@/fsd/shared/ui/editor/plugins/embeds/youtube-plugin",
         specifiers: ["YouTubePlugin"],
       },
       {
-        source: "@/components/editor/plugins/picker/embeds-picker-plugin",
+        source: "@/fsd/shared/ui/editor/plugins/picker/embeds-picker-plugin",
         specifiers: ["EmbedsPickerPlugin"],
       },
     ],

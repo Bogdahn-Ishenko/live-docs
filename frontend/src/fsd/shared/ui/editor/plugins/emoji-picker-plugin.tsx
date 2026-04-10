@@ -1,3 +1,4 @@
+'use client'
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { createPortal } from "react-dom";
@@ -20,7 +21,7 @@ import {
   CommandGroup,
   CommandItem,
   CommandList,
-} from "@/components/ui/command";
+} from "@/fsd/shared/ui/command";
 
 // const LexicalTypeaheadMenuPlugin = dynamic(
 //   () =>

@@ -1,3 +1,4 @@
+'use client'
 import { useCallback, useState } from "react";
 
 import {
@@ -8,15 +9,15 @@ import { $getSelection, $isRangeSelection, type BaseSelection } from "lexical";
 
 import { ChevronDownIcon, TypeIcon } from "lucide-react";
 
-import { useToolbarContext } from "@/components/editor/context/toolbar-context";
-import { useUpdateToolbarHandler } from "@/components/editor/editor-hooks/use-update-toolbar";
-import { Button } from "@/components/ui/button";
+import { useToolbarContext } from "@/fsd/shared/ui/editor/context/toolbar-context";
+import { useUpdateToolbarHandler } from "@/fsd/shared/ui/editor/editor-hooks/use-update-toolbar";
+import { Button } from "@/fsd/shared/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+} from "@/fsd/shared/ui/dropdown-menu";
 
 const FONT_FAMILY_OPTIONS = [
   "Arial",

@@ -3,8 +3,8 @@ import { INSERT_EMBED_COMMAND } from "@lexical/react/LexicalAutoEmbedPlugin";
 import {
   type CustomEmbedConfig,
   EmbedConfigs,
-} from "@/components/editor/plugins/embeds/auto-embed-plugin";
-import { ComponentPickerOption } from "@/components/editor/plugins/picker/component-picker-option";
+} from "@/fsd/shared/ui/editor/plugins/embeds/auto-embed-plugin";
+import { ComponentPickerOption } from "@/fsd/shared/ui/editor/plugins/picker/component-picker-option";
 
 export function EmbedsPickerPlugin({
   embed,

@@ -1,3 +1,4 @@
+'use client'
 import {
   type JSX,
   useCallback,
@@ -23,8 +24,8 @@ import {
 
 import { GripVerticalIcon, PlusIcon } from "lucide-react";
 
-import { useEditorModal } from "@/components/editor/editor-hooks/use-modal";
-import { Button } from "@/components/ui/button";
+import { useEditorModal } from "@/fsd/shared/ui/editor/editor-hooks/use-modal";
+import { Button } from "@/fsd/shared/ui/button";
 import {
   Command,
   CommandEmpty,
@@ -32,7 +33,7 @@ import {
   CommandInput,
   CommandItem,
   CommandList,
-} from "@/components/ui/command";
+} from "@/fsd/shared/ui/command";
 
 import { ComponentPickerOption } from "./picker/component-picker-option";
 

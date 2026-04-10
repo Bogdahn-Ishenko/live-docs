@@ -3,12 +3,12 @@ import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext
 
 import { DownloadIcon, UploadIcon } from "lucide-react";
 
-import { Button } from "@/components/ui/button";
+import { Button } from "@/fsd/shared/ui/button";
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
-} from "@/components/ui/tooltip";
+} from "@/fsd/shared/ui/tooltip";
 
 export function ImportExportPlugin() {
   const [editor] = useLexicalComposerContext();

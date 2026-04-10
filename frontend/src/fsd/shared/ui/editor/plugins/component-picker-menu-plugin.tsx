@@ -1,3 +1,4 @@
+'use client'
 import {
   type JSX,
   useCallback,
@@ -14,13 +15,13 @@ import { useBasicTypeaheadTriggerMatch } from "@lexical/react/LexicalTypeaheadMe
 import { LexicalTypeaheadMenuPlugin } from "@lexical/react/LexicalTypeaheadMenuPlugin";
 import { TextNode } from "lexical";
 
-import { useEditorModal } from "@/components/editor/editor-hooks/use-modal";
+import { useEditorModal } from "@/fsd/shared/ui/editor/editor-hooks/use-modal";
 import {
   Command,
   CommandGroup,
   CommandItem,
   CommandList,
-} from "@/components/ui/command";
+} from "@/fsd/shared/ui/command";
 
 import { ComponentPickerOption } from "./picker/component-picker-option";
 

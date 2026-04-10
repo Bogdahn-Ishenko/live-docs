@@ -1,3 +1,4 @@
+'use client'
 import { useEffect, useRef, useState } from "react";
 
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
@@ -13,14 +14,14 @@ import {
 
 import { MicIcon } from "lucide-react";
 
-import { useReport } from "@/components/editor/editor-hooks/use-report";
-import { CAN_USE_DOM } from "@/components/editor/shared/can-use-dom";
-import { Button } from "@/components/ui/button";
+import { useReport } from "@/fsd/shared/ui/editor/editor-hooks/use-report";
+import { CAN_USE_DOM } from "@/fsd/shared/ui/editor/shared/can-use-dom";
+import { Button } from "@/fsd/shared/ui/button";
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
-} from "@/components/ui/tooltip";
+} from "@/fsd/shared/ui/tooltip";
 
 export const SPEECH_TO_TEXT_COMMAND: LexicalCommand<boolean> = createCommand(
   "SPEECH_TO_TEXT_COMMAND",

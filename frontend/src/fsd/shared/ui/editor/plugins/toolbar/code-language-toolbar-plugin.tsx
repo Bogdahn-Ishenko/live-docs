@@ -1,3 +1,4 @@
+'use client'
 import { useCallback, useState } from "react";
 
 import { $isCodeNode } from "@lexical/code";
@@ -15,15 +16,15 @@ import {
   type BaseSelection,
 } from "lexical";
 
-import { useToolbarContext } from "@/components/editor/context/toolbar-context";
-import { useUpdateToolbarHandler } from "@/components/editor/editor-hooks/use-update-toolbar";
+import { useToolbarContext } from "@/fsd/shared/ui/editor/context/toolbar-context";
+import { useUpdateToolbarHandler } from "@/fsd/shared/ui/editor/editor-hooks/use-update-toolbar";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from "@/fsd/shared/ui/select";
 
 function getCodeLanguageOptions(): [string, string][] {
   const options: [string, string][] = [];

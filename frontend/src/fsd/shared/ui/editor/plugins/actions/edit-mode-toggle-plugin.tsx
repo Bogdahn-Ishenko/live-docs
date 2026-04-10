@@ -1,15 +1,16 @@
+'use client'
 import { useState } from "react";
 
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
 
 import { LockIcon, UnlockIcon } from "lucide-react";
 
-import { Button } from "@/components/ui/button";
+import { Button } from "@/fsd/shared/ui/button";
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
-} from "@/components/ui/tooltip";
+} from "@/fsd/shared/ui/tooltip";
 
 export function EditModeTogglePlugin() {
   const [editor] = useLexicalComposerContext();

@@ -1,8 +1,8 @@
 import { INSERT_EMBED_COMMAND } from "@lexical/react/LexicalAutoEmbedPlugin";
 
-import { useToolbarContext } from "@/components/editor/context/toolbar-context";
-import { EmbedConfigs } from "@/components/editor/plugins/embeds/auto-embed-plugin";
-import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
+import { useToolbarContext } from "@/fsd/shared/ui/editor/context/toolbar-context";
+import { EmbedConfigs } from "@/fsd/shared/ui/editor/plugins/embeds/auto-embed-plugin";
+import { DropdownMenuItem } from "@/fsd/shared/ui/dropdown-menu";
 
 export function InsertEmbeds() {
   const { activeEditor } = useToolbarContext();

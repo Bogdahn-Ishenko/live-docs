@@ -1,3 +1,4 @@
+'use client'
 import { useState } from "react";
 
 import { $isTableSelection } from "@lexical/table";
@@ -9,9 +10,9 @@ import {
 
 import { SubscriptIcon, SuperscriptIcon } from "lucide-react";
 
-import { useToolbarContext } from "@/components/editor/context/toolbar-context";
-import { useUpdateToolbarHandler } from "@/components/editor/editor-hooks/use-update-toolbar";
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { useToolbarContext } from "@/fsd/shared/ui/editor/context/toolbar-context";
+import { useUpdateToolbarHandler } from "@/fsd/shared/ui/editor/editor-hooks/use-update-toolbar";
+import { ToggleGroup, ToggleGroupItem } from "@/fsd/shared/ui/toggle-group";
 
 export function SubSuperToolbarPlugin() {
   const { activeEditor } = useToolbarContext();

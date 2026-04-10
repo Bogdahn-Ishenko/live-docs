@@ -5,7 +5,7 @@ import * as React from "react";
 import { Check, ChevronDown, ChevronRight } from "lucide-react";
 import { DropdownMenu as DropdownMenuPrimitive } from "radix-ui";
 
-import { cn } from "@/lib/utils";
+import { cn } from "@/fsd/shared/lib/utils";
 
 function Picker({
   ...props

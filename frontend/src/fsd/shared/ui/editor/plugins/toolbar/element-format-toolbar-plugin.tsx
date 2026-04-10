@@ -1,3 +1,4 @@
+'use client'
 import { useState } from "react";
 
 import { $isLinkNode } from "@lexical/link";
@@ -21,11 +22,11 @@ import {
   IndentIncreaseIcon,
 } from "lucide-react";
 
-import { useToolbarContext } from "@/components/editor/context/toolbar-context";
-import { useUpdateToolbarHandler } from "@/components/editor/editor-hooks/use-update-toolbar";
-import { getSelectedNode } from "@/components/editor/utils/get-selected-node";
-import { Separator } from "@/components/ui/separator";
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { useToolbarContext } from "@/fsd/shared/ui/editor/context/toolbar-context";
+import { useUpdateToolbarHandler } from "@/fsd/shared/ui/editor/editor-hooks/use-update-toolbar";
+import { getSelectedNode } from "@/fsd/shared/ui/editor/utils/get-selected-node";
+import { Separator } from "@/fsd/shared/ui/separator";
+import { ToggleGroup, ToggleGroupItem } from "@/fsd/shared/ui/toggle-group";
 
 const ELEMENT_FORMAT_OPTIONS: {
   [key in Exclude<ElementFormatType, "start" | "end" | "">]: {

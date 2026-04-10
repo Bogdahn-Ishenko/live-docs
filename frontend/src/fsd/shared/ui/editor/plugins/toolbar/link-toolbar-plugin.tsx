@@ -1,3 +1,4 @@
+'use client'
 import { useCallback, useState } from "react";
 
 import { $isLinkNode, TOGGLE_LINK_COMMAND } from "@lexical/link";
@@ -10,11 +11,11 @@ import {
 
 import { LinkIcon } from "lucide-react";
 
-import { useToolbarContext } from "@/components/editor/context/toolbar-context";
-import { useUpdateToolbarHandler } from "@/components/editor/editor-hooks/use-update-toolbar";
-import { getSelectedNode } from "@/components/editor/utils/get-selected-node";
-import { sanitizeUrl } from "@/components/editor/utils/url";
-import { Toggle } from "@/components/ui/toggle";
+import { useToolbarContext } from "@/fsd/shared/ui/editor/context/toolbar-context";
+import { useUpdateToolbarHandler } from "@/fsd/shared/ui/editor/editor-hooks/use-update-toolbar";
+import { getSelectedNode } from "@/fsd/shared/ui/editor/utils/get-selected-node";
+import { sanitizeUrl } from "@/fsd/shared/ui/editor/utils/url";
+import { Toggle } from "@/fsd/shared/ui/toggle";
 
 export function LinkToolbarPlugin({
   setIsLinkEditMode,

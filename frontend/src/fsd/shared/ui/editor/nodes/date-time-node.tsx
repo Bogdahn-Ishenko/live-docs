@@ -22,7 +22,7 @@ import {
 } from "lexical";
 
 const DateTimeComponent = React.lazy(
-  () => import("@/components/editor/editor-ui/date-time-component"),
+  () => import("@/fsd/shared/ui/editor/editor-ui/date-time-component"),
 );
 
 const tagToFormat = {

@@ -1,16 +1,16 @@
-import { FieldGroup, FieldSeparator } from "@/components/ui/field";
+import { FieldGroup, FieldSeparator } from "@/fsd/shared/ui/field";
 import {
   Picker,
   PickerCheckboxItem,
   PickerContent,
   PickerTrigger,
-} from "@/components/ui/picker";
-import { ScrollArea } from "@/components/ui/scroll-area";
+} from "@/fsd/shared/ui/picker";
+import { ScrollArea } from "@/fsd/shared/ui/scroll-area";
 import {
   Sidebar,
   SidebarContent,
   SidebarHeader,
-} from "@/components/ui/sidebar";
+} from "@/fsd/shared/ui/sidebar";
 
 import {
   BLOCK_FORMAT_ITEM_LABELS,

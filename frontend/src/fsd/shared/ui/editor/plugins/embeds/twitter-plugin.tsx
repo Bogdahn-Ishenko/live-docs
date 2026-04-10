@@ -1,3 +1,4 @@
+'use client'
 import { type JSX, useEffect } from "react";
 
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
@@ -11,7 +12,7 @@ import {
 import {
   $createTweetNode,
   TweetNode,
-} from "@/components/editor/nodes/embeds/tweet-node";
+} from "@/fsd/shared/ui/editor/nodes/embeds/tweet-node";
 
 export const INSERT_TWEET_COMMAND: LexicalCommand<string> = createCommand(
   "INSERT_TWEET_COMMAND",

@@ -1,3 +1,4 @@
+'use client'
 import { useEffect, useRef } from "react";
 
 import {
@@ -7,7 +8,7 @@ import {
   SELECTION_CHANGE_COMMAND,
 } from "lexical";
 
-import { useToolbarContext } from "@/components/editor/context/toolbar-context";
+import { useToolbarContext } from "@/fsd/shared/ui/editor/context/toolbar-context";
 
 export function useUpdateToolbarHandler(
   callback: (selection: BaseSelection) => void,

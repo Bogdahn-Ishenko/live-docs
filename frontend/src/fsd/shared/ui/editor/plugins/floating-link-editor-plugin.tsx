@@ -1,3 +1,4 @@
+'use client'
 import {
   type Dispatch,
   type JSX,
@@ -34,11 +35,11 @@ import {
 
 import { Check, Pencil, Trash, X } from "lucide-react";
 
-import { getSelectedNode } from "@/components/editor/utils/get-selected-node";
-import { setFloatingElemPositionForLinkEditor } from "@/components/editor/utils/set-floating-elem-position-for-link-editor";
-import { sanitizeUrl } from "@/components/editor/utils/url";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { getSelectedNode } from "@/fsd/shared/ui/editor/utils/get-selected-node";
+import { setFloatingElemPositionForLinkEditor } from "@/fsd/shared/ui/editor/utils/set-floating-elem-position-for-link-editor";
+import { sanitizeUrl } from "@/fsd/shared/ui/editor/utils/url";
+import { Button } from "@/fsd/shared/ui/button";
+import { Input } from "@/fsd/shared/ui/input";
 
 function FloatingLinkEditor({
   editor,

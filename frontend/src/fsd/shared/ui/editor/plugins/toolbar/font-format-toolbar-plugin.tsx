@@ -1,3 +1,4 @@
+'use client'
 import { useCallback, useState } from "react";
 
 import { $isTableSelection } from "@lexical/table";
@@ -15,9 +16,9 @@ import {
   UnderlineIcon,
 } from "lucide-react";
 
-import { useToolbarContext } from "@/components/editor/context/toolbar-context";
-import { useUpdateToolbarHandler } from "@/components/editor/editor-hooks/use-update-toolbar";
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { useToolbarContext } from "@/fsd/shared/ui/editor/context/toolbar-context";
+import { useUpdateToolbarHandler } from "@/fsd/shared/ui/editor/editor-hooks/use-update-toolbar";
+import { ToggleGroup, ToggleGroupItem } from "@/fsd/shared/ui/toggle-group";
 
 const FORMATS = [
   { format: "bold", icon: BoldIcon, label: "Bold" },

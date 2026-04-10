@@ -1,3 +1,4 @@
+'use client'
 import { type JSX, useEffect, useRef, useState } from "react";
 
 import { createPortal } from "react-dom";
@@ -7,8 +8,8 @@ import { getCodeLanguageOptions } from "@lexical/code-shiki";
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
 import { $getNearestNodeFromDOMNode, isHTMLElement } from "lexical";
 
-import { useDebounce } from "@/components/editor/editor-hooks/use-debounce";
-import { CopyButton } from "@/components/editor/editor-ui/code-button";
+import { useDebounce } from "@/fsd/shared/ui/editor/editor-hooks/use-debounce";
+import { CopyButton } from "@/fsd/shared/ui/editor/editor-ui/code-button";
 
 const CODE_PADDING = 8;
 

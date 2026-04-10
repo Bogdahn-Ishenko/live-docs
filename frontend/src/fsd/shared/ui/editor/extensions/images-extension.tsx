@@ -1,3 +1,4 @@
+'use client'
 import { type JSX, useEffect, useRef, useState } from "react";
 
 import {
@@ -35,12 +36,12 @@ import {
   $isImageNode,
   ImageNode,
   type ImagePayload,
-} from "@/components/editor/nodes/image-node";
-import { Button } from "@/components/ui/button";
-import { DialogFooter } from "@/components/ui/dialog";
-import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
-import { Input } from "@/components/ui/input";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+} from "@/fsd/shared/ui/editor/nodes/image-node";
+import { Button } from "@/fsd/shared/ui/button";
+import { DialogFooter } from "@/fsd/shared/ui/dialog";
+import { Field, FieldGroup, FieldLabel } from "@/fsd/shared/ui/field";
+import { Input } from "@/fsd/shared/ui/input";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/fsd/shared/ui/tabs";
 
 export type InsertImagePayload = Readonly<ImagePayload>;
 

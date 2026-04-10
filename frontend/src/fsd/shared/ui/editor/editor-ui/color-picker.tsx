@@ -1,24 +1,25 @@
+'use client'
 import * as React from "react";
 
 import { type VariantProps, cva } from "class-variance-authority";
 import { PipetteIcon } from "lucide-react";
 import { Slider as SliderPrimitive, Slot as SlotPrimitive } from "radix-ui";
 
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Button } from "@/fsd/shared/ui/button";
+import { Input } from "@/fsd/shared/ui/input";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from "@/components/ui/popover";
+} from "@/fsd/shared/ui/popover";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { cn } from "@/lib/utils";
+} from "@/fsd/shared/ui/select";
+import { cn } from "@/fsd/shared/lib/utils";
 
 /**
  * @see https://github.com/radix-ui/primitives/blob/main/packages/react/compose-refs/src/compose-refs.tsx

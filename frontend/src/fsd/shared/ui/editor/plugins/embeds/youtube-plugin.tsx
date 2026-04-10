@@ -1,3 +1,4 @@
+'use client'
 import { type JSX, useEffect } from "react";
 
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
@@ -11,7 +12,7 @@ import {
 import {
   $createYouTubeNode,
   YouTubeNode,
-} from "@/components/editor/nodes/embeds/youtube-node";
+} from "@/fsd/shared/ui/editor/nodes/embeds/youtube-node";
 
 export const INSERT_YOUTUBE_COMMAND: LexicalCommand<string> = createCommand(
   "INSERT_YOUTUBE_COMMAND",

@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect } from "react";
 
-import { CAN_USE_DOM } from "@/components/editor/shared/can-use-dom";
+import { CAN_USE_DOM } from "@/fsd/shared/ui/editor/shared/can-use-dom";
 
 // This workaround is no longer necessary in React 19,
 // but we currently support React >=17.x

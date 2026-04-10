@@ -3,7 +3,7 @@ import { TextNode, defineExtension } from "lexical";
 import {
   $createEmojiNode,
   EmojiNode,
-} from "@/components/editor/nodes/emoji-node";
+} from "@/fsd/shared/ui/editor/nodes/emoji-node";
 
 const emojis: Map<string, [string, string]> = new Map([
   [":)", ["emoji happysmile", "🙂"]],

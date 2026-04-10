@@ -1,3 +1,4 @@
+'use client'
 import { type JSX, useEffect, useState } from "react";
 
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
@@ -31,20 +32,20 @@ import {
   $createLayoutContainerNode,
   $isLayoutContainerNode,
   LayoutContainerNode,
-} from "@/components/editor/nodes/layout-container-node";
+} from "@/fsd/shared/ui/editor/nodes/layout-container-node";
 import {
   $createLayoutItemNode,
   $isLayoutItemNode,
   LayoutItemNode,
-} from "@/components/editor/nodes/layout-item-node";
-import { Button } from "@/components/ui/button";
+} from "@/fsd/shared/ui/editor/nodes/layout-item-node";
+import { Button } from "@/fsd/shared/ui/button";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from "@/fsd/shared/ui/select";
 
 const LAYOUTS = [
   { label: "2 columns (equal width)", value: "1fr 1fr" },

@@ -1,3 +1,4 @@
+'use client'
 import { useEffect, useState } from "react";
 
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
@@ -12,9 +13,9 @@ import {
 
 import { RedoIcon, UndoIcon } from "lucide-react";
 
-import { useToolbarContext } from "@/components/editor/context/toolbar-context";
-import { Button } from "@/components/ui/button";
-import { ButtonGroup } from "@/components/ui/button-group";
+import { useToolbarContext } from "@/fsd/shared/ui/editor/context/toolbar-context";
+import { Button } from "@/fsd/shared/ui/button";
+import { ButtonGroup } from "@/fsd/shared/ui/button-group";
 
 export function HistoryToolbarPlugin() {
   const [editor] = useLexicalComposerContext();

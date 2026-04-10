@@ -1,3 +1,4 @@
+'use client'
 import type { JSX } from "react";
 import * as React from "react";
 import { useState } from "react";
@@ -18,17 +19,17 @@ import { format } from "date-fns";
 import { setHours, setMinutes } from "date-fns";
 import { CalendarIcon } from "lucide-react";
 
-import { Button } from "@/components/ui/button";
-import { Calendar } from "@/components/ui/calendar";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Button } from "@/fsd/shared/ui/button";
+import { Calendar } from "@/fsd/shared/ui/calendar";
+import { Checkbox } from "@/fsd/shared/ui/checkbox";
+import { Input } from "@/fsd/shared/ui/input";
+import { Label } from "@/fsd/shared/ui/label";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from "@/components/ui/popover";
-import { cn } from "@/lib/utils";
+} from "@/fsd/shared/ui/popover";
+import { cn } from "@/fsd/shared/lib/utils";
 
 import { $isDateTimeNode, type DateTimeNode } from "../nodes/date-time-node";
 

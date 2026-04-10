@@ -13,8 +13,8 @@ import {
 
 import { EraserIcon } from "lucide-react";
 
-import { useToolbarContext } from "@/components/editor/context/toolbar-context";
-import { Button } from "@/components/ui/button";
+import { useToolbarContext } from "@/fsd/shared/ui/editor/context/toolbar-context";
+import { Button } from "@/fsd/shared/ui/button";
 
 export function ClearFormattingToolbarPlugin() {
   const { activeEditor } = useToolbarContext();
