@@ -9,7 +9,6 @@ import { Editor } from "@/fsd/shared/ui/blocks/editor-x";
 import { SidebarInset, SidebarProvider } from "@/fsd/shared/ui/sidebar";
 import { useMemo } from "react";
 
-
 function GeneratedCodeViewer() {
   const state = useBlockViewer();
   const code = useMemo(() => generateEditorCode(state), [state]);

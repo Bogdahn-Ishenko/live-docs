@@ -3,6 +3,19 @@ import { Geist, Geist_Mono, Inter } from "next/font/google";
 import "@/fsd/app/css/globals.css";
 import { cn } from "@/fsd/shared/lib/utils";
 import { ThemeProvider } from "@/fsd/app/providers/theme-provider";
+import localFont from 'next/font/local'
+
+const MtsWide = localFont({
+  src: './MTSWide-Medium.woff2',
+  variable: '--font-mtswide-sans',
+  display: 'swap',
+})
+
+const MtsCompact = localFont({
+  src: './MTSCompact-Medium.woff2',
+  variable: '--font-mtscompact',
+  display: 'swap',
+})
 
 const inter = Inter({subsets:['latin'],variable:'--font-sans'});
 
@@ -29,7 +42,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={cn("h-full", "antialiased", geistSans.variable, geistMono.variable, "font-sans", inter.variable)}
+      className={cn("h-full", "antialiased", MtsWide.className, MtsCompact.className, "font-sans")}
     >
       <body className="min-h-full flex flex-col">
           <ThemeProvider>
