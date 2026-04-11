@@ -9,15 +9,14 @@ import {
   URL_MATCHER,
 } from "@lexical/react/LexicalAutoEmbedPlugin";
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
-import type { LexicalEditor } from "lexical";
+import { type LexicalEditor } from "lexical";
 
 import { Popover as PopoverPrimitive } from "radix-ui";
-
-// import { TwitterIcon, YoutubeIcon } from "lucide-react"
 
 import { useEditorModal } from "@/fsd/shared/ui/editor/editor-hooks/use-modal";
 import { INSERT_TWEET_COMMAND } from "@/fsd/shared/ui/editor/plugins/embeds/twitter-plugin";
 import { INSERT_YOUTUBE_COMMAND } from "@/fsd/shared/ui/editor/plugins/embeds/youtube-plugin";
+import { $insertTablesMwNode } from "@/fsd/shared/ui/editor/nodes/tables-mw-node";
 import { Button } from "@/fsd/shared/ui/button";
 import {
   Command,
@@ -156,7 +155,106 @@ export const TwitterEmbedConfig: CustomEmbedConfig = {
   type: "tweet",
 };
 
-export const EmbedConfigs = [TwitterEmbedConfig, YoutubeEmbedConfig];
+// Tables.mws.ru API response types
+interface TablesMwRecord {
+  recordId: string;
+  fields: Record<string, string | number | boolean | null>;
+}
+
+interface TablesMwResponse {
+  code: number;
+  success: boolean;
+  message: string;
+  data: {
+    total: number;
+    pageNum: number;
+    pageSize: number;
+    records: TablesMwRecord[];
+  };
+}
+
+const TableIcon = (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="24"
+    height="24"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <path d="M12 3v18" />
+    <rect width="18" height="18" x="3" y="3" rx="2" />
+    <path d="M3 9h18" />
+    <path d="M3 15h18" />
+  </svg>
+);
+
+async function fetchTablesData(url: string): Promise<TablesMwResponse | null> {
+  try {
+    const urlObj = new URL(url);
+    const apiPath = urlObj.pathname;
+    
+    // Build proxy URL
+    const proxyUrl = new URL("/api/tables-mw", typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000');
+    proxyUrl.searchParams.set("path", apiPath);
+    
+    // Forward all query parameters
+    urlObj.searchParams.forEach((value, key) => {
+      proxyUrl.searchParams.set(key, value);
+    });
+
+    const response = await fetch(proxyUrl.toString());
+
+    if (!response.ok) {
+      return null;
+    }
+
+    return await response.json();
+  } catch {
+    return null;
+  }
+}
+
+export const TablesMwEmbedConfig: CustomEmbedConfig = {
+  contentName: "Таблица MWS",
+
+  exampleUrl: "https://tables.mws.ru/fusion/v1/datasheets/dstL8Wa7xS82QdZSmN/records?viewId=viwWPb3TDtK0g&fieldKey=name",
+
+  icon: TableIcon,
+
+  insertNode: (editor: LexicalEditor, result: EmbedMatchResult) => {
+    editor.update(() => {
+      $insertTablesMwNode(result.url);
+    });
+  },
+
+  keywords: ["table", "mws", "tables", "datasheet", "fusion"],
+
+  parseUrl: async (url: string) => {
+    // Match tables.mws.ru URLs
+    const match = /^https:\/\/tables\.mws\.ru\/fusion\/v1\/datasheets\/([^\/]+)\/records/.exec(url);
+    
+    if (match != null) {
+      // Validate by fetching data
+      const data = await fetchTablesData(url);
+      if (data && data.success) {
+        return {
+          id: match[1],
+          url: url,
+        };
+      }
+    }
+
+    return null;
+  },
+
+  type: "tables-mws",
+};
+
+export const EmbedConfigs = [TwitterEmbedConfig, YoutubeEmbedConfig, TablesMwEmbedConfig];
 
 const debounce = (callback: (text: string) => void, delay: number) => {
   let timeoutId: number;

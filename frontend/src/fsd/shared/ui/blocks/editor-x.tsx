@@ -125,6 +125,8 @@ import { LinkToolbarPlugin } from "@/fsd/shared/ui/editor/plugins/toolbar/link-t
 import { SubSuperToolbarPlugin } from "@/fsd/shared/ui/editor/plugins/toolbar/subsuper-toolbar-plugin";
 import { ToolbarPlugin } from "@/fsd/shared/ui/editor/plugins/toolbar/toolbar-plugin";
 import { TypingPerfPlugin } from "@/fsd/shared/ui/editor/plugins/typing-pref-plugin";
+import { TablesMwPastePlugin } from "@/fsd/shared/ui/editor/plugins/tables-mw-paste-plugin";
+import { TablesMwNode } from "@/fsd/shared/ui/editor/nodes/tables-mw-node";
 import { editorTheme } from "@/fsd/shared/ui/editor/themes/editor-theme";
 import { EMOJI } from "@/fsd/shared/ui/editor/transformers/markdown-emoji-transformer";
 import { HR } from "@/fsd/shared/ui/editor/transformers/markdown-hr-transformer";
@@ -230,6 +232,7 @@ export function Editor({
           YouTubeNode,
           AutocompleteNode,
           SpecialTextNode,
+          TablesMwNode,
         ],
         $initialEditorState(editor) {
           if (editorSerializedState) {
@@ -410,6 +413,7 @@ export function Editor({
               )}
               {pluginItems.emojiPicker && <EmojiPickerPlugin />}
               {pluginItems.autoEmbed && <AutoEmbedPlugin />}
+              <TablesMwPastePlugin />
               {pluginItems.mentions && <MentionsPlugin />}
               {blockFormatItems.codeBlock && <CodeHighlightPlugin />}
               {blockInsertItems.table && <TablePlugin />}
