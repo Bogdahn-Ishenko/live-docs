@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono, Inter } from "next/font/google";
+import { Toaster } from "sonner";
 import "@/fsd/app/css/globals.css";
 import { cn } from "@/fsd/shared/lib/utils";
 import { ThemeProvider } from "@/fsd/app/providers/theme-provider";
@@ -47,6 +48,7 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col">
           <ThemeProvider>
             {children}
+            <Toaster position="top-right" richColors />
           </ThemeProvider>
         </body>
     </html>
