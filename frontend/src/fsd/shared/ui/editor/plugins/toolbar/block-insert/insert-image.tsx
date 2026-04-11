@@ -10,14 +10,14 @@ export function InsertImage() {
   return (
     <DropdownMenuItem
       onClick={() => {
-        showModal("Insert Image", (onClose) => (
+        showModal("Вставить фото", (onClose) => (
           <InsertImageDialog activeEditor={activeEditor} onClose={onClose} />
         ));
       }}
     >
       <div className="flex items-center gap-1">
         <ImageIcon className="size-4" />
-        <span>Image</span>
+        <span>Фото</span>
       </div>
     </DropdownMenuItem>
   );

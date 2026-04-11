@@ -7,7 +7,7 @@ import { QuoteIcon } from "lucide-react";
 import { ComponentPickerOption } from "@/fsd/shared/ui/editor/plugins/picker/component-picker-option";
 
 export function QuotePickerPlugin() {
-  return new ComponentPickerOption("Quote", {
+  return new ComponentPickerOption("Цитата", {
     icon: <QuoteIcon className="size-4" />,
     keywords: ["block quote"],
     onSelect: (_, editor) =>

@@ -4,7 +4,7 @@ import { INSERT_DATETIME_COMMAND } from "@/fsd/shared/ui/editor/extensions/date-
 import { ComponentPickerOption } from "@/fsd/shared/ui/editor/plugins/picker/component-picker-option";
 
 export function DateTimePickerPlugin() {
-  return new ComponentPickerOption("Date", {
+  return new ComponentPickerOption("Дата", {
     icon: <CalendarIcon className="size-4" />,
     keywords: ["date", "calendar", "time", "today"],
     onSelect: (_, editor) => {

@@ -14,7 +14,20 @@ export function AlignmentPickerPlugin({
 }: {
   alignment: "left" | "center" | "right" | "justify";
 }) {
-  return new ComponentPickerOption(`Align ${alignment}`, {
+  let name
+  if (alignment === "left") {
+    name = "слева"
+  }
+  if (alignment === "center") {
+    name = "по центру"
+  }
+  if (alignment === "right") {
+    name = "справа"
+  }
+  if (alignment === "justify") {
+    name = "газетное"
+  }
+  return new ComponentPickerOption(`Выравнивание ${alignment}`, {
     icon: <AlignIcons alignment={alignment} />,
     keywords: ["align", "justify", alignment],
     onSelect: (_, editor) =>

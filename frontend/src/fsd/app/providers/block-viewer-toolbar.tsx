@@ -11,7 +11,7 @@ export function BlockViewerToolbar() {
   const item = {
     name: "@shadcn-editor/editor-x",
     description:
-      "A rich text editor built on Lexical with plugins, nodes, extensions, and toolbar support.",
+      "" //"A rich text editor built on Lexical with plugins, nodes, extensions, and toolbar support.",
   };
   const { copyToClipboard, isCopied } = useCopyToClipboard();
   const [params, setParams] = useSearchParams({ view: "preview" });
@@ -21,8 +21,8 @@ export function BlockViewerToolbar() {
     <div className="flex w-full shrink-0 overflow-x-auto items-center gap-2">
       <Tabs value={view} onValueChange={(value) => setParams({ view: value })}>
         <TabsList className="grid h-8! grid-cols-2 items-center rounded-lg p-1 *:data-[slot=tabs-trigger]:h-6 *:data-[slot=tabs-trigger]:rounded-sm *:data-[slot=tabs-trigger]:px-2 *:data-[slot=tabs-trigger]:text-xs">
-          <TabsTrigger value="preview">Preview</TabsTrigger>
-          <TabsTrigger value="code">Code</TabsTrigger>
+          <TabsTrigger value="preview">Превью</TabsTrigger>
+          {/* <TabsTrigger value="code">Code</TabsTrigger> */}
         </TabsList>
       </Tabs>
       <Separator
@@ -33,7 +33,7 @@ export function BlockViewerToolbar() {
         {item.description?.replace(/\.$/, "")}
       </span>
       <div className="ml-auto flex items-center gap-2">
-        <Button
+        {/* <Button
           variant="outline"
           className="w-fit gap-1 px-2 shadow-none"
           size="sm"
@@ -43,7 +43,7 @@ export function BlockViewerToolbar() {
         >
           {isCopied ? <Check /> : <Terminal />}
           <span>npx shadcn add {item.name}</span>
-        </Button>
+        </Button> */}
       </div>
     </div>
   );

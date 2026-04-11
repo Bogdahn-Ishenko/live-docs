@@ -5,7 +5,7 @@ import { ListTodoIcon } from "lucide-react";
 import { ComponentPickerOption } from "@/fsd/shared/ui/editor/plugins/picker/component-picker-option";
 
 export function CheckListPickerPlugin() {
-  return new ComponentPickerOption("Check List", {
+  return new ComponentPickerOption("Чек-лист", {
     icon: <ListTodoIcon className="size-4" />,
     keywords: ["check list", "todo list"],
     onSelect: (_, editor) =>

@@ -5,7 +5,7 @@ import { MinusIcon } from "lucide-react";
 import { ComponentPickerOption } from "@/fsd/shared/ui/editor/plugins/picker/component-picker-option";
 
 export function DividerPickerPlugin() {
-  return new ComponentPickerOption("Divider", {
+  return new ComponentPickerOption("Разделитель", {
     icon: <MinusIcon className="size-4" />,
     keywords: ["horizontal rule", "divider", "hr"],
     onSelect: (_, editor) =>

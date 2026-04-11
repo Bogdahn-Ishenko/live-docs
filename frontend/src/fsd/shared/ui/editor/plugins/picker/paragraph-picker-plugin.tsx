@@ -10,7 +10,7 @@ import { TextIcon } from "lucide-react";
 import { ComponentPickerOption } from "@/fsd/shared/ui/editor/plugins/picker/component-picker-option";
 
 export function ParagraphPickerPlugin() {
-  return new ComponentPickerOption("Paragraph", {
+  return new ComponentPickerOption("Параграф", {
     icon: <TextIcon className="size-4" />,
     keywords: ["normal", "paragraph", "p", "text"],
     onSelect: (_, editor) =>
