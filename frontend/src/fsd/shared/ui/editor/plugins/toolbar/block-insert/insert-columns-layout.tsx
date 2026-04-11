@@ -10,14 +10,14 @@ export function InsertColumnsLayout() {
   return (
     <DropdownMenuItem
       onClick={() =>
-        showModal("Insert Columns Layout", (onClose) => (
+        showModal("Вставить колонки", (onClose) => (
           <InsertLayoutDialog activeEditor={activeEditor} onClose={onClose} />
         ))
       }
     >
       <div className="flex items-center gap-1">
         <Columns3Icon className="size-4" />
-        <span>Columns Layout</span>
+        <span>Колонки</span>
       </div>
     </DropdownMenuItem>
   );

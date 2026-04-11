@@ -7,7 +7,7 @@ import { Heading1Icon, Heading2Icon, Heading3Icon } from "lucide-react";
 import { ComponentPickerOption } from "@/fsd/shared/ui/editor/plugins/picker/component-picker-option";
 
 export function HeadingPickerPlugin({ n }: { n: 1 | 2 | 3 }) {
-  return new ComponentPickerOption(`Heading ${n}`, {
+  return new ComponentPickerOption(`Заголовок ${n}`, {
     icon: <HeadingIcons n={n} />,
     keywords: ["heading", "header", `h${n}`],
     onSelect: (_, editor) =>

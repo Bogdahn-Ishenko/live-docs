@@ -86,7 +86,7 @@ export interface CustomEmbedConfig extends EmbedConfig {
 }
 
 export const YoutubeEmbedConfig: CustomEmbedConfig = {
-  contentName: "Youtube Video",
+  contentName: "Youtube-видео",
 
   exampleUrl: "https://www.youtube.com/watch?v=jNQXAC9IVRw",
 
@@ -121,7 +121,7 @@ export const YoutubeEmbedConfig: CustomEmbedConfig = {
 
 export const TwitterEmbedConfig: CustomEmbedConfig = {
   // e.g. Tweet or Google Map.
-  contentName: "Tweet",
+  contentName: "Твит",
 
   exampleUrl: "https://twitter.com/jack/status/20",
 

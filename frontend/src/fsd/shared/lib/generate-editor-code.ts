@@ -243,7 +243,7 @@ ${toolbarStart}${toolbarStart && toolbarInner ? "\n" : ""}${toolbarInner}
 
   return `${importSection}
 
-const placeholder = "Press / for commands...";${hasCharCount ? "\nconst maxLength = 30;" : ""}
+const placeholder = "Нажмите / для команд...";${hasCharCount ? "\nconst maxLength = 30;" : ""}
 
 export function Editor({
   editorState,

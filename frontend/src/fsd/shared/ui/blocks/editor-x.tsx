@@ -135,7 +135,7 @@ import { validateUrl } from "@/fsd/shared/ui/editor/utils/url";
 import { Separator } from "@/fsd/shared/ui/separator";
 import { TooltipProvider } from "@/fsd/shared/ui/tooltip";
 
-const placeholder = "Press / for commands...";
+const placeholder = "Нажмите / для команд...";
 const maxLength = 30 * 1000;
 
 export function Editor({

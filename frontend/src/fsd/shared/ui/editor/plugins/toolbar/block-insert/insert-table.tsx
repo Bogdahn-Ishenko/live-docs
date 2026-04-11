@@ -10,14 +10,14 @@ export function InsertTable() {
   return (
     <DropdownMenuItem
       onClick={() =>
-        showModal("Insert Table", (onClose) => (
+        showModal("Вставить таблицу", (onClose) => (
           <InsertTableDialog activeEditor={activeEditor} onClose={onClose} />
         ))
       }
     >
       <div className="flex items-center gap-1">
         <TableIcon className="size-4" />
-        <span>Table</span>
+        <span>Таблица</span>
       </div>
     </DropdownMenuItem>
   );
