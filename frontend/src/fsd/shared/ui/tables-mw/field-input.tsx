@@ -16,6 +16,7 @@ import { Calendar } from "@/fsd/shared/ui/calendar";
 import type { FieldType } from "@/fsd/shared/lib/tables-mw/types";
 import type { FieldValue, Attachment, Member } from "@/fsd/shared/lib/tables-mw/api-types";
 import { detectFieldType, collectFieldMetadata } from "@/fsd/shared/lib/tables-mw/field-detector";
+import { normalizeAttachmentUrl } from "@/fsd/shared/ui/tables-mw/field-display";
 
 export interface FieldInputProps {
   fieldName: string;
@@ -588,7 +589,7 @@ function AttachmentInput({
               {attachment.mimeType?.startsWith("image/") ? (
                 <div className="w-8 h-8 rounded overflow-hidden">
                   <img
-                    src={attachment.url}
+                    src={normalizeAttachmentUrl(attachment.url)}
                     alt={attachment.name}
                     className="w-full h-full object-cover"
                   />
