@@ -126,7 +126,9 @@ import { SubSuperToolbarPlugin } from "@/fsd/shared/ui/editor/plugins/toolbar/su
 import { ToolbarPlugin } from "@/fsd/shared/ui/editor/plugins/toolbar/toolbar-plugin";
 import { TypingPerfPlugin } from "@/fsd/shared/ui/editor/plugins/typing-pref-plugin";
 import { TablesMwPastePlugin } from "@/fsd/shared/ui/editor/plugins/tables-mw-paste-plugin";
-import { TablesMwNode } from "@/fsd/shared/ui/editor/nodes/tables-mw-node";
+import { TablesMwBrowserPlugin } from "@/fsd/shared/ui/editor/plugins/tables-mw-browser-plugin";
+import { TablesMwNode, $insertTablesMwNode } from "@/fsd/shared/ui/editor/nodes/tables-mw-node";
+import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
 import { editorTheme } from "@/fsd/shared/ui/editor/themes/editor-theme";
 import { EMOJI } from "@/fsd/shared/ui/editor/transformers/markdown-emoji-transformer";
 import { HR } from "@/fsd/shared/ui/editor/transformers/markdown-hr-transformer";
@@ -139,6 +141,23 @@ import { TooltipProvider } from "@/fsd/shared/ui/tooltip";
 
 const placeholder = "Нажмите / для команд...";
 const maxLength = 30 * 1000;
+
+/**
+ * TablesMw Browser Button Component
+ * Button to open the tables browser and insert tables into the editor
+ */
+function TablesMwBrowserButton() {
+  const [editor] = useLexicalComposerContext();
+
+  const handleInsertTable = (spaceId: string, datasheet: { id: string; name: string }, viewId: string) => {
+    editor.update(() => {
+      const apiUrl = `https://tables.mws.ru/fusion/v1/datasheets/${datasheet.id}/records?viewId=${viewId}&fieldKey=name`;
+      $insertTablesMwNode(apiUrl, spaceId, datasheet.id, viewId);
+    });
+  };
+
+  return <TablesMwBrowserPlugin onInsertTable={handleInsertTable} />;
+}
 
 export function Editor({
   editorState,
@@ -535,7 +554,8 @@ export function Editor({
                     <CounterCharacterPlugin charset="UTF-16" />
                   )}
                 </div>
-                <div className="flex flex-1 justify-end">
+                <div className="flex flex-1 justify-end items-center gap-2">
+                  <TablesMwBrowserButton />
                   {footerItems.speechToText && <SpeechToTextPlugin />}
                   {footerItems.shareContent && <ShareContentPlugin />}
                   {footerItems.exportImport && <ImportExportPlugin />}

@@ -1,4 +1,5 @@
-import type { FieldType, FieldValue, Attachment, Member, UrlObject } from "./types";
+import type { FieldType } from "./types";
+import type { FieldValue, Attachment, Member, UrlObject } from "./api-types";
 
 /**
  * Detect field type based on value and field name heuristics
@@ -115,15 +116,16 @@ export function detectFieldType(
       }
     }
 
-    // Check for single select (single word/short value, but not a number)
-    // Heuristic: if all values in this column are short and similar
-    if (allValues.length > 0) {
+    // Check for single select - only if values are repeated
+    // Heuristic: if there are few unique values compared to total values
+    if (allValues.length > 5) {
       const nonEmptyValues = allValues.filter((v): v is string => 
         typeof v === "string" && v.length > 0
       );
+      const uniqueValues = new Set(nonEmptyValues);
+      // If less than 30% unique values and average length is short -> single_select
       const avgLength = nonEmptyValues.reduce((sum, v) => sum + v.length, 0) / nonEmptyValues.length;
-      // If average length is short and values don't contain newlines -> single_select
-      if (avgLength < 30 && !nonEmptyValues.some(v => v.includes("\n"))) {
+      if (uniqueValues.size / nonEmptyValues.length < 0.3 && avgLength < 30) {
         return "single_select";
       }
     }
@@ -140,6 +142,12 @@ export function detectFieldType(
 function detectTypeFromFieldName(fieldName: string): FieldType {
   const lower = fieldName.toLowerCase();
   
+  // Text fields (should not be detected as select)
+  if (lower.includes("название") || lower.includes("title") || lower.includes("name")) return "text";
+  if (lower.includes("описание") || lower.includes("description")) return "multiline_text";
+  if (lower === "текст" || lower === "text") return "text";
+  
+  // Other specific types
   if (lower.includes("почта") || lower.includes("email")) return "email";
   if (lower.includes("телефон") || lower.includes("phone")) return "phone";
   if (lower.includes("url") || lower.includes("ссылка")) return "url";
