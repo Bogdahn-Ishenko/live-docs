@@ -320,6 +320,7 @@ export function TablesRecordTable({
                     <FieldDisplay
                       fieldName={colName}
                       value={record.fields[colName]}
+                      compact
                     />
                   </td>
                 ))}

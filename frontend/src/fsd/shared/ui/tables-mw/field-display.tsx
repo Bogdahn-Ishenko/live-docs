@@ -12,9 +12,10 @@ export interface FieldDisplayProps {
   fieldName: string;
   value: FieldValue;
   className?: string;
+  compact?: boolean;
 }
 
-export function FieldDisplay({ fieldName, value, className }: FieldDisplayProps) {
+export function FieldDisplay({ fieldName, value, className, compact = false }: FieldDisplayProps) {
   const fieldType = useMemo(() => 
     detectFieldType(fieldName, value),
     [fieldName, value]
@@ -26,7 +27,7 @@ export function FieldDisplay({ fieldName, value, className }: FieldDisplayProps)
 
   switch (fieldType) {
     case "attachment":
-      return <AttachmentDisplay value={value as Attachment[]} className={className} />;
+      return <AttachmentDisplay value={value as Attachment[]} className={className} compact={compact} />;
     case "member":
       return <MemberDisplay value={value as Member[]} className={className} />;
     case "url":
@@ -270,18 +271,99 @@ function MemberDisplay({ value, className }: { value: Member[]; className?: stri
   );
 }
 
-function AttachmentDisplay({ value, className }: { value: Attachment[]; className?: string }) {
+/**
+ * Normalize attachment URL to use correct domain
+ */
+function normalizeAttachmentUrl(url: string | undefined): string {
+  if (!url) return "";
+  
+  // If URL is already absolute with tables.mws.ru, return as-is
+  if (url.startsWith("https://tables.mws.ru")) {
+    return url;
+  }
+  
+  // If URL starts with localhost or relative path, convert to absolute
+  if (url.startsWith("http://localhost") || url.startsWith("https://localhost")) {
+    // Extract path after localhost:port
+    const pathMatch = url.match(/https?:\/\/localhost:\d+(\/.*)/);
+    if (pathMatch) {
+      return `https://tables.mws.ru${pathMatch[1]}`;
+    }
+  }
+  
+  // If URL is relative (starts with /)
+  if (url.startsWith("/")) {
+    return `https://tables.mws.ru${url}`;
+  }
+  
+  // If URL starts with attachment/ or other path without leading slash
+  if (url.startsWith("attachment/")) {
+    return `https://tables.mws.ru/${url}`;
+  }
+  
+  return url;
+}
+
+function AttachmentDisplay({ value, className, compact = false }: { value: Attachment[]; className?: string; compact?: boolean }) {
   const images = value.filter(a => a.mimeType?.startsWith("image/"));
   const files = value.filter(a => !a.mimeType?.startsWith("image/"));
+
+  if (compact) {
+    // Compact view for table cells - show small thumbnails
+    return (
+      <div className={cn("flex flex-wrap gap-1", className)}>
+        {images.slice(0, 3).map((img, index) => (
+          <a
+            key={img.id || index}
+            href={normalizeAttachmentUrl(img.url)}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="relative group"
+            title={img.name}
+          >
+            <div className="w-8 h-8 rounded border overflow-hidden bg-muted">
+              <img
+                src={normalizeAttachmentUrl(img.url)}
+                alt={img.name}
+                className="w-full h-full object-cover"
+                loading="lazy"
+              />
+            </div>
+          </a>
+        ))}
+        {images.length > 3 && (
+          <span className="w-8 h-8 rounded border bg-muted flex items-center justify-center text-xs text-muted-foreground">
+            +{images.length - 3}
+          </span>
+        )}
+        {files.slice(0, 2).map((file, index) => (
+          <a
+            key={file.id || index}
+            href={normalizeAttachmentUrl(file.url)}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-muted hover:bg-muted/80 text-xs"
+            title={`${file.name} (${formatFileSize(file.size)})`}
+          >
+            <Paperclip className="w-3 h-3" />
+            <span className="truncate max-w-[60px]">{file.name}</span>
+          </a>
+        ))}
+        {files.length > 2 && (
+          <span className="text-xs text-muted-foreground">+{files.length - 2}</span>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className={cn("space-y-2", className)}>
       {images.length > 0 && (
         <div className="flex flex-wrap gap-2">
-          {images.map((img) => (
+          {images.map((img, index) => (
             <a
-              key={img.id}
-              href={img.url}
+              key={img.id || index}
+              href={normalizeAttachmentUrl(img.url)}
               target="_blank"
               rel="noopener noreferrer"
               className="relative group"
@@ -289,7 +371,7 @@ function AttachmentDisplay({ value, className }: { value: Attachment[]; classNam
             >
               <div className="w-16 h-16 rounded-lg border overflow-hidden bg-muted">
                 <img
-                  src={img.url}
+                  src={normalizeAttachmentUrl(img.url)}
                   alt={img.name}
                   className="w-full h-full object-cover"
                   loading="lazy"
@@ -306,10 +388,10 @@ function AttachmentDisplay({ value, className }: { value: Attachment[]; classNam
       )}
       {files.length > 0 && (
         <div className="flex flex-wrap gap-1">
-          {files.map((file) => (
+          {files.map((file, index) => (
             <a
-              key={file.id}
-              href={file.url}
+              key={file.id || index}
+              href={normalizeAttachmentUrl(file.url)}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-muted hover:bg-muted/80 text-sm"
@@ -341,6 +423,7 @@ function formatFileSize(bytes: number): string {
 // Export display components for individual use
 export {
   AttachmentDisplay,
+  normalizeAttachmentUrl,
   MemberDisplay,
   UrlDisplay,
   CheckboxDisplay,
