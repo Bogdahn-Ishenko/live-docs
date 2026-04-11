@@ -51,7 +51,7 @@ export function InsertTableDialog({
   return (
     <>
       <div className="grid gap-2">
-        <Label htmlFor="table-modal-rows">Rows</Label>
+        <Label htmlFor="table-modal-rows">Строки</Label>
         <Input
           id="table-modal-rows"
           placeholder="# of rows (1-500)"
@@ -62,7 +62,7 @@ export function InsertTableDialog({
         />
       </div>
       <div className="grid gap-2">
-        <Label htmlFor="table-modal-columns">Columns</Label>
+        <Label htmlFor="table-modal-columns">Столбцы</Label>
         <Input
           id="table-modal-columns"
           placeholder="# of columns (1-50)"
@@ -74,7 +74,7 @@ export function InsertTableDialog({
       </div>
       <DialogFooter data-test-id="table-model-confirm-insert">
         <Button disabled={isDisabled} onClick={onClick}>
-          Confirm
+          Подтвердить
         </Button>
       </DialogFooter>
     </>
