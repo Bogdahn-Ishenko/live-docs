@@ -1,7 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server";
 
 const API_BASE = "https://tables.mws.ru";
-const AUTH_TOKEN = "Bearer uskHudJhxskxRj6UUSV3sjX";
+const AUTH_TOKEN = `Bearer ${process.env.MWS_BACKEND_API_KEY}`;
 
 function validatePath(path: string | null): boolean {
   if (!path) return false;

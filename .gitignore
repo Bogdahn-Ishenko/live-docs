@@ -27,3 +27,8 @@ Thumbs.db
 
 .vscode/
 .idea/
+
+front/.env.local
+front/.env
+front/.next
+front/node_modules

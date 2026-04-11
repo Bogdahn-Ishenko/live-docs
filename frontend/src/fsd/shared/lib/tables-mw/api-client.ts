@@ -53,7 +53,7 @@ import type {
 
 // API Configuration
 const API_BASE = "https://tables.mws.ru";
-const AUTH_TOKEN = "Bearer uskHudJhxskxRj6UUSV3sjX";
+const AUTH_TOKEN = `Bearer ${process.env.MWS_BACKEND_API_KEY}`;
 
 // Default request options
 const defaultOptions: RequestInit = {
