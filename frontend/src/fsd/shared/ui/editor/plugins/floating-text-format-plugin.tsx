@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 import {
   type Dispatch,
   type JSX,
@@ -15,32 +15,113 @@ import { $isLinkNode, TOGGLE_LINK_COMMAND } from "@lexical/link";
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
 import { mergeRegister } from "@lexical/utils";
 import {
+  $createRangeSelection,
+  $getNodeByKey,
   $getSelection,
   $isParagraphNode,
   $isRangeSelection,
+  $setSelection,
   $isTextNode,
   COMMAND_PRIORITY_LOW,
   FORMAT_TEXT_COMMAND,
   type LexicalEditor,
   SELECTION_CHANGE_COMMAND,
 } from "lexical";
-
 import {
   BoldIcon,
+  ChevronDownIcon,
   CodeIcon,
   ItalicIcon,
   LinkIcon,
+  LoaderCircleIcon,
+  SparklesIcon,
   StrikethroughIcon,
   SubscriptIcon,
   SuperscriptIcon,
   UnderlineIcon,
 } from "lucide-react";
+import { toast } from "sonner";
 
+import { Button } from "@/fsd/shared/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/fsd/shared/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/fsd/shared/ui/dropdown-menu";
+import { Input } from "@/fsd/shared/ui/input";
 import { getDOMRangeRect } from "@/fsd/shared/ui/editor/utils/get-dom-range-rect";
 import { getSelectedNode } from "@/fsd/shared/ui/editor/utils/get-selected-node";
 import { setFloatingElemPosition } from "@/fsd/shared/ui/editor/utils/set-floating-elem-position";
 import { Separator } from "@/fsd/shared/ui/separator";
 import { ToggleGroup, ToggleGroupItem } from "@/fsd/shared/ui/toggle-group";
+
+type GenerateSuccess = {
+  text: string;
+};
+
+type GenerateFailure = {
+  error?: string;
+};
+
+type PresetAction = {
+  label: string;
+  prompt: string;
+};
+
+type SelectionSnapshot = {
+  anchorKey: string;
+  anchorOffset: number;
+  anchorType: "text" | "element";
+  focusKey: string;
+  focusOffset: number;
+  focusType: "text" | "element";
+  text: string;
+};
+
+function getSelectionSnapshot(editor: LexicalEditor): SelectionSnapshot | null {
+  let result: SelectionSnapshot | null = null;
+
+  editor.getEditorState().read(() => {
+    const selection = $getSelection();
+    if (!$isRangeSelection(selection) || selection.isCollapsed()) {
+      return;
+    }
+
+    const text = selection.getTextContent().trim();
+    if (!text) {
+      return;
+    }
+
+    result = {
+      anchorKey: selection.anchor.key,
+      anchorOffset: selection.anchor.offset,
+      anchorType: selection.anchor.type,
+      focusKey: selection.focus.key,
+      focusOffset: selection.focus.offset,
+      focusType: selection.focus.type,
+      text,
+    };
+  });
+
+  return result;
+}
+
+const PRESET_ACTIONS: PresetAction[] = [
+  { label: "Улучшить текст", prompt: "Улучши стиль и читаемость, сохрани смысл." },
+  { label: "Сократить", prompt: "Сократи текст примерно в 2 раза без потери смысла." },
+  { label: "Расширить", prompt: "Расширь текст, добавь детали и структуру." },
+];
 
 function TextFormatFloatingToolbar({
   editor,
@@ -53,6 +134,9 @@ function TextFormatFloatingToolbar({
   isStrikethrough,
   isSubscript,
   isSuperscript,
+  isVisible,
+  selectedText,
+  aiEnabled,
   setIsLinkEditMode,
 }: {
   editor: LexicalEditor;
@@ -65,9 +149,16 @@ function TextFormatFloatingToolbar({
   isSubscript: boolean;
   isSuperscript: boolean;
   isUnderline: boolean;
+  isVisible: boolean;
+  selectedText: string;
+  aiEnabled: boolean;
   setIsLinkEditMode: Dispatch<boolean>;
 }): JSX.Element {
   const popupCharStylesEditorRef = useRef<HTMLDivElement | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isAiMenuOpen, setIsAiMenuOpen] = useState(false);
+  const [isCustomPromptOpen, setIsCustomPromptOpen] = useState(false);
+  const [customPrompt, setCustomPrompt] = useState("");
 
   const insertLink = useCallback(() => {
     if (!isLink) {
@@ -79,7 +170,108 @@ function TextFormatFloatingToolbar({
     }
   }, [editor, isLink, setIsLinkEditMode]);
 
-  function mouseMoveListener(e: MouseEvent) {
+  const runAi = useCallback(
+    async (instruction: string) => {
+      const snapshot = getSelectionSnapshot(editor);
+
+      if (isLoading || !snapshot) {
+        toast.error("Выделите текст для обработки");
+        return;
+      }
+
+      setIsLoading(true);
+      setIsAiMenuOpen(false);
+
+      try {
+        const response = await fetch("/api/ai/generate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            mode: "block",
+            prompt:
+              `${instruction}\n\n` +
+              "Перепиши выделенный текст по задаче выше. " +
+              "Сохрани исходную структуру текста: абзацы, списки и заголовки там, где это уместно. " +
+              "Не добавляй пояснений, комментариев и служебных подсказок. " +
+              "Верни только финальный вариант текста для вставки в редактор.\n\n" +
+              `Текст:\n${snapshot.text}`,
+            context: "",
+          }),
+        });
+
+        const payload = (await response.json()) as GenerateSuccess | GenerateFailure;
+        if (!response.ok || !("text" in payload) || typeof payload.text !== "string") {
+          throw new Error(("error" in payload && payload.error) || "Не удалось обработать выделение");
+        }
+
+        const generated = payload.text.trim();
+        if (!generated) {
+          throw new Error("Пустой ответ от AI");
+        }
+
+        let inserted = false;
+        editor.update(() => {
+          if (!snapshot) {
+            return;
+          }
+
+          const anchorNode = $getNodeByKey(snapshot.anchorKey);
+          const focusNode = $getNodeByKey(snapshot.focusKey);
+          if (!anchorNode || !focusNode) {
+            return;
+          }
+
+          const selection = $createRangeSelection();
+          selection.anchor.set(
+            snapshot.anchorKey,
+            snapshot.anchorOffset,
+            snapshot.anchorType,
+          );
+          selection.focus.set(
+            snapshot.focusKey,
+            snapshot.focusOffset,
+            snapshot.focusType,
+          );
+          $setSelection(selection);
+
+          if (selection.isCollapsed()) {
+            return;
+          }
+
+          if (selection.getTextContent().trim() !== snapshot.text) {
+            return;
+          }
+
+          selection.insertText(generated);
+          inserted = true;
+        });
+
+        if (!inserted) {
+          throw new Error("Не удалось применить результат: исходное выделение изменилось");
+        }        
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : "Не удалось обработать выделение";
+        toast.error(message);
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [editor, isLoading, selectedText],
+  );
+
+  const submitCustomPrompt = useCallback(() => {
+    const value = customPrompt.trim();
+    if (!value) {
+      toast.error("Введите запрос");
+      return;
+    }
+    setIsCustomPromptOpen(false);
+    setCustomPrompt("");
+    void runAi(value);
+  }, [customPrompt, runAi]);
+
+  const mouseMoveListener = useCallback((e: MouseEvent) => {
     if (
       popupCharStylesEditorRef?.current &&
       (e.buttons === 1 || e.buttons === 3)
@@ -90,19 +282,19 @@ function TextFormatFloatingToolbar({
         const elementUnderMouse = document.elementFromPoint(x, y);
 
         if (!popupCharStylesEditorRef.current.contains(elementUnderMouse)) {
-          // Mouse is not over the target element => not a normal click, but probably a drag
           popupCharStylesEditorRef.current.style.pointerEvents = "none";
         }
       }
     }
-  }
-  function mouseUpListener(_e: MouseEvent) {
+  }, []);
+
+  const mouseUpListener = useCallback((_e: MouseEvent) => {
     if (popupCharStylesEditorRef?.current) {
       if (popupCharStylesEditorRef.current.style.pointerEvents !== "auto") {
         popupCharStylesEditorRef.current.style.pointerEvents = "auto";
       }
     }
-  }
+  }, []);
 
   useEffect(() => {
     if (popupCharStylesEditorRef?.current) {
@@ -114,7 +306,7 @@ function TextFormatFloatingToolbar({
         document.removeEventListener("mouseup", mouseUpListener);
       };
     }
-  }, [popupCharStylesEditorRef]);
+  }, [mouseMoveListener, mouseUpListener]);
 
   const $updateTextFormatFloatingToolbar = useCallback(() => {
     const selection = $getSelection();
@@ -128,21 +320,24 @@ function TextFormatFloatingToolbar({
 
     const rootElement = editor.getRootElement();
     if (
-      selection !== null &&
-      nativeSelection !== null &&
-      !nativeSelection.isCollapsed &&
-      rootElement !== null &&
-      rootElement.contains(nativeSelection.anchorNode)
+      selection === null ||
+      nativeSelection === null ||
+      nativeSelection.isCollapsed ||
+      rootElement === null ||
+      !rootElement.contains(nativeSelection.anchorNode)
     ) {
-      const rangeRect = getDOMRangeRect(nativeSelection, rootElement);
-
-      setFloatingElemPosition(
-        rangeRect,
-        popupCharStylesEditorElem,
-        anchorElem,
-        isLink,
-      );
+      popupCharStylesEditorElem.style.opacity = "0";
+      popupCharStylesEditorElem.style.transform = "translate(-10000px, -10000px)";
+      return;
     }
+
+    const rangeRect = getDOMRangeRect(nativeSelection, rootElement);
+    setFloatingElemPosition(
+      rangeRect,
+      popupCharStylesEditorElem,
+      anchorElem,
+      isLink,
+    );
   }, [editor, anchorElem, isLink]);
 
   useEffect(() => {
@@ -192,7 +387,10 @@ function TextFormatFloatingToolbar({
   return (
     <div
       ref={popupCharStylesEditorRef}
-      className="bg-background absolute top-0 left-0 flex gap-1 rounded-md border p-1 opacity-0 shadow-md transition-opacity duration-300 will-change-transform"
+      data-slot="floating-text-toolbar"
+      className={`bg-background absolute top-0 left-0 flex gap-1 rounded-md border p-1 opacity-0 shadow-md transition-opacity duration-300 will-change-transform ${
+        isVisible ? "" : "pointer-events-none"
+      }`}
     >
       {editor.isEditable() && (
         <>
@@ -297,6 +495,94 @@ function TextFormatFloatingToolbar({
               <SuperscriptIcon className="h-4 w-4" />
             </ToggleGroupItem>
           </ToggleGroup>
+          {aiEnabled && (
+            <>
+              <Separator orientation="vertical" />
+              <DropdownMenu open={isAiMenuOpen} onOpenChange={setIsAiMenuOpen}>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    size="xs"
+                    variant="ghost"
+                    type="button"
+                    disabled={!selectedText || isLoading}
+                    onMouseDown={(event) => event.preventDefault()}
+                    className="h-8"
+                    aria-label="AI actions"
+                  >
+                    {isLoading ? (
+                      <LoaderCircleIcon className="size-3.5 animate-spin" />
+                    ) : (
+                      <SparklesIcon className="size-3.5" />
+                    )}
+                    AI
+                    <ChevronDownIcon className="size-3.5" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" side="bottom" sideOffset={6} className="w-56">
+                  <DropdownMenuLabel>Действия с текстом</DropdownMenuLabel>
+                  {PRESET_ACTIONS.map((action) => (
+                    <DropdownMenuItem
+                      key={action.label}
+                      onSelect={(event) => {
+                        event.preventDefault();
+                        void runAi(action.prompt);
+                      }}
+                    >
+                      {action.label}
+                    </DropdownMenuItem>
+                  ))}
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    onSelect={(event) => {
+                      event.preventDefault();
+                      setIsAiMenuOpen(false);
+                      setIsCustomPromptOpen(true);
+                    }}
+                  >
+                    Свой запрос...
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+              <Dialog open={isCustomPromptOpen} onOpenChange={setIsCustomPromptOpen}>
+                <DialogContent showCloseButton={false}>
+                  <DialogHeader>
+                    <DialogTitle>AI-запрос</DialogTitle>
+                    <DialogDescription>
+                      Опиши, что сделать с выделенным текстом.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <Input
+                    value={customPrompt}
+                    onChange={(event) => setCustomPrompt(event.target.value)}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter") {
+                        event.preventDefault();
+                        submitCustomPrompt();
+                      }
+                    }}
+                    placeholder="Например: Сделай текст короче"
+                    autoFocus
+                  />
+                  <DialogFooter>
+                    <Button
+                      variant="outline"
+                      type="button"
+                      onClick={() => setIsCustomPromptOpen(false)}
+                    >
+                      Отмена
+                    </Button>
+                    <Button
+                      type="button"
+                      onClick={submitCustomPrompt}
+                      disabled={isLoading}
+                    >
+                      Применить
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+            </>
+          )}
         </>
       )}
     </div>
@@ -307,6 +593,7 @@ function useFloatingTextFormatToolbar(
   editor: LexicalEditor,
   anchorElem: HTMLDivElement | null,
   setIsLinkEditMode: Dispatch<boolean>,
+  aiEnabled: boolean,
 ): JSX.Element | null {
   const [isText, setIsText] = useState(false);
   const [isLink, setIsLink] = useState(false);
@@ -317,10 +604,10 @@ function useFloatingTextFormatToolbar(
   const [isSubscript, setIsSubscript] = useState(false);
   const [isSuperscript, setIsSuperscript] = useState(false);
   const [isCode, setIsCode] = useState(false);
+  const [selectedText, setSelectedText] = useState("");
 
   const updatePopup = useCallback(() => {
     editor.getEditorState().read(() => {
-      // Should not to pop up the floating toolbar when using IME input
       if (editor.isComposing()) {
         return;
       }
@@ -335,16 +622,18 @@ function useFloatingTextFormatToolbar(
           !rootElement.contains(nativeSelection.anchorNode))
       ) {
         setIsText(false);
+        setSelectedText("");
         return;
       }
 
       if (!$isRangeSelection(selection)) {
+        setSelectedText("");
         return;
       }
 
       const node = getSelectedNode(selection);
+      const text = selection.getTextContent().trim();
 
-      // Update text format
       setIsBold(selection.hasFormat("bold"));
       setIsItalic(selection.hasFormat("italic"));
       setIsUnderline(selection.hasFormat("underline"));
@@ -352,8 +641,8 @@ function useFloatingTextFormatToolbar(
       setIsSubscript(selection.hasFormat("subscript"));
       setIsSuperscript(selection.hasFormat("superscript"));
       setIsCode(selection.hasFormat("code"));
+      setSelectedText(text);
 
-      // Update links
       const parent = node.getParent();
       if ($isLinkNode(parent) || $isLinkNode(node)) {
         setIsLink(true);
@@ -373,7 +662,7 @@ function useFloatingTextFormatToolbar(
       const rawTextContent = selection.getTextContent().replace(/\n/g, "");
       if (!selection.isCollapsed() && rawTextContent === "") {
         setIsText(false);
-        return;
+        setSelectedText("");
       }
     });
   }, [editor]);
@@ -393,12 +682,13 @@ function useFloatingTextFormatToolbar(
       editor.registerRootListener(() => {
         if (editor.getRootElement() === null) {
           setIsText(false);
+          setSelectedText("");
         }
       }),
     );
   }, [editor, updatePopup]);
 
-  if (!isText || !anchorElem) {
+  if (!anchorElem) {
     return null;
   }
 
@@ -413,7 +703,10 @@ function useFloatingTextFormatToolbar(
       isSubscript={isSubscript}
       isSuperscript={isSuperscript}
       isUnderline={isUnderline}
+      isVisible={isText}
       isCode={isCode}
+      selectedText={selectedText}
+      aiEnabled={aiEnabled}
       setIsLinkEditMode={setIsLinkEditMode}
     />,
     anchorElem,
@@ -423,11 +716,13 @@ function useFloatingTextFormatToolbar(
 export function FloatingTextFormatToolbarPlugin({
   anchorElem,
   setIsLinkEditMode,
+  aiEnabled = false,
 }: {
   anchorElem: HTMLDivElement | null;
   setIsLinkEditMode: Dispatch<boolean>;
+  aiEnabled?: boolean;
 }): JSX.Element | null {
   const [editor] = useLexicalComposerContext();
 
-  return useFloatingTextFormatToolbar(editor, anchorElem, setIsLinkEditMode);
+  return useFloatingTextFormatToolbar(editor, anchorElem, setIsLinkEditMode, aiEnabled);
 }

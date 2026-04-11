@@ -5,6 +5,7 @@ import "@/fsd/app/css/globals.css";
 import { cn } from "@/fsd/shared/lib/utils";
 import { ThemeProvider } from "@/fsd/app/providers/theme-provider";
 import localFont from 'next/font/local'
+import { Toaster } from "sonner";
 
 const MtsWide = localFont({
   src: './MTSWide-Medium.woff2',
@@ -48,7 +49,12 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col">
           <ThemeProvider>
             {children}
-            <Toaster position="top-right" richColors />
+            <Toaster
+              position="bottom-center"
+              toastOptions={{
+                className: "rounded-md border bg-background text-foreground shadow-lg",
+              }}
+            />
           </ThemeProvider>
         </body>
     </html>
