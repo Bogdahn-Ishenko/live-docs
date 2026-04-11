@@ -4,7 +4,8 @@ import { useMemo } from "react";
 import { FileText, Image, Paperclip, Link2, Check, Star, Phone, Mail, ExternalLink, User } from "lucide-react";
 
 import { cn } from "@/fsd/shared/lib/utils";
-import type { FieldType, FieldValue, Attachment, Member, UrlObject } from "@/fsd/shared/lib/tables-mw/types";
+import type { FieldType } from "@/fsd/shared/lib/tables-mw/types";
+import type { FieldValue, Attachment, Member, UrlObject } from "@/fsd/shared/lib/tables-mw/api-types";
 import { detectFieldType } from "@/fsd/shared/lib/tables-mw/field-detector";
 
 export interface FieldDisplayProps {

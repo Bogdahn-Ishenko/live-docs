@@ -13,7 +13,8 @@ import { Checkbox } from "@/fsd/shared/ui/checkbox";
 import { Label } from "@/fsd/shared/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@/fsd/shared/ui/popover";
 import { Calendar } from "@/fsd/shared/ui/calendar";
-import type { FieldType, FieldValue, Attachment, Member } from "@/fsd/shared/lib/tables-mw/types";
+import type { FieldType } from "@/fsd/shared/lib/tables-mw/types";
+import type { FieldValue, Attachment, Member } from "@/fsd/shared/lib/tables-mw/api-types";
 import { detectFieldType, collectFieldMetadata } from "@/fsd/shared/lib/tables-mw/field-detector";
 
 export interface FieldInputProps {
@@ -405,13 +406,16 @@ function MultiSelectInput({
   onChange: (value: string[]) => void;
   options: string[];
 }) {
+  // Ensure value is always an array
+  const safeValue = Array.isArray(value) ? value : [];
+  
   const toggleOption = useCallback((opt: string) => {
-    if (value.includes(opt)) {
-      onChange(value.filter((v) => v !== opt));
+    if (safeValue.includes(opt)) {
+      onChange(safeValue.filter((v) => v !== opt));
     } else {
-      onChange([...value, opt]);
+      onChange([...safeValue, opt]);
     }
-  }, [value, onChange]);
+  }, [safeValue, onChange]);
 
   return (
     <div className="flex flex-wrap gap-2 p-2 border rounded-md min-h-[40px]">
@@ -419,7 +423,7 @@ function MultiSelectInput({
         <span className="text-sm text-muted-foreground">Нет доступных опций</span>
       ) : (
         options.map((opt) => {
-          const isSelected = value.includes(opt);
+          const isSelected = safeValue.includes(opt);
           return (
             <button
               key={opt}
@@ -468,17 +472,20 @@ function MultiLinkInput({
   onChange: (value: string[]) => void;
 }) {
   const [inputValue, setInputValue] = useState("");
+  
+  // Ensure value is always an array
+  const safeValue = Array.isArray(value) ? value : [];
 
   const addLink = useCallback(() => {
-    if (inputValue.trim() && !value.includes(inputValue.trim())) {
-      onChange([...value, inputValue.trim()]);
+    if (inputValue.trim() && !safeValue.includes(inputValue.trim())) {
+      onChange([...safeValue, inputValue.trim()]);
       setInputValue("");
     }
-  }, [inputValue, value, onChange]);
+  }, [inputValue, safeValue, onChange]);
 
   const removeLink = useCallback((link: string) => {
-    onChange(value.filter((v) => v !== link));
-  }, [value, onChange]);
+    onChange(safeValue.filter((v) => v !== link));
+  }, [safeValue, onChange]);
 
   return (
     <div className="space-y-2">
@@ -499,7 +506,7 @@ function MultiLinkInput({
         </Button>
       </div>
       <div className="flex flex-wrap gap-1">
-        {value.map((link) => (
+        {safeValue.map((link) => (
           <span
             key={link}
             className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs bg-muted"
@@ -530,6 +537,9 @@ function AttachmentInput({
 }) {
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  // Ensure value is always an array
+  const safeValue = Array.isArray(value) ? value : [];
 
   const handleFileSelect = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -550,7 +560,7 @@ function AttachmentInput({
       const result = await response.json();
       if (result.success && result.data) {
         const newAttachment: Attachment = result.data;
-        onChange([...value, newAttachment]);
+        onChange([...safeValue, newAttachment]);
       }
     } catch (error) {
       console.error("Failed to upload file:", error);
@@ -560,19 +570,19 @@ function AttachmentInput({
         fileInputRef.current.value = "";
       }
     }
-  }, [datasheetId, value, onChange]);
+  }, [datasheetId, safeValue, onChange]);
 
-  const removeAttachment = useCallback((id: string) => {
-    onChange(value.filter((a) => a.id !== id));
-  }, [value, onChange]);
+  const removeAttachment = useCallback((idOrToken: string) => {
+    onChange(safeValue.filter((a) => (a.id || a.token) !== idOrToken));
+  }, [safeValue, onChange]);
 
   return (
     <div className="space-y-2">
-      {value.length > 0 && (
+      {safeValue.length > 0 && (
         <div className="flex flex-wrap gap-2">
-          {value.map((attachment) => (
+          {value.map((attachment, index) => (
             <div
-              key={attachment.id}
+              key={attachment.id || attachment.token || `attachment-${index}`}
               className="relative group inline-flex items-center gap-2 px-2 py-1 rounded-md bg-muted"
             >
               {attachment.mimeType?.startsWith("image/") ? (
@@ -589,7 +599,7 @@ function AttachmentInput({
               <span className="text-sm truncate max-w-[120px]">{attachment.name}</span>
               <button
                 type="button"
-                onClick={() => removeAttachment(attachment.id)}
+                onClick={() => removeAttachment(attachment.id || attachment.token || "")}
                 className="text-muted-foreground hover:text-destructive"
               >
                 <X className="w-3.5 h-3.5" />
@@ -639,13 +649,16 @@ function MemberInput({
   onChange: (value: Member[]) => void;
   disabled?: boolean;
 }) {
-  if (!value || value.length === 0) {
+  // Ensure value is always an array
+  const safeValue = Array.isArray(value) ? value : [];
+  
+  if (safeValue.length === 0) {
     return <span className="text-sm text-muted-foreground">—</span>;
   }
 
   return (
     <div className="flex flex-wrap gap-1">
-      {value.map((member) => (
+      {safeValue.map((member) => (
         <div
           key={member.id}
           className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-muted text-sm"
