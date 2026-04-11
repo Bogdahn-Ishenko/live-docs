@@ -236,14 +236,15 @@ export function Editor({
         ],
         $initialEditorState(editor) {
           if (editorSerializedState) {
-            editor.parseEditorState(editorSerializedState);
+            const parsedState = editor.parseEditorState(editorSerializedState);
+            editor.setEditorState(parsedState);
           } else if (editorState) {
             editor.setEditorState(editorState);
           }
         },
         theme: editorTheme,
       }),
-    [editorState, editorSerializedState],
+    [],  // Пустые зависимости - extension создаётся один раз
   );
 
   return (
