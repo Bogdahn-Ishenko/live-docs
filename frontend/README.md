@@ -27,6 +27,18 @@ To learn more about Next.js, take a look at the following resources:
 - [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
 - [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
 
+## MWS GPT Integration
+
+The editor includes an `AI Assistant` action that calls MWS GPT from a server route.
+
+1. Create `frontend/.env.local` from `.env.example`.
+2. Set `MWS_GPT_API_KEY` to your key.
+3. Optionally set models:
+   - `MWS_GPT_MODEL_HINT` (fast hint model, default `gpt-oss-20b`)
+   - `MWS_GPT_MODEL_BLOCK` (higher-quality block generation model, default `qwen2.5-72b-instruct`)
+
+The API key is used only on the server in `src/app/api/ai/generate/route.ts` and is never exposed to the browser.
+
 You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
 
 ## Deploy on Vercel

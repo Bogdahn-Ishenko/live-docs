@@ -132,6 +132,7 @@ import { IMAGE } from "@/fsd/shared/ui/editor/transformers/markdown-image-transf
 import { TABLE } from "@/fsd/shared/ui/editor/transformers/markdown-table-transformer";
 import { TWEET } from "@/fsd/shared/ui/editor/transformers/markdown-tweet-transformer";
 import { validateUrl } from "@/fsd/shared/ui/editor/utils/url";
+import { Button } from "@/fsd/shared/ui/button";
 import { Separator } from "@/fsd/shared/ui/separator";
 import { TooltipProvider } from "@/fsd/shared/ui/tooltip";
 
@@ -153,6 +154,7 @@ export function Editor({
     toolbarItems,
     footerItems,
     pluginItems,
+    togglePluginItem,
     blockFormatItems,
     blockInsertItems,
     componentPickerItems,
@@ -507,6 +509,7 @@ export function Editor({
                 <FloatingTextFormatToolbarPlugin
                   anchorElem={floatingAnchorElem}
                   setIsLinkEditMode={setIsLinkEditMode}
+                  aiEnabled={pluginItems.selectionAi}
                 />
               )}
               {pluginItems.autoComplete && <AutoCompletePlugin />}
@@ -531,6 +534,22 @@ export function Editor({
                   )}
                 </div>
                 <div className="flex flex-1 justify-end">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    type="button"
+                    className={`p-2 ${pluginItems.selectionAi ? "text-foreground" : "text-muted-foreground"}`}
+                    onClick={() => togglePluginItem("selectionAi")}
+                    title="Включить или выключить AI для выделения"
+                    aria-label="Toggle selection AI"
+                  >
+                    <span
+                      className={`mr-1.5 inline-block size-1.5 rounded-full ${
+                        pluginItems.selectionAi ? "bg-emerald-500" : "bg-muted-foreground/60"
+                      }`}
+                    />
+                    {pluginItems.selectionAi ? "AI: Вкл" : "AI: Выкл"}
+                  </Button>
                   {footerItems.speechToText && <SpeechToTextPlugin />}
                   {footerItems.shareContent && <ShareContentPlugin />}
                   {footerItems.exportImport && <ImportExportPlugin />}

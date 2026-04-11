@@ -4,6 +4,10 @@ import { useCallback, useEffect, useState } from "react";
 const SEARCH_PARAMS_EVENT = "search-params-change";
 
 function readParams<T extends Record<string, string>>(defaults: T): T {
+  if (typeof window === "undefined") {
+    return { ...defaults };
+  }
+
   const search = new URLSearchParams(window.location.search);
   const result = { ...defaults } as T;
   for (const key in defaults) {

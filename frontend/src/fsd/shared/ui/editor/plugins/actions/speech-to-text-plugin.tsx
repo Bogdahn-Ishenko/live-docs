@@ -44,9 +44,12 @@ const VOICE_COMMANDS: Readonly<
   },
 };
 
-export const SUPPORT_SPEECH_RECOGNITION: boolean =
-  CAN_USE_DOM &&
-  ("SpeechRecognition" in window || "webkitSpeechRecognition" in window);
+function hasSpeechRecognitionSupport(): boolean {
+  return (
+    CAN_USE_DOM &&
+    ("SpeechRecognition" in window || "webkitSpeechRecognition" in window)
+  );
+}
 
 function SpeechToTextPluginImpl() {
   const [editor] = useLexicalComposerContext();
@@ -54,11 +57,17 @@ function SpeechToTextPluginImpl() {
   const [isSpeechToText, setIsSpeechToText] = useState(false);
   const SpeechRecognition =
     // @ts-expect-error missing type
-    window.SpeechRecognition || window.webkitSpeechRecognition;
+    typeof window !== "undefined"
+      ? window.SpeechRecognition || window.webkitSpeechRecognition
+      : null;
   const recognition = useRef<typeof SpeechRecognition | null>(null);
   const report = useReport();
 
   useEffect(() => {
+    if (!SpeechRecognition) {
+      return;
+    }
+
     if (isEnabled && recognition.current === null) {
       recognition.current = new SpeechRecognition();
       recognition.current.continuous = true;
@@ -143,6 +152,16 @@ function SpeechToTextPluginImpl() {
   );
 }
 
-export const SpeechToTextPlugin = SUPPORT_SPEECH_RECOGNITION
-  ? SpeechToTextPluginImpl
-  : () => null;
+export function SpeechToTextPlugin() {
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted || !hasSpeechRecognitionSupport()) {
+    return null;
+  }
+
+  return <SpeechToTextPluginImpl />;
+}

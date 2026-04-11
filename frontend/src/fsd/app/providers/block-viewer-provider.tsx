@@ -31,6 +31,7 @@ export type PluginItemKey =
   | "autoEmbed"
   | "mentions"
   | "draggableBlock"
+  | "selectionAi"
   | "autoComplete"
   | "autoLink"
   | "floatingTextToolbar"
@@ -112,6 +113,7 @@ export const PLUGIN_ITEM_LABELS: Record<PluginItemKey, string> = {
   autoEmbed: "Auto Embed",
   mentions: "Mentions",
   draggableBlock: "Draggable Block",
+  selectionAi: "Selection AI",
   autoComplete: "Auto Complete",
   autoLink: "Auto Link",
   floatingTextToolbar: "Floating Text Toolbar",
@@ -226,6 +228,7 @@ function BlockViewerProvider({ children }: { children: React.ReactNode }) {
     autoEmbed: true,
     mentions: true,
     draggableBlock: true,
+    selectionAi: true,
     autoComplete: true,
     autoLink: true,
     floatingTextToolbar: true,
