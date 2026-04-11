@@ -125,6 +125,10 @@ import { LinkToolbarPlugin } from "@/fsd/shared/ui/editor/plugins/toolbar/link-t
 import { SubSuperToolbarPlugin } from "@/fsd/shared/ui/editor/plugins/toolbar/subsuper-toolbar-plugin";
 import { ToolbarPlugin } from "@/fsd/shared/ui/editor/plugins/toolbar/toolbar-plugin";
 import { TypingPerfPlugin } from "@/fsd/shared/ui/editor/plugins/typing-pref-plugin";
+import { TablesMwPastePlugin } from "@/fsd/shared/ui/editor/plugins/tables-mw-paste-plugin";
+import { TablesMwBrowserPlugin } from "@/fsd/shared/ui/editor/plugins/tables-mw-browser-plugin";
+import { TablesMwNode, $insertTablesMwNode } from "@/fsd/shared/ui/editor/nodes/tables-mw-node";
+import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
 import { editorTheme } from "@/fsd/shared/ui/editor/themes/editor-theme";
 import { EMOJI } from "@/fsd/shared/ui/editor/transformers/markdown-emoji-transformer";
 import { HR } from "@/fsd/shared/ui/editor/transformers/markdown-hr-transformer";
@@ -136,8 +140,25 @@ import { Button } from "@/fsd/shared/ui/button";
 import { Separator } from "@/fsd/shared/ui/separator";
 import { TooltipProvider } from "@/fsd/shared/ui/tooltip";
 
-const placeholder = "Press / for commands...";
+const placeholder = "Нажмите / для команд...";
 const maxLength = 30 * 1000;
+
+/**
+ * TablesMw Browser Button Component
+ * Button to open the tables browser and insert tables into the editor
+ */
+function TablesMwBrowserButton() {
+  const [editor] = useLexicalComposerContext();
+
+  const handleInsertTable = (spaceId: string, datasheet: { id: string; name: string }, viewId: string) => {
+    editor.update(() => {
+      const apiUrl = `https://tables.mws.ru/fusion/v1/datasheets/${datasheet.id}/records?viewId=${viewId}&fieldKey=name`;
+      $insertTablesMwNode(apiUrl, spaceId, datasheet.id, viewId);
+    });
+  };
+
+  return <TablesMwBrowserPlugin onInsertTable={handleInsertTable} />;
+}
 
 export function Editor({
   editorState,
@@ -232,17 +253,19 @@ export function Editor({
           YouTubeNode,
           AutocompleteNode,
           SpecialTextNode,
+          TablesMwNode,
         ],
         $initialEditorState(editor) {
           if (editorSerializedState) {
-            editor.parseEditorState(editorSerializedState);
+            const parsedState = editor.parseEditorState(editorSerializedState);
+            editor.setEditorState(parsedState);
           } else if (editorState) {
             editor.setEditorState(editorState);
           }
         },
         theme: editorTheme,
       }),
-    [editorState, editorSerializedState],
+    [],  // Пустые зависимости - extension создаётся один раз
   );
 
   return (
@@ -412,6 +435,7 @@ export function Editor({
               )}
               {pluginItems.emojiPicker && <EmojiPickerPlugin />}
               {pluginItems.autoEmbed && <AutoEmbedPlugin />}
+              <TablesMwPastePlugin />
               {pluginItems.mentions && <MentionsPlugin />}
               {blockFormatItems.codeBlock && <CodeHighlightPlugin />}
               {blockInsertItems.table && <TablePlugin />}

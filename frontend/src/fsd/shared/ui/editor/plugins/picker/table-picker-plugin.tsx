@@ -6,11 +6,11 @@ import { ComponentPickerOption } from "@/fsd/shared/ui/editor/plugins/picker/com
 import { InsertTableDialog } from "@/fsd/shared/ui/editor/plugins/table-plugin";
 
 export function TablePickerPlugin() {
-  return new ComponentPickerOption("Table", {
+  return new ComponentPickerOption("Таблица", {
     icon: <TableIcon className="size-4" />,
     keywords: ["table", "grid", "spreadsheet", "rows", "columns"],
     onSelect: (_, editor, showModal) =>
-      showModal("Insert Table", (onClose) => (
+      showModal("Вставить таблицу", (onClose) => (
         <InsertTableDialog activeEditor={editor} onClose={onClose} />
       )),
   });
@@ -38,7 +38,7 @@ export function DynamicTablePickerPlugin({
     options.push(
       ...colOptions.map(
         (columns) =>
-          new ComponentPickerOption(`${rows}x${columns} Table`, {
+          new ComponentPickerOption(`${rows}x${columns} таблица`, {
             icon: <i className="icon table" />,
             keywords: ["table"],
             onSelect: (_, editor) =>

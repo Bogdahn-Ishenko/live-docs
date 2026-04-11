@@ -1,4 +1,4 @@
-import type { BlockViewerContextType } from "@/fsd/shared/ui/block-viewer-provider";
+import type { BlockViewerContextType } from "@/fsd/app/providers/block-viewer-provider";
 
 import {
   BASE_SPEC,
@@ -243,7 +243,7 @@ ${toolbarStart}${toolbarStart && toolbarInner ? "\n" : ""}${toolbarInner}
 
   return `${importSection}
 
-const placeholder = "Press / for commands...";${hasCharCount ? "\nconst maxLength = 30;" : ""}
+const placeholder = "Нажмите / для команд...";${hasCharCount ? "\nconst maxLength = 30;" : ""}
 
 export function Editor({
   editorState,

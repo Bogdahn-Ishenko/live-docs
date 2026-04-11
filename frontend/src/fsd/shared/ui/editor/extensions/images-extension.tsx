@@ -87,7 +87,7 @@ export function InsertImageUriDialogBody({
           onClick={() => onClick({ altText, src })}
           data-test-id="image-modal-confirm-btn"
         >
-          Confirm
+          Подтвердить
         </Button>
       </DialogFooter>
     </FieldGroup>
@@ -146,7 +146,7 @@ export function InsertImageUploadedDialogBody({
           onClick={() => onClick({ altText, src })}
           data-test-id="image-modal-file-upload-btn"
         >
-          Confirm
+          Подтвердить
         </Button>
       </DialogFooter>
     </FieldGroup>

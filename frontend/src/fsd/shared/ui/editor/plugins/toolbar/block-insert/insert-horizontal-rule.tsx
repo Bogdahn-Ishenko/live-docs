@@ -16,7 +16,7 @@ export function InsertHorizontalRule() {
     >
       <div className="flex items-center gap-1">
         <ScissorsIcon className="size-4" />
-        <span>Horizontal Rule</span>
+        <span>Горизонтальный разделитель</span>
       </div>
     </DropdownMenuItem>
   );

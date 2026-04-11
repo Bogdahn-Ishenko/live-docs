@@ -7,7 +7,7 @@ import { CodeIcon } from "lucide-react";
 import { ComponentPickerOption } from "@/fsd/shared/ui/editor/plugins/picker/component-picker-option";
 
 export function CodePickerPlugin() {
-  return new ComponentPickerOption("Code", {
+  return new ComponentPickerOption("Блок кода", {
     icon: <CodeIcon className="size-4" />,
     keywords: ["javascript", "python", "js", "codeblock"],
     onSelect: (_, editor) =>

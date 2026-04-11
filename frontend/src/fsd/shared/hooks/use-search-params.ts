@@ -22,17 +22,26 @@ function readParams<T extends Record<string, string>>(defaults: T): T {
 export function useSearchParams<T extends Record<string, string>>(
   defaults: T,
 ): [T, (updates: Partial<T>) => void] {
-  const [params, setParamsState] = useState<T>(() => readParams(defaults));
+  const [params, setParamsState] = useState<T>(defaults);
+
+  // Инициализируем параметры на клиенте
+  useEffect(() => {
+    setParamsState(readParams(defaults));
+  }, [defaults]);
 
   useEffect(() => {
+    if (typeof window === 'undefined') return;
+    
     function onUpdate() {
       setParamsState(readParams(defaults));
     }
     window.addEventListener(SEARCH_PARAMS_EVENT, onUpdate);
     return () => window.removeEventListener(SEARCH_PARAMS_EVENT, onUpdate);
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [defaults]);
 
   const setParams = useCallback((updates: Partial<T>) => {
+    if (typeof window === 'undefined') return;
+    
     const search = new URLSearchParams(window.location.search);
     for (const key in updates) {
       search.set(key, updates[key] as string);

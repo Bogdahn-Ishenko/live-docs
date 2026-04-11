@@ -33,6 +33,8 @@ function isTheme(value: string | null): value is Theme {
 }
 
 function getSystemTheme(): ResolvedTheme {
+  if (typeof window === 'undefined') return "light";
+  
   if (window.matchMedia(COLOR_SCHEME_QUERY).matches) {
     return "dark";
   }
@@ -41,6 +43,8 @@ function getSystemTheme(): ResolvedTheme {
 }
 
 function disableTransitionsTemporarily() {
+  if (typeof document === 'undefined') return null;
+  
   const style = document.createElement("style");
   style.appendChild(
     document.createTextNode(
@@ -92,15 +96,17 @@ export function ThemeProvider({
 
     const storedTheme = window.localStorage.getItem(storageKey);
     if (isTheme(storedTheme)) {
-      return storedTheme;
+      setThemeState(storedTheme);
     }
-
-    return defaultTheme;
-  });
+  }, [storageKey]);
 
   const setTheme = React.useCallback(
     (nextTheme: Theme) => {
-      localStorage.setItem(storageKey, nextTheme);
+      if (typeof window !== 'undefined') {
+        if (typeof window !== 'undefined') {
+          localStorage.setItem(storageKey, nextTheme);
+        }
+      }
       setThemeState(nextTheme);
     },
     [storageKey],
@@ -108,6 +114,8 @@ export function ThemeProvider({
 
   const applyTheme = React.useCallback(
     (nextTheme: Theme) => {
+      if (typeof document === 'undefined') return;
+      
       const root = document.documentElement;
       const resolvedTheme =
         nextTheme === "system" ? getSystemTheme() : nextTheme;
@@ -172,7 +180,9 @@ export function ThemeProvider({
                 ? "light"
                 : "dark";
 
-        localStorage.setItem(storageKey, nextTheme);
+        if (typeof window !== 'undefined') {
+          localStorage.setItem(storageKey, nextTheme);
+        }
         return nextTheme;
       });
     };
@@ -186,7 +196,7 @@ export function ThemeProvider({
 
   React.useEffect(() => {
     const handleStorageChange = (event: StorageEvent) => {
-      if (event.storageArea !== localStorage) {
+      if (typeof window === 'undefined' || event.storageArea !== localStorage) {
         return;
       }
 
