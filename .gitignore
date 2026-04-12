@@ -1,4 +1,5 @@
 node_modules/
+.42c/
 
 .env*
 !.env.example
