@@ -112,6 +112,11 @@ public class PageService {
                 .toList();
     }
 
+    @Transactional
+    public void deletePage(String slug) {
+        WikiPage page = getBySlug(slug);
+        pageRepository.delete(page);
+    }
     public List<WikiPage> search(String query) {
         if (query == null || query.isBlank()) {
             return List.of();

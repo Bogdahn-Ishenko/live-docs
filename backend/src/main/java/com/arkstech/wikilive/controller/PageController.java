@@ -53,4 +53,11 @@ public class PageController {
     public ResponseEntity<List<WikiPage>> search(@RequestParam String query) {
         return ResponseEntity.ok(pageService.search(query));
     }
+
+    @DeleteMapping("/{slug}")
+    public ResponseEntity<Void> delete(@PathVariable String slug) {
+        pageService.deletePage(slug);
+        return ResponseEntity.noContent().build(); // 204
+    }
+
 }
