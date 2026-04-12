@@ -1,0 +1,8 @@
+com\arkstech\wikilive\model\WikiPage$WikiPageBuilder.class
+com\arkstech\wikilive\model\WikiPage.class
+com\arkstech\wikilive\service\PageService.class
+com\arkstech\wikilive\config\AppConfig.class
+com\arkstech\wikilive\dto\PageRequest.class
+com\arkstech\wikilive\controller\PageController.class
+com\arkstech\wikilive\WikiLiveApplication.class
+com\arkstech\wikilive\repository\PageRepository.class
