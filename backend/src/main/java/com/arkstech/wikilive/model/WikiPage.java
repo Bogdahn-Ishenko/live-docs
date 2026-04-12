@@ -2,22 +2,15 @@ package com.arkstech.wikilive.model;
 
 import jakarta.persistence.*;
 import lombok.*;
-import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.UpdateTimestamp;
-
 import java.time.LocalDateTime;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.ArrayList;
+import java.util.List;
 
 
-//Сущность для ХРАНЕНИЯ данных, перекидывает в postgres все
-
+//сущность для ХРАНЕНИЯ данных
 @Entity
 @Table(name = "pages")
-@Data
-@Builder
-@NoArgsConstructor
-@AllArgsConstructor
+@Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
 public class WikiPage {
 
     @Id
@@ -27,31 +20,30 @@ public class WikiPage {
     @Column(nullable = false)
     private String title;
 
-    @Column(unique = true, nullable = false)
+    @Column(nullable = false, unique = true)
     private String slug;
 
-
     @Column(columnDefinition = "TEXT")
-    private String content; // JSON ТУТ
+    private String content;
 
-    private String mwsTableId; //внешний ID таблицы
+    private String mwsTableId;
+    private String ownerId;
 
-    private String ownerId; //ID пользователя
-
-    @CreationTimestamp
     private LocalDateTime createdAt;
-
-    @UpdateTimestamp
     private LocalDateTime updatedAt;
 
+    @OneToMany(mappedBy = "sourcePage", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
+    private List<PageLink> links = new ArrayList<>();
 
-//Связи между страницами Backlinks.
+    @PrePersist
+    protected void onCreate() {
+        createdAt = LocalDateTime.now();
+        updatedAt = LocalDateTime.now();
+    }
 
-    @ManyToMany
-    @JoinTable(
-            name = "page_links",
-            joinColumns = @JoinColumn(name = "source_id"),
-            inverseJoinColumns = @JoinColumn(name = "target_id")
-    )
-    private Set<WikiPage> links = new HashSet<>();
+    @PreUpdate
+    protected void onUpdate() {
+        updatedAt = LocalDateTime.now();
+    }
 }
