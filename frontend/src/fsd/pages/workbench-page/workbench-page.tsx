@@ -13,7 +13,7 @@ import { useMemo } from "react";
 
 const EDITOR_STATE_KEY = 'live-docs-editor-state';
 
-// Динамический импорт Editor только на клиенте (Lexical использует browser-only API)
+// Dynamically import Editor on client only (Lexical uses browser-only API)
 const Editor = dynamic(
   () => import("@/fsd/shared/ui/blocks/editor-x").then((mod) => mod.Editor),
   { ssr: false }
@@ -52,15 +52,15 @@ export default function WorkbenchPage() {
       >
         {/* <BlockViewerSidebar /> */}
         {/* <SidebarInset> */}
-          {/* <div className="flex flex-col gap-2 min-h-svh py-2 pr-1 md:w-[calc(100vw-260px)]"> */}
-          <div className="flex flex-col gap-2 min-h-svh py-2 pr-1 w-full">
-            <BlockViewerToolbar />
-            {view === "preview" ? (
-              <EditorWithPersistence />
-            ) : (
-              <GeneratedCodeViewer />
-            )}
-          </div>
+        {/* <div className="flex flex-col gap-2 min-h-svh py-2 pr-1 md:w-[calc(100vw-260px)]"> */}
+        <div className="flex flex-col gap-2 min-h-svh py-2 pr-1 w-full">
+          <BlockViewerToolbar />
+          {view === "preview" ? (
+            <EditorWithPersistence />
+          ) : (
+            <GeneratedCodeViewer />
+          )}
+        </div>
         {/* </SidebarInset> */}
       </SidebarProvider>
     </BlockViewerProvider>

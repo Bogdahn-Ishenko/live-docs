@@ -95,10 +95,8 @@ export function ThemeProvider({
     }
 
     const storedTheme = window.localStorage.getItem(storageKey);
-    if (isTheme(storedTheme)) {
-      setThemeState(storedTheme);
-    }
-  }, [storageKey]);
+    return isTheme(storedTheme) ? storedTheme : defaultTheme;
+  });
 
   const setTheme = React.useCallback(
     (nextTheme: Theme) => {

@@ -265,7 +265,7 @@ export function Editor({
         },
         theme: editorTheme,
       }),
-    [],  // Пустые зависимости - extension создаётся один раз
+    [], // Пустые зависимости - extension создаётся один раз
   );
 
   return (
@@ -574,6 +574,7 @@ export function Editor({
                     />
                     {pluginItems.selectionAi ? "AI: Вкл" : "AI: Выкл"}
                   </Button>
+                  <TablesMwBrowserButton />
                   {footerItems.speechToText && <SpeechToTextPlugin />}
                   {footerItems.shareContent && <ShareContentPlugin />}
                   {footerItems.exportImport && <ImportExportPlugin />}

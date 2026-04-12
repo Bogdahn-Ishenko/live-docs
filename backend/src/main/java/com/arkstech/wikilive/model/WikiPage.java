@@ -9,43 +9,47 @@ import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.Set;
 
-
-//Сущность для ХРАНЕНИЯ данных, перекидывает в postgres все
-
+/**
+ * Entity representing a Wiki Page.
+ */
 @Entity
 @Table(name = "pages")
-@Data
+@Getter
+@Setter
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@ToString(exclude = "links")
+@EqualsAndHashCode(onlyExplicitlyIncluded = true)
 public class WikiPage {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @EqualsAndHashCode.Include
     private Long id;
 
     @Column(nullable = false)
     private String title;
 
+    @Column(columnDefinition = "TEXT")
+    private String description;
+
     @Column(unique = true, nullable = false)
     private String slug;
 
-
     @Column(columnDefinition = "TEXT")
-    private String content; // JSON ТУТ
+    private String content;
 
-    private String mwsTableId; //внешний ID таблицы
+    private String mwsTableId;
 
-    private String ownerId; //ID пользователя
+    private String ownerId;
 
     @CreationTimestamp
+    @Column(updatable = false)
     private LocalDateTime createdAt;
 
     @UpdateTimestamp
     private LocalDateTime updatedAt;
-
-
-//Связи между страницами Backlinks.
 
     @ManyToMany
     @JoinTable(
@@ -53,5 +57,6 @@ public class WikiPage {
             joinColumns = @JoinColumn(name = "source_id"),
             inverseJoinColumns = @JoinColumn(name = "target_id")
     )
+    @Builder.Default
     private Set<WikiPage> links = new HashSet<>();
 }
