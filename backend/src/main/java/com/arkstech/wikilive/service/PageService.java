@@ -1,41 +1,162 @@
 package com.arkstech.wikilive.service;
 
+import com.arkstech.wikilive.dto.GraphDTO;
+import com.arkstech.wikilive.dto.PageDTO;
 import com.arkstech.wikilive.dto.PageRequest;
+import com.arkstech.wikilive.model.PageLink;
 import com.arkstech.wikilive.model.WikiPage;
+import com.arkstech.wikilive.repository.PageLinkRepository;
 import com.arkstech.wikilive.repository.PageRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
-//сервис для уникальности slug
+import java.util.List;
+import java.util.Locale;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @Service
 @RequiredArgsConstructor
 public class PageService {
 
     private final PageRepository pageRepository;
+    private final PageLinkRepository pageLinkRepository;
 
+    @Transactional
     public WikiPage createPage(PageRequest request) {
-        String baseSlug = request.getTitle().toLowerCase()
-                .replaceAll("[^a-z0-9а-яё]", "-") //заменяем всё кроме букв и цифр на дефис
-                .replaceAll("-+", "-")            //убираем двойные дефисы
-                .replaceAll("^-|-$", "");         //убираем дефисы в начале и конце
+        String baseSlug = toSlug(request.getTitle());
+        String currentSlug = baseSlug;
+        int counter = 1;
 
-        String finalSlug = baseSlug;
-        int count = 1;
+        while (true) {
+            try {
+                WikiPage page = WikiPage.builder()
+                        .title(request.getTitle())
+                        .content(request.getContent())
+                        .slug(currentSlug)
+                        .mwsTableId(request.getMwsTableId())
+                        .build();
 
-        //добавляем цифру
-        while (pageRepository.existsBySlug(finalSlug)) {
-            finalSlug = baseSlug + "-" + count;
-            count++;
+                attachWikiLinks(page);
+
+                WikiPage savedPage = pageRepository.saveAndFlush(page);
+                updateExistingRedLinks(savedPage);
+
+                return savedPage;
+
+            } catch (DataIntegrityViolationException e) {
+                currentSlug = baseSlug + "-" + counter++;
+            }
         }
+    }
 
-        WikiPage page = WikiPage.builder()
-                .title(request.getTitle())
-                .content(request.getContent())
-                .slug(finalSlug)
-                .mwsTableId(request.getMwsTableId())
-                .build();
+    @Transactional
+    public WikiPage updatePage(String slug, PageRequest request) {
+        WikiPage page = getBySlug(slug);
 
-        return pageRepository.save(page);
+        page.setTitle(request.getTitle());
+        page.setContent(request.getContent());
+        page.setMwsTableId(request.getMwsTableId());
+
+        attachWikiLinks(page);
+
+        WikiPage updated = pageRepository.saveAndFlush(page);
+        updateExistingRedLinks(updated);
+
+        return updated;
+    }
+
+    private void attachWikiLinks(WikiPage page) {
+        page.getLinks().clear();
+
+        if (page.getContent() == null) return;
+
+        Pattern pattern = Pattern.compile("\\[\\[(.*?)\\]\\]");
+        Matcher matcher = pattern.matcher(page.getContent());
+
+        while (matcher.find()) {
+            String targetSlug = toSlug(matcher.group(1));
+            WikiPage target = pageRepository.findBySlug(targetSlug).orElse(null);
+
+            page.getLinks().add(PageLink.builder()
+                    .sourcePage(page)
+                    .targetSlug(targetSlug)
+                    .targetPage(target)
+                    .build());
+        }
+    }
+
+    private void updateExistingRedLinks(WikiPage newPage) {
+        List<PageLink> redLinks =
+                pageLinkRepository.findRedLinksToSlug(newPage.getSlug());
+
+        for (PageLink link : redLinks) {
+            link.setTargetPage(newPage);
+        }
+    }
+
+    public WikiPage getBySlug(String slug) {
+        return pageRepository.findBySlug(slug)
+                .orElseThrow(() -> new RuntimeException("Page not found"));
+    }
+
+    public List<WikiPage> getAll() {
+        return pageRepository.findAll();
+    }
+
+    public List<PageDTO> getBacklinks(String slug) {
+        return pageLinkRepository.findBacklinks(slug).stream()
+                .map(p -> new PageDTO(p.getSlug(), p.getTitle()))
+                .toList();
+    }
+
+    public List<WikiPage> search(String query) {
+        if (query == null || query.isBlank()) {
+            return List.of();
+        }
+        return pageRepository.search(query);
+    }
+
+    //ГРАФ ТУТ
+    public GraphDTO getGraph() {
+        List<WikiPage> pages = pageRepository.findAll();
+
+        List<GraphDTO.NodeDTO> nodes = pages.stream()
+                .map(p -> new GraphDTO.NodeDTO(
+                        p.getSlug(),
+                        p.getTitle()
+                ))
+                .toList();
+
+        List<GraphDTO.EdgeDTO> edges = pages.stream()
+                .flatMap(p -> p.getLinks().stream()
+                        .map(l -> new GraphDTO.EdgeDTO(
+                                p.getSlug(),
+                                l.getTargetSlug()
+                        )))
+                .toList();
+
+        return new GraphDTO(nodes, edges);
+    }
+
+    //ЛОГИКА ИСПРАВЛЕНИЯ РУССКОГО СЛАГА
+    private String toSlug(String input) {
+        if (input == null || input.isBlank()) return "untitled";
+
+        String s = input.toLowerCase(Locale.ROOT);
+        s = s.replace("а","a").replace("б","b").replace("в","v").replace("г","g")
+                .replace("д","d").replace("е","e").replace("ё","e").replace("ж","zh")
+                .replace("з","z").replace("и","i").replace("й","y").replace("к","k")
+                .replace("л","l").replace("м","m").replace("н","n").replace("о","o")
+                .replace("п","p").replace("р","r").replace("с","s").replace("т","t")
+                .replace("у","u").replace("ф","f").replace("х","h").replace("ц","c")
+                .replace("ч","ch").replace("ш","sh").replace("щ","sch").replace("ы","y")
+                .replace("э","e").replace("ю","yu").replace("я","ya");
+
+        return s.replaceAll("[^a-z0-9]", "-")
+                .replaceAll("-+", "-")
+                .replaceAll("^-|-$", "");
     }
 }

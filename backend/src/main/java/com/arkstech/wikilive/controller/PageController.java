@@ -1,10 +1,12 @@
 package com.arkstech.wikilive.controller;
 
+import com.arkstech.wikilive.dto.GraphDTO;
+import com.arkstech.wikilive.dto.PageDTO;
 import com.arkstech.wikilive.dto.PageRequest;
 import com.arkstech.wikilive.model.WikiPage;
-import com.arkstech.wikilive.repository.PageRepository;
 import com.arkstech.wikilive.service.PageService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -15,21 +17,40 @@ import java.util.List;
 public class PageController {
 
     private final PageService pageService;
-    private final PageRepository pageRepository;
 
     @PostMapping
-    public WikiPage savePage(@RequestBody PageRequest request) {
-        return pageService.createPage(request);
+    public ResponseEntity<WikiPage> create(@RequestBody PageRequest request) {
+        return ResponseEntity.ok(pageService.createPage(request));
+    }
+
+    @PutMapping("/{slug}")
+    public ResponseEntity<WikiPage> update(@PathVariable String slug,
+                                           @RequestBody PageRequest request) {
+        return ResponseEntity.ok(pageService.updatePage(slug, request));
     }
 
     @GetMapping("/{slug}")
-    public WikiPage getPage(@PathVariable String slug) {
-        return pageRepository.findBySlug(slug)
-                .orElseThrow(() -> new RuntimeException("Страница не найдена"));
+    public ResponseEntity<WikiPage> get(@PathVariable String slug) {
+        return ResponseEntity.ok(pageService.getBySlug(slug));
     }
 
     @GetMapping
-    public List<WikiPage> getAllPages() {
-        return pageRepository.findAll();
+    public ResponseEntity<List<WikiPage>> getAll() {
+        return ResponseEntity.ok(pageService.getAll());
+    }
+
+    @GetMapping("/{slug}/backlinks")
+    public ResponseEntity<List<PageDTO>> backlinks(@PathVariable String slug) {
+        return ResponseEntity.ok(pageService.getBacklinks(slug));
+    }
+
+    @GetMapping("/graph")
+    public ResponseEntity<GraphDTO> graph() {
+        return ResponseEntity.ok(pageService.getGraph());
+    }
+
+    @GetMapping("/search")
+    public ResponseEntity<List<WikiPage>> search(@RequestParam String query) {
+        return ResponseEntity.ok(pageService.search(query));
     }
 }
