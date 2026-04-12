@@ -12,6 +12,18 @@ services:
     volumes:
       - "pgdata:/var/lib/postgresql/data"
 
+  wikilive_app:
+    build: .
+    container_name: wikilive_app_cont
+    ports:
+      - "8085:8085"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://wikilive_db:5432/wikilive_db
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: password
+    depends_on:
+      - wikilive_db
+
   adminer:
     image: adminer
     restart: always
