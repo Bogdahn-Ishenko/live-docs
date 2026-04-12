@@ -117,11 +117,14 @@ public class PageService {
         WikiPage page = getBySlug(slug);
         pageRepository.delete(page);
     }
-    public List<WikiPage> search(String query) {
+    public List<PageDTO> search(String query) {
         if (query == null || query.isBlank()) {
             return List.of();
         }
-        return pageRepository.search(query);
+
+        return pageRepository.smartSearch(query).stream()
+                .map(p -> new PageDTO(p.getSlug(), p.getTitle()))
+                .toList();
     }
 
     //ГРАФ ТУТ

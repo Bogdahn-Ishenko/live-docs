@@ -50,7 +50,7 @@ public class PageController {
     }
 
     @GetMapping("/search")
-    public ResponseEntity<List<WikiPage>> search(@RequestParam String query) {
+    public ResponseEntity<List<PageDTO>> search(@RequestParam String query) {
         return ResponseEntity.ok(pageService.search(query));
     }
 
