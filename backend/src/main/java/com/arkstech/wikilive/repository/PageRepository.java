@@ -16,9 +16,16 @@ public interface PageRepository extends JpaRepository<WikiPage, Long> {
     Optional<WikiPage> findBySlug(String slug);     //по "slug" ищет
     boolean existsBySlug(String slug);              //проверка на уникальность
     @Query("""
-    SELECT p FROM WikiPage p
-    WHERE LOWER(p.title) LIKE LOWER(CONCAT('%', :q, '%'))
-       OR LOWER(p.content) LIKE LOWER(CONCAT('%', :q, '%'))
+SELECT p FROM WikiPage p
+WHERE
+    LOWER(p.title) LIKE LOWER(CONCAT('%', :q, '%'))
+    OR LOWER(p.content) LIKE LOWER(CONCAT('%', :q, '%'))
+ORDER BY
+    CASE
+        WHEN LOWER(p.title) LIKE LOWER(CONCAT('%', :q, '%')) THEN 0
+        ELSE 1
+    END,
+    p.title ASC
 """)
-    List<WikiPage> search(@Param("q") String query);
+    List<WikiPage> smartSearch(@Param("q") String q);
 }
