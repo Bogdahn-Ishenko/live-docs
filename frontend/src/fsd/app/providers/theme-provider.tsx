@@ -89,11 +89,10 @@ export function ThemeProvider({
   disableTransitionOnChange = true,
   ...props
 }: ThemeProviderProps) {
-  const [theme, setThemeState] = React.useState<Theme>(() => {
-    if (typeof window === "undefined") {
-      return defaultTheme;
-    }
-
+  const [theme, setThemeState] = React.useState<Theme>(defaultTheme);
+  
+  // Initialize theme from localStorage on mount
+  React.useEffect(() => {
     const storedTheme = window.localStorage.getItem(storageKey);
     if (isTheme(storedTheme)) {
       setThemeState(storedTheme);

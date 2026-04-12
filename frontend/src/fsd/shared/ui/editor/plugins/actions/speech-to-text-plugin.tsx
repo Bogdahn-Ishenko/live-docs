@@ -56,9 +56,9 @@ function SpeechToTextPluginImpl() {
   const [isEnabled, setIsEnabled] = useState<boolean>(false);
   const [isSpeechToText, setIsSpeechToText] = useState(false);
   const SpeechRecognition =
-    // @ts-expect-error missing type
     typeof window !== "undefined"
-      ? window.SpeechRecognition || window.webkitSpeechRecognition
+      ? // @ts-expect-error missing type
+        window.SpeechRecognition || window.webkitSpeechRecognition
       : null;
   const recognition = useRef<typeof SpeechRecognition | null>(null);
   const report = useReport();

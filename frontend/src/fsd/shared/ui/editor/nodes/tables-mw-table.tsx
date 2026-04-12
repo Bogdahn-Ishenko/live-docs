@@ -1,10 +1,12 @@
 "use client";
 
 import { useState, useCallback, useMemo } from "react";
-import { Plus, Pencil, Trash2, Loader2, RefreshCw, Database } from "lucide-react";
+import { Plus, Pencil, Trash2, Loader2, RefreshCw, Database, Columns3 } from "lucide-react";
+import { toast } from "sonner";
 
 import { cn } from "@/fsd/shared/lib/utils";
 import { Button } from "@/fsd/shared/ui/button";
+import { Input } from "@/fsd/shared/ui/input";
 import {
   Dialog,
   DialogContent,
@@ -16,6 +18,7 @@ import {
 import { Label } from "@/fsd/shared/ui/label";
 import { FieldDisplay } from "@/fsd/shared/ui/tables-mw/field-display";
 import { FieldInput } from "@/fsd/shared/ui/tables-mw/field-input";
+import { useCreateField } from "@/fsd/shared/hooks/tables-mw";
 import type { TablesRecord, FieldValue } from "@/fsd/shared/lib/tables-mw/api-types";
 
 interface TablesRecordTableProps {
@@ -50,9 +53,13 @@ export function TablesRecordTable({
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isAddColumnDialogOpen, setIsAddColumnDialogOpen] = useState(false);
+  const [newColumnName, setNewColumnName] = useState("");
   const [editingRecord, setEditingRecord] = useState<TablesRecord | null>(null);
   const [deletingRecordId, setDeletingRecordId] = useState<string | null>(null);
   const [formData, setFormData] = useState<globalThis.Record<string, FieldValue>>({});
+
+  const { createField, isLoading: isCreatingField } = useCreateField();
 
   // Get all column names from records
   const columns = useMemo(() => {
@@ -157,6 +164,24 @@ export function TablesRecordTable({
     }
   };
 
+  const handleAddColumn = async () => {
+    if (!spaceId || !datasheetId || !newColumnName.trim()) return;
+
+    const result = await createField(spaceId, datasheetId, {
+      name: newColumnName.trim(),
+      type: "SingleText",
+    });
+
+    if (result?.success) {
+      toast.success("Колонка добавлена");
+      setIsAddColumnDialogOpen(false);
+      setNewColumnName("");
+      onRefresh();
+    } else {
+      toast.error("Ошибка при добавлении колонки");
+    }
+  };
+
   // Empty state
   if (records.length === 0) {
     return (
@@ -246,6 +271,18 @@ export function TablesRecordTable({
             <Plus className="size-4" />
             Добавить
           </Button>
+          {spaceId && datasheetId && (
+            <Button 
+              size="sm" 
+              variant="outline" 
+              onClick={() => setIsAddColumnDialogOpen(true)}
+              className="gap-1"
+              title="Добавить колонку"
+            >
+              <Columns3 className="size-4" />
+              Колонка
+            </Button>
+          )}
           <Button size="sm" variant="outline" onClick={onRefresh}>
             <RefreshCw className={cn("size-4", isLoading && "animate-spin")} />
           </Button>
@@ -269,16 +306,16 @@ export function TablesRecordTable({
 
       {/* Table */}
       <div className="overflow-x-auto">
-        <table className="w-full border-collapse border border-border">
+        <table className="w-full border-collapse border border-border min-w-max">
           <thead>
             <tr className="bg-muted">
-              <th className="border border-border px-3 py-2 text-left text-sm font-medium w-20">
+              <th className="border border-border px-3 py-2 text-left text-sm font-medium w-20 whitespace-nowrap">
                 Действия
               </th>
               {columns.map((colName) => (
                 <th
                   key={colName}
-                  className="border border-border px-3 py-2 text-left text-sm font-medium"
+                  className="border border-border px-3 py-2 text-left text-sm font-medium whitespace-nowrap"
                 >
                   {colName}
                 </th>
@@ -315,7 +352,7 @@ export function TablesRecordTable({
                 {columns.map((colName) => (
                   <td
                     key={`${record.recordId}-${colName}`}
-                    className="border border-border px-3 py-2 text-sm"
+                    className="border border-border px-3 py-2 text-sm whitespace-nowrap"
                   >
                     <FieldDisplay
                       fieldName={colName}
@@ -469,6 +506,51 @@ export function TablesRecordTable({
                 </>
               ) : (
                 "Удалить"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add Column Dialog */}
+      <Dialog open={isAddColumnDialogOpen} onOpenChange={(open) => {
+        setIsAddColumnDialogOpen(open);
+        if (!open) setNewColumnName("");
+      }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Добавить колонку</DialogTitle>
+            <DialogDescription>
+              Введите название для новой колонки
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <Label htmlFor="columnName">Название колонки</Label>
+            <Input
+              id="columnName"
+              value={newColumnName}
+              onChange={(e) => setNewColumnName(e.target.value)}
+              placeholder="Например: Статус"
+              onKeyDown={(e) => {
+                if (e.key === "Enter") handleAddColumn();
+              }}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsAddColumnDialogOpen(false)}>
+              Отмена
+            </Button>
+            <Button 
+              onClick={handleAddColumn} 
+              disabled={!newColumnName.trim() || isCreatingField}
+            >
+              {isCreatingField ? (
+                <>
+                  <Loader2 className="size-4 mr-2 animate-spin" />
+                  Добавление...
+                </>
+              ) : (
+                "Добавить"
               )}
             </Button>
           </DialogFooter>

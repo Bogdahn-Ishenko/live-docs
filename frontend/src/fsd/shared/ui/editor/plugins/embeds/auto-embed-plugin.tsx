@@ -17,6 +17,7 @@ import { useEditorModal } from "@/fsd/shared/ui/editor/editor-hooks/use-modal";
 import { INSERT_TWEET_COMMAND } from "@/fsd/shared/ui/editor/plugins/embeds/twitter-plugin";
 import { INSERT_YOUTUBE_COMMAND } from "@/fsd/shared/ui/editor/plugins/embeds/youtube-plugin";
 import { $insertTablesMwNode } from "@/fsd/shared/ui/editor/nodes/tables-mw-node";
+import { isTablesMwUrl, parseTablesMwUrl } from "@/fsd/shared/lib/tables-mw/url-utils";
 import { Button } from "@/fsd/shared/ui/button";
 import {
   Command,
@@ -221,31 +222,42 @@ async function fetchTablesData(url: string): Promise<TablesMwResponse | null> {
 export const TablesMwEmbedConfig: CustomEmbedConfig = {
   contentName: "Таблица MWS",
 
-  exampleUrl: "https://tables.mws.ru/fusion/v1/datasheets/dstL8Wa7xS82QdZSmN/records?viewId=viwWPb3TDtK0g&fieldKey=name",
+  exampleUrl: "https://tables.mws.ru/workbench/dstL8Wa7xS82QdZSmN/viwWPb3TDtK0g",
 
   icon: TableIcon,
 
   insertNode: (editor: LexicalEditor, result: EmbedMatchResult) => {
-    editor.update(() => {
-      $insertTablesMwNode(result.url);
-    });
+    const parsed = parseTablesMwUrl(result.url);
+    if (parsed) {
+      editor.update(() => {
+        $insertTablesMwNode(
+          parsed.apiUrl,
+          undefined, // spaceId
+          parsed.datasheetId,
+          parsed.viewId
+        );
+      });
+    }
   },
 
-  keywords: ["table", "mws", "tables", "datasheet", "fusion"],
+  keywords: ["table", "mws", "tables", "datasheet", "fusion", "workbench"],
 
   parseUrl: async (url: string) => {
-    // Match tables.mws.ru URLs
-    const match = /^https:\/\/tables\.mws\.ru\/fusion\/v1\/datasheets\/([^\/]+)\/records/.exec(url);
-    
-    if (match != null) {
-      // Validate by fetching data
-      const data = await fetchTablesData(url);
-      if (data && data.success) {
-        return {
-          id: match[1],
-          url: url,
-        };
-      }
+    // Check if it's a valid tables.mws.ru URL (workbench or API format)
+    if (!isTablesMwUrl(url)) {
+      return null;
+    }
+
+    const parsed = parseTablesMwUrl(url);
+    if (!parsed) return null;
+
+    // Validate by fetching data using the converted API URL
+    const data = await fetchTablesData(parsed.apiUrl);
+    if (data && data.success) {
+      return {
+        id: parsed.datasheetId,
+        url: url, // Keep original URL for reference
+      };
     }
 
     return null;

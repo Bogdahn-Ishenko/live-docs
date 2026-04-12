@@ -127,6 +127,7 @@ import { ToolbarPlugin } from "@/fsd/shared/ui/editor/plugins/toolbar/toolbar-pl
 import { TypingPerfPlugin } from "@/fsd/shared/ui/editor/plugins/typing-pref-plugin";
 import { TablesMwPastePlugin } from "@/fsd/shared/ui/editor/plugins/tables-mw-paste-plugin";
 import { TablesMwBrowserPlugin } from "@/fsd/shared/ui/editor/plugins/tables-mw-browser-plugin";
+import { WikiLinksPlugin } from "@/fsd/shared/ui/editor/plugins/wiki-links-plugin";
 import { TablesMwNode, $insertTablesMwNode } from "@/fsd/shared/ui/editor/nodes/tables-mw-node";
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
 import { editorTheme } from "@/fsd/shared/ui/editor/themes/editor-theme";
@@ -167,7 +168,7 @@ export function Editor({
   onSerializedChange,
 }: {
   editorState?: EditorState;
-  editorSerializedState?: SerializedEditorState;
+  editorSerializedState?: SerializedEditorState | null;
   onChange?: (editorState: EditorState) => void;
   onSerializedChange?: (editorSerializedState: SerializedEditorState) => void;
 }) {
@@ -351,6 +352,7 @@ export function Editor({
                           {blockInsertItems.embeds && <InsertEmbeds />}
                         </BlockInsertPlugin>
                       )}
+                      <TablesMwBrowserButton />
                     </>
                   )}
                 </div>
@@ -437,6 +439,7 @@ export function Editor({
               {pluginItems.autoEmbed && <AutoEmbedPlugin />}
               <TablesMwPastePlugin />
               {pluginItems.mentions && <MentionsPlugin />}
+              <WikiLinksPlugin />
               {blockFormatItems.codeBlock && <CodeHighlightPlugin />}
               {blockInsertItems.table && <TablePlugin />}
 
