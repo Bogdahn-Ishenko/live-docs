@@ -12,6 +12,9 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import org.springframework.messaging.simp.SimpMessagingTemplate;
+import com.arkstech.wikilive.dto.WsMessage;
+
 import java.util.List;
 import java.util.Locale;
 import java.util.regex.Matcher;
@@ -23,6 +26,11 @@ public class PageService {
 
     private final PageRepository pageRepository;
     private final PageLinkRepository pageLinkRepository;
+
+    private final SimpMessagingTemplate messagingTemplate;
+
+    private final com.fasterxml.jackson.databind.ObjectMapper objectMapper =
+            new com.fasterxml.jackson.databind.ObjectMapper();
 
     @Transactional
     public WikiPage createPage(PageRequest request) {
@@ -40,9 +48,19 @@ public class PageService {
                         .build();
 
                 attachWikiLinks(page);
-
                 WikiPage savedPage = pageRepository.saveAndFlush(page);
                 updateExistingRedLinks(savedPage);
+
+                // WebSocket уведомляет
+                try {
+                    String jsonPayload = objectMapper.writeValueAsString(
+                            java.util.Map.of("title", savedPage.getTitle(), "action", "created"));
+
+                    messagingTemplate.convertAndSend("/topic/pages",
+                            new WsMessage("CREATE", savedPage.getSlug(), jsonPayload, "system"));
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
 
                 return savedPage;
 
@@ -61,9 +79,19 @@ public class PageService {
         page.setMwsTableId(request.getMwsTableId());
 
         attachWikiLinks(page);
-
         WikiPage updated = pageRepository.saveAndFlush(page);
         updateExistingRedLinks(updated);
+
+        //уведомление
+        try {
+            String jsonPayload = objectMapper.writeValueAsString(
+                    java.util.Map.of("title", updated.getTitle(), "action", "edited"));
+
+            messagingTemplate.convertAndSend("/topic/pages",
+                    new WsMessage("UPDATE", updated.getSlug(), jsonPayload, "system"));
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
 
         return updated;
     }
