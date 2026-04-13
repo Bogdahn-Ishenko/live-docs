@@ -5,12 +5,17 @@ import com.arkstech.wikilive.dto.PageDTO;
 import com.arkstech.wikilive.dto.PageRequest;
 import com.arkstech.wikilive.model.WikiPage;
 import com.arkstech.wikilive.service.PageService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
+/**
+ * REST Controller for Managing Wiki Pages.
+ */
 @RestController
 @RequestMapping("/api/pages")
 @RequiredArgsConstructor

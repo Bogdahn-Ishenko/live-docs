@@ -6,7 +6,7 @@ export function useLocalStorage<T>(key: string, initialValue: T): [T, (value: T 
   const [storedValue, setStoredValue] = useState<T>(initialValue);
   const [isInitialized, setIsInitialized] = useState(false);
 
-  // Инициализируем значение из localStorage только на клиенте
+  // Initialize from localStorage only on client
   useEffect(() => {
     if (typeof window === 'undefined') return;
     
@@ -21,7 +21,7 @@ export function useLocalStorage<T>(key: string, initialValue: T): [T, (value: T 
     setIsInitialized(true);
   }, [key]);
 
-  // Обновляем localStorage при изменении значения
+  // Persist to localStorage when value changes
   const setValue = useCallback((value: T | ((prev: T) => T)) => {
     if (typeof window === 'undefined') return;
     
@@ -36,7 +36,7 @@ export function useLocalStorage<T>(key: string, initialValue: T): [T, (value: T 
     }
   }, [key]);
 
-  // Слушаем изменения localStorage из других вкладок
+  // Sync localStorage updates from other tabs
   useEffect(() => {
     if (typeof window === 'undefined') return;
     

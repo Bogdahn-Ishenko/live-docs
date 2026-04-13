@@ -20,8 +20,13 @@ import java.util.Locale;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+/**
+ * Service for handling Wiki Page business logic.
+ */
+@Slf4j
 @Service
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class PageService {
 
     private final PageRepository pageRepository;
@@ -194,5 +199,62 @@ public class PageService {
         return s.replaceAll("[^a-z0-9]", "-")
                 .replaceAll("-+", "-")
                 .replaceAll("^-|-$", "");
+    }
+
+    @Transactional
+    public WikiPage updatePage(String slug, PageRequest request) {
+        log.info("Updating wiki page with slug: {}", slug);
+        WikiPage page = getPageBySlug(slug);
+
+        page.setTitle(normalizeTitle(request.getTitle()));
+        page.setDescription(request.getDescription());
+        page.setContent(request.getContent());
+        page.setMwsTableId(request.getMwsTableId());
+
+        return pageRepository.save(page);
+    }
+
+    public WikiPage getPageBySlug(String slug) {
+        return pageRepository.findBySlug(slug)
+                .orElseThrow(() -> {
+                    log.warn("Wiki page not found for slug: {}", slug);
+                    return new ResponseStatusException(
+                            HttpStatus.NOT_FOUND,
+                            "Документ не найден"
+                    );
+                });
+    }
+
+    public List<WikiPage> getAllPages() {
+        return pageRepository.findAll();
+    }
+
+    private String normalizeTitle(String title) {
+        if (title == null || title.trim().isEmpty()) {
+            return "Без названия";
+        }
+        return title.trim();
+    }
+
+    private String generateUniqueSlug(String title) {
+        // Simple transliteration or cleanup for slug
+        String baseSlug = title.toLowerCase()
+                .replaceAll("[^\\p{L}\\p{Nd}]", "-")
+                .replaceAll("-+", "-")
+                .replaceAll("^-|-$", "");
+
+        if (baseSlug.isBlank()) {
+            baseSlug = "page";
+        }
+
+        String finalSlug = baseSlug;
+        int count = 1;
+
+        while (pageRepository.existsBySlug(finalSlug)) {
+            finalSlug = baseSlug + "-" + count;
+            count++;
+        }
+
+        return finalSlug;
     }
 }
