@@ -9,8 +9,7 @@ servers:
     description: Local
 
 security:
-  - bearerAuth: []
-
+  - basicAuth: []
 
 paths:
   /api/pages:
@@ -18,6 +17,7 @@ paths:
       tags:
         - Pages
       summary: Get all pages
+      security: []
       responses:
         '200':
           description: OK
@@ -64,6 +64,7 @@ paths:
       tags:
         - Pages
       summary: Get page by slug
+      security: []
       parameters:
         - name: slug
           in: path
@@ -145,6 +146,7 @@ paths:
       tags:
         - Pages
       summary: Get backlinks
+      security: []
       parameters:
         - name: slug
           in: path
@@ -175,6 +177,7 @@ paths:
       tags:
         - Pages
       summary: Get graph
+      security: []
       responses:
         '200':
           description: OK
@@ -194,6 +197,7 @@ paths:
       tags:
         - Pages
       summary: Search pages
+      security: []
       parameters:
         - name: query
           in: query
@@ -240,7 +244,6 @@ components:
         content:
           type: string
           maxLength: 10000
-          description: Raw markdown with embedded MWS macros
         mwsTableId:
           type: string
           maxLength: 255
@@ -278,12 +281,10 @@ components:
       properties:
         slug:
           type: string
-          example: "project-wikilve"
           maxLength: 255
           pattern: "^[a-z0-9-]+$"
         title:
           type: string
-          example: "project-wikilve"
           maxLength: 255
           pattern: "^[a-zA-Z0-9 _-]+$"
 
@@ -295,30 +296,20 @@ components:
           type: array
           items:
             type: object
-            additionalProperties: false
             properties:
               slug:
                 type: string
-                maxLength: 255
-                pattern: "^[a-z0-9-]+$"
               title:
                 type: string
-                maxLength: 255
-                pattern: "^[a-zA-Z0-9 _-]+$"
         edges:
           type: array
           items:
             type: object
-            additionalProperties: false
             properties:
               from:
                 type: string
-                maxLength: 255
-                pattern: "^[a-z0-9-]+$"
               to:
                 type: string
-                maxLength: 255
-                pattern: "^[a-z0-9-]+$"
 
     PageRequest:
       type: object
@@ -329,15 +320,10 @@ components:
       properties:
         title:
           type: string
-          maxLength: 255
-          pattern: "^[a-zA-Z0-9 _-]+$"
         content:
           type: string
-          maxLength: 10000
-          description: Raw markdown with embedded MWS macros
         mwsTableId:
           type: string
-          maxLength: 255
           nullable: true
 
     ErrorResponse:
@@ -346,10 +332,8 @@ components:
       properties:
         message:
           type: string
-          maxLength: 255
         code:
           type: string
-          maxLength: 100
 
   responses:
     Unauthorized:
@@ -374,6 +358,6 @@ components:
             $ref: '#/components/schemas/ErrorResponse'
 
   securitySchemes:
-    bearerAuth:
+    basicAuth:
       type: http
-      scheme: bearer
+      scheme: basic
