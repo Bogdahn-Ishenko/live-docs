@@ -93,9 +93,13 @@ export function ThemeProvider({
   
   // Initialize theme from localStorage on mount
   React.useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
     const storedTheme = window.localStorage.getItem(storageKey);
-    return isTheme(storedTheme) ? storedTheme : defaultTheme;
-  });
+    setThemeState(isTheme(storedTheme) ? storedTheme : defaultTheme);
+  }, [defaultTheme, storageKey]);
 
   const setTheme = React.useCallback(
     (nextTheme: Theme) => {

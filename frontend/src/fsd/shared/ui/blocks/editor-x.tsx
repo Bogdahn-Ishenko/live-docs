@@ -132,11 +132,7 @@ import { LinkToolbarPlugin } from "@/fsd/shared/ui/editor/plugins/toolbar/link-t
 import { SubSuperToolbarPlugin } from "@/fsd/shared/ui/editor/plugins/toolbar/subsuper-toolbar-plugin";
 import { ToolbarPlugin } from "@/fsd/shared/ui/editor/plugins/toolbar/toolbar-plugin";
 import { TypingPerfPlugin } from "@/fsd/shared/ui/editor/plugins/typing-pref-plugin";
-import { TablesMwPastePlugin } from "@/fsd/shared/ui/editor/plugins/tables-mw-paste-plugin";
-import { TablesMwBrowserPlugin } from "@/fsd/shared/ui/editor/plugins/tables-mw-browser-plugin";
 import { WikiLinksPlugin } from "@/fsd/shared/ui/editor/plugins/wiki-links-plugin";
-import { TablesMwNode, $insertTablesMwNode } from "@/fsd/shared/ui/editor/nodes/tables-mw-node";
-import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
 import { editorTheme } from "@/fsd/shared/ui/editor/themes/editor-theme";
 import { EMOJI } from "@/fsd/shared/ui/editor/transformers/markdown-emoji-transformer";
 import { HR } from "@/fsd/shared/ui/editor/transformers/markdown-hr-transformer";
