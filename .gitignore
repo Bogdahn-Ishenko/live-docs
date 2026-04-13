@@ -33,3 +33,9 @@ front/.env.local
 front/.env
 front/.next
 front/node_modules
+
+# Maven build
+target/
+*.jar
+*.war
+*.ear
