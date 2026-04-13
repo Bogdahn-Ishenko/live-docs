@@ -1,10 +1,10 @@
 "use client";
 
-import dynamic from "next/dynamic";
-import Link from "next/link";
 import type { SerializedEditorState } from "lexical";
+import dynamic from "next/dynamic";
+import Image from "next/image";
+import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { FileText } from "lucide-react";
 
 import { BlockViewerProvider } from "@/fsd/app/providers/block-viewer-provider";
 import { fetchWikiPage, updateWikiPage } from "@/fsd/shared/lib/wiki-pages/api";
@@ -13,8 +13,12 @@ import {
   parseStoredEditorState,
   stringifyEditorState,
 } from "@/fsd/shared/lib/wiki-pages/editor-state";
-import type { LocalWikiDraft, WikiPage } from "@/fsd/shared/lib/wiki-pages/types";
+import type {
+  LocalWikiDraft,
+  WikiPage,
+} from "@/fsd/shared/lib/wiki-pages/types";
 import { Button } from "@/fsd/shared/ui/button";
+import { CommentThreadLauncher } from "@/fsd/shared/ui/comment-thread-launcher";
 import { SidebarProvider } from "@/fsd/shared/ui/sidebar";
 
 const Editor = dynamic(
@@ -63,13 +67,25 @@ function formatDateTime(value: string): string {
   }).format(date);
 }
 
-function getSyncStatusText(status: SaveStatus, lastSyncedAt: string | null): string {
+function getSyncStatusText(
+  status: SaveStatus,
+  lastSyncedAt: string | null,
+): string {
   switch (status) {
-    case "loading": return "Загрузка документа...";
-    case "saving": return "Сохранение...";
-    case "saved": return lastSyncedAt ? `Синхронизировано: ${formatDateTime(lastSyncedAt)}` : "Сохранено";
-    case "error": return "Ошибка синхронизации";
-    default: return lastSyncedAt ? `Без изменений · ${formatDateTime(lastSyncedAt)}` : "Без изменений";
+    case "loading":
+      return "Загрузка документа...";
+    case "saving":
+      return "Сохранение...";
+    case "saved":
+      return lastSyncedAt
+        ? `Синхронизировано: ${formatDateTime(lastSyncedAt)}`
+        : "Сохранено";
+    case "error":
+      return "Ошибка синхронизации";
+    default:
+      return lastSyncedAt
+        ? `Без изменений · ${formatDateTime(lastSyncedAt)}`
+        : "Без изменений";
   }
 }
 
@@ -86,8 +102,11 @@ export default function WikiPageEditorPage({ slug }: { slug: string }) {
   const [page, setPage] = useState<WikiPage | null>(null);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [initialEditorState, setInitialEditorState] = useState<SerializedEditorState | null>(null);
-  const [editorState, setEditorState] = useState<SerializedEditorState | null>(null);
+  const [initialEditorState, setInitialEditorState] =
+    useState<SerializedEditorState | null>(null);
+  const [editorState, setEditorState] = useState<SerializedEditorState | null>(
+    null,
+  );
   const [editorInstanceKey, setEditorInstanceKey] = useState(0);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("loading");
@@ -98,9 +117,15 @@ export default function WikiPageEditorPage({ slug }: { slug: string }) {
   const latestEditorStateRef = useRef<SerializedEditorState | null>(null);
   const syncedSignatureRef = useRef<string>("");
 
-  useEffect(() => { latestTitleRef.current = title; }, [title]);
-  useEffect(() => { latestDescriptionRef.current = description; }, [description]);
-  useEffect(() => { latestEditorStateRef.current = editorState; }, [editorState]);
+  useEffect(() => {
+    latestTitleRef.current = title;
+  }, [title]);
+  useEffect(() => {
+    latestDescriptionRef.current = description;
+  }, [description]);
+  useEffect(() => {
+    latestEditorStateRef.current = editorState;
+  }, [editorState]);
 
   const loadPage = useCallback(async () => {
     try {
@@ -109,7 +134,11 @@ export default function WikiPageEditorPage({ slug }: { slug: string }) {
 
       const data = await fetchWikiPage(slug);
       const remoteState = parseStoredEditorState(data.content);
-      const remoteSignature = buildPageSignature(data.title, data.description, remoteState);
+      const remoteSignature = buildPageSignature(
+        data.title,
+        data.description,
+        remoteState,
+      );
       const remoteUpdatedAt = new Date(data.updatedAt).getTime();
 
       let nextTitle = data.title;
@@ -119,7 +148,11 @@ export default function WikiPageEditorPage({ slug }: { slug: string }) {
       const localDraft = readLocalDraft(slug);
       if (localDraft) {
         const draftState = parseStoredEditorState(localDraft.content);
-        const draftSignature = buildPageSignature(localDraft.title, localDraft.description, draftState);
+        const draftSignature = buildPageSignature(
+          localDraft.title,
+          localDraft.description,
+          draftState,
+        );
 
         if (draftSignature === remoteSignature) {
           clearLocalDraft(slug);
@@ -140,12 +173,16 @@ export default function WikiPageEditorPage({ slug }: { slug: string }) {
       setLastSyncedAt(data.updatedAt);
       setSaveStatus("idle");
     } catch (err) {
-      setLoadError(err instanceof Error ? err.message : "Не удалось загрузить документ");
+      setLoadError(
+        err instanceof Error ? err.message : "Не удалось загрузить документ",
+      );
       setSaveStatus("error");
     }
   }, [slug]);
 
-  useEffect(() => { void loadPage(); }, [loadPage]);
+  useEffect(() => {
+    void loadPage();
+  }, [loadPage]);
 
   // Auto-save logic
   useEffect(() => {
@@ -153,7 +190,11 @@ export default function WikiPageEditorPage({ slug }: { slug: string }) {
 
     const normalizedTitle = resolveBaseTitle(title);
     const content = stringifyEditorState(editorState);
-    const signature = buildPageSignature(normalizedTitle, description, editorState);
+    const signature = buildPageSignature(
+      normalizedTitle,
+      description,
+      editorState,
+    );
 
     if (signature === syncedSignatureRef.current) {
       clearLocalDraft(slug);
@@ -180,7 +221,11 @@ export default function WikiPageEditorPage({ slug }: { slug: string }) {
         });
 
         const serverState = parseStoredEditorState(updated.content);
-        const serverSignature = buildPageSignature(updated.title, updated.description, serverState);
+        const serverSignature = buildPageSignature(
+          updated.title,
+          updated.description,
+          serverState,
+        );
 
         syncedSignatureRef.current = serverSignature;
         setPage(updated);
@@ -191,7 +236,7 @@ export default function WikiPageEditorPage({ slug }: { slug: string }) {
           const currentSignature = buildPageSignature(
             resolveBaseTitle(latestTitleRef.current),
             latestDescriptionRef.current,
-            latestState
+            latestState,
           );
           if (currentSignature === serverSignature) {
             clearLocalDraft(slug);
@@ -208,22 +253,34 @@ export default function WikiPageEditorPage({ slug }: { slug: string }) {
     return () => clearTimeout(timer);
   }, [title, description, editorState, page, saveStatus, slug]);
 
-  const syncStatusText = useMemo(() => getSyncStatusText(saveStatus, lastSyncedAt), [lastSyncedAt, saveStatus]);
+  const syncStatusText = useMemo(
+    () => getSyncStatusText(saveStatus, lastSyncedAt),
+    [lastSyncedAt, saveStatus],
+  );
 
   return (
     <BlockViewerProvider>
-      <SidebarProvider defaultOpen={true} className="bg-background text-foreground">
-        <main className="flex min-h-svh w-full flex-col gap-2 overflow-x-hidden px-2 py-2">
+      <SidebarProvider
+        defaultOpen={true}
+        className="bg-background text-foreground"
+      >
+        <main className="flex h-svh w-full flex-col gap-2 overflow-hidden px-2 py-2">
           <header className="flex flex-wrap items-center justify-between gap-4 px-2 py-1 bg-background/80 backdrop-blur sticky top-0 z-10 border-b">
             <div className="flex items-center gap-2">
               <Link href="/wiki">
-                <Button variant="ghost" size="sm">Все страницы</Button>
+                <Button variant="ghost" size="sm">
+                  Все страницы
+                </Button>
               </Link>
               <Link href="/wiki/new">
-                <Button variant="ghost" size="sm">Новая страница</Button>
+                <Button variant="ghost" size="sm">
+                  Новая страница
+                </Button>
               </Link>
             </div>
-            <p className="text-xs font-medium text-muted-foreground/80">{syncStatusText}</p>
+            <p className="text-xs font-medium text-muted-foreground/80">
+              {syncStatusText}
+            </p>
           </header>
 
           {loadError && (
@@ -233,20 +290,27 @@ export default function WikiPageEditorPage({ slug }: { slug: string }) {
           )}
 
           {!loadError && page && (
-            <div className="px-4 mt-4 mb-2">
-              <div className="flex min-w-0 items-start gap-3">
-                <img src="/icons/document.svg" alt="" aria-hidden className="mt-1 size-6 shrink-0 opacity-80" />
+            <div className="mb-0.5 mt-0.5 px-2">
+              <div className="flex min-w-0 items-start gap-1.5">
+                <Image
+                  src="/icons/document.svg"
+                  alt=""
+                  aria-hidden
+                  width={14}
+                  height={14}
+                  className="mt-0.5 size-[14px] shrink-0 opacity-80"
+                />
                 <div className="min-w-0 flex-1">
                   <input
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
-                    className="w-full border-0 bg-transparent p-0 text-2xl font-semibold leading-tight text-foreground outline-none focus-visible:ring-0 placeholder:text-muted-foreground/30"
+                    className="w-full border-0 bg-transparent p-0 text-lg font-semibold leading-tight text-foreground outline-none focus-visible:ring-0 placeholder:text-muted-foreground/30"
                     placeholder="Без названия"
                   />
                   <input
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
-                    className="w-full border-0 bg-transparent p-0 text-base text-muted-foreground/60 outline-none focus-visible:ring-0 placeholder:text-muted-foreground/30"
+                    className="w-full border-0 bg-transparent p-0 text-xs leading-snug text-muted-foreground/60 outline-none focus-visible:ring-0 placeholder:text-muted-foreground/30"
                     placeholder="Добавить описание"
                   />
                 </div>
@@ -255,12 +319,14 @@ export default function WikiPageEditorPage({ slug }: { slug: string }) {
           )}
 
           {!loadError && initialEditorState && (
-            <div className="px-2 pb-10">
-              <Editor
-                key={`wiki-editor-${slug}-${editorInstanceKey}`}
-                editorSerializedState={initialEditorState}
-                onSerializedChange={setEditorState}
-              />
+            <div className="min-h-0 flex-1 px-2 pb-2">
+              <CommentThreadLauncher storageKey={`wiki-${slug}`}>
+                <Editor
+                  key={`wiki-editor-${slug}-${editorInstanceKey}`}
+                  editorSerializedState={initialEditorState}
+                  onSerializedChange={setEditorState}
+                />
+              </CommentThreadLauncher>
             </div>
           )}
         </main>

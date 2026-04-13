@@ -1,5 +1,4 @@
-'use client'
-import { useMemo, useState } from "react";
+"use client";
 
 import { CodeHighlightNode, CodeNode } from "@lexical/code";
 import {
@@ -26,6 +25,7 @@ import {
 } from "@lexical/markdown";
 import { OverflowNode } from "@lexical/overflow";
 import { CharacterLimitPlugin } from "@lexical/react/LexicalCharacterLimitPlugin";
+import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
 import { LexicalExtensionComposer } from "@lexical/react/LexicalExtensionComposer";
 import { OnChangePlugin } from "@lexical/react/LexicalOnChangePlugin";
 import { TabIndentationPlugin } from "@lexical/react/LexicalTabIndentationPlugin";
@@ -33,13 +33,14 @@ import { TablePlugin } from "@lexical/react/LexicalTablePlugin";
 import { RichTextExtension } from "@lexical/rich-text";
 import { TableCellNode, TableNode, TableRowNode } from "@lexical/table";
 import {
-  type EditorState,
-  type SerializedEditorState,
   configExtension,
   defineExtension,
+  type EditorState,
+  type SerializedEditorState,
 } from "lexical";
-
+import { useMemo, useState } from "react";
 import { useBlockViewer } from "@/fsd/app/providers/block-viewer-provider";
+import { Button } from "@/fsd/shared/ui/button";
 import { ContentEditable } from "@/fsd/shared/ui/editor/editor-ui/content-editable";
 import { DateTimeExtension } from "@/fsd/shared/ui/editor/extensions/date-time-extension";
 import { DragDropPasteExtension } from "@/fsd/shared/ui/editor/extensions/drag-drop-paste-extension";
@@ -56,6 +57,10 @@ import { LayoutContainerNode } from "@/fsd/shared/ui/editor/nodes/layout-contain
 import { LayoutItemNode } from "@/fsd/shared/ui/editor/nodes/layout-item-node";
 import { MentionNode } from "@/fsd/shared/ui/editor/nodes/mention-node";
 import { SpecialTextNode } from "@/fsd/shared/ui/editor/nodes/special-text-node";
+import {
+  $insertTablesMwNode,
+  TablesMwNode,
+} from "@/fsd/shared/ui/editor/nodes/tables-mw-node";
 import { ActionsPlugin } from "@/fsd/shared/ui/editor/plugins/actions/actions-plugin";
 import { ClearEditorActionPlugin } from "@/fsd/shared/ui/editor/plugins/actions/clear-editor-plugin";
 import { CounterCharacterPlugin } from "@/fsd/shared/ui/editor/plugins/actions/counter-character-plugin";
@@ -98,7 +103,8 @@ import {
 } from "@/fsd/shared/ui/editor/plugins/picker/table-picker-plugin";
 import SpecialTextPlugin from "@/fsd/shared/ui/editor/plugins/special-text-plugin";
 import { TabFocusPlugin } from "@/fsd/shared/ui/editor/plugins/tab-focus-plugin";
-import { BlockFormatDropDown } from "@/fsd/shared/ui/editor/plugins/toolbar/block-format-toolbar-plugin";
+import { TablesMwBrowserPlugin } from "@/fsd/shared/ui/editor/plugins/tables-mw-browser-plugin";
+import { TablesMwPastePlugin } from "@/fsd/shared/ui/editor/plugins/tables-mw-paste-plugin";
 import { FormatBulletedList } from "@/fsd/shared/ui/editor/plugins/toolbar/block-format/format-bulleted-list";
 import { FormatCheckList } from "@/fsd/shared/ui/editor/plugins/toolbar/block-format/format-check-list";
 import { FormatCodeBlock } from "@/fsd/shared/ui/editor/plugins/toolbar/block-format/format-code-block";
@@ -106,12 +112,13 @@ import { FormatHeading } from "@/fsd/shared/ui/editor/plugins/toolbar/block-form
 import { FormatNumberedList } from "@/fsd/shared/ui/editor/plugins/toolbar/block-format/format-numbered-list";
 import { FormatParagraph } from "@/fsd/shared/ui/editor/plugins/toolbar/block-format/format-paragraph";
 import { FormatQuote } from "@/fsd/shared/ui/editor/plugins/toolbar/block-format/format-quote";
-import { BlockInsertPlugin } from "@/fsd/shared/ui/editor/plugins/toolbar/block-insert-plugin";
+import { BlockFormatDropDown } from "@/fsd/shared/ui/editor/plugins/toolbar/block-format-toolbar-plugin";
 import { InsertColumnsLayout } from "@/fsd/shared/ui/editor/plugins/toolbar/block-insert/insert-columns-layout";
 import { InsertEmbeds } from "@/fsd/shared/ui/editor/plugins/toolbar/block-insert/insert-embeds";
 import { InsertHorizontalRule } from "@/fsd/shared/ui/editor/plugins/toolbar/block-insert/insert-horizontal-rule";
 import { InsertImage } from "@/fsd/shared/ui/editor/plugins/toolbar/block-insert/insert-image";
 import { InsertTable } from "@/fsd/shared/ui/editor/plugins/toolbar/block-insert/insert-table";
+import { BlockInsertPlugin } from "@/fsd/shared/ui/editor/plugins/toolbar/block-insert-plugin";
 import { ClearFormattingToolbarPlugin } from "@/fsd/shared/ui/editor/plugins/toolbar/clear-formatting-toolbar-plugin";
 import { CodeLanguageToolbarPlugin } from "@/fsd/shared/ui/editor/plugins/toolbar/code-language-toolbar-plugin";
 import { ElementFormatToolbarPlugin } from "@/fsd/shared/ui/editor/plugins/toolbar/element-format-toolbar-plugin";
@@ -125,10 +132,6 @@ import { LinkToolbarPlugin } from "@/fsd/shared/ui/editor/plugins/toolbar/link-t
 import { SubSuperToolbarPlugin } from "@/fsd/shared/ui/editor/plugins/toolbar/subsuper-toolbar-plugin";
 import { ToolbarPlugin } from "@/fsd/shared/ui/editor/plugins/toolbar/toolbar-plugin";
 import { TypingPerfPlugin } from "@/fsd/shared/ui/editor/plugins/typing-pref-plugin";
-import { TablesMwPastePlugin } from "@/fsd/shared/ui/editor/plugins/tables-mw-paste-plugin";
-import { TablesMwBrowserPlugin } from "@/fsd/shared/ui/editor/plugins/tables-mw-browser-plugin";
-import { TablesMwNode, $insertTablesMwNode } from "@/fsd/shared/ui/editor/nodes/tables-mw-node";
-import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
 import { editorTheme } from "@/fsd/shared/ui/editor/themes/editor-theme";
 import { EMOJI } from "@/fsd/shared/ui/editor/transformers/markdown-emoji-transformer";
 import { HR } from "@/fsd/shared/ui/editor/transformers/markdown-hr-transformer";
@@ -136,7 +139,6 @@ import { IMAGE } from "@/fsd/shared/ui/editor/transformers/markdown-image-transf
 import { TABLE } from "@/fsd/shared/ui/editor/transformers/markdown-table-transformer";
 import { TWEET } from "@/fsd/shared/ui/editor/transformers/markdown-tweet-transformer";
 import { validateUrl } from "@/fsd/shared/ui/editor/utils/url";
-import { Button } from "@/fsd/shared/ui/button";
 import { Separator } from "@/fsd/shared/ui/separator";
 import { TooltipProvider } from "@/fsd/shared/ui/tooltip";
 
@@ -150,7 +152,11 @@ const maxLength = 30 * 1000;
 function TablesMwBrowserButton() {
   const [editor] = useLexicalComposerContext();
 
-  const handleInsertTable = (spaceId: string, datasheet: { id: string; name: string }, viewId: string) => {
+  const handleInsertTable = (
+    spaceId: string,
+    datasheet: { id: string; name: string },
+    viewId: string,
+  ) => {
     editor.update(() => {
       const apiUrl = `https://tables.mws.ru/fusion/v1/datasheets/${datasheet.id}/records?viewId=${viewId}&fieldKey=name`;
       $insertTablesMwNode(apiUrl, spaceId, datasheet.id, viewId);
@@ -265,14 +271,14 @@ export function Editor({
         },
         theme: editorTheme,
       }),
-    [], // Пустые зависимости - extension создаётся один раз
+    [editorSerializedState, editorState],
   );
 
   return (
-    <div className="bg-background overflow-hidden rounded-lg border shadow w-full">
+    <div className="bg-background flex min-h-0 w-full flex-1 flex-col overflow-hidden rounded-lg border shadow">
       <LexicalExtensionComposer extension={AppExtension} contentEditable={null}>
         <TooltipProvider>
-          <div className="relative">
+          <div className="relative flex min-h-0 flex-1 flex-col">
             <ToolbarPlugin>
               {({ blockType }) => (
                 <div className="vertical-align-middle sticky top-0 z-10 flex items-center gap-2 overflow-auto border-b p-1">
@@ -356,13 +362,13 @@ export function Editor({
                 </div>
               )}
             </ToolbarPlugin>
-            <div className="relative">
-              <div className="">
-                <div className="" ref={onRef}>
+            <div className="relative min-h-0 flex-1" data-comment-content-frame>
+              <div className="h-full">
+                <div className="h-full" ref={onRef}>
                   <ContentEditable
                     placeholder={placeholder}
                     placeholderClassName={`${pluginItems.draggableBlock ? "pl-14" : "pl-4"}`}
-                    className={`h-[calc(100vh-141px)] ${pluginItems.draggableBlock ? "pl-14" : "pl-4"}`}
+                    className={`h-full ${pluginItems.draggableBlock ? "pl-14" : "pl-4"}`}
                   />
                 </div>
               </div>
@@ -569,7 +575,9 @@ export function Editor({
                   >
                     <span
                       className={`mr-1.5 inline-block size-1.5 rounded-full ${
-                        pluginItems.selectionAi ? "bg-emerald-500" : "bg-muted-foreground/60"
+                        pluginItems.selectionAi
+                          ? "bg-emerald-500"
+                          : "bg-muted-foreground/60"
                       }`}
                     />
                     {pluginItems.selectionAi ? "AI: Вкл" : "AI: Выкл"}

@@ -1,32 +1,37 @@
 "use client";
 
-import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { toast } from "sonner";
+import type { DragEndEvent, DragStartEvent } from "@dnd-kit/core";
 import {
-  DndContext,
   closestCenter,
+  DndContext,
+  DragOverlay,
+  defaultDropAnimationSideEffects,
   KeyboardSensor,
   PointerSensor,
   useSensor,
   useSensors,
-  DragOverlay,
-  defaultDropAnimationSideEffects,
 } from "@dnd-kit/core";
-import type { DragStartEvent, DragEndEvent } from "@dnd-kit/core";
 import {
-  SortableContext,
+  restrictToVerticalAxis,
+  restrictToWindowEdges,
+} from "@dnd-kit/modifiers";
+import {
   arrayMove,
+  SortableContext,
   sortableKeyboardCoordinates,
-  verticalListSortingStrategy,
   useSortable,
+  verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
-import { restrictToVerticalAxis, restrictToWindowEdges } from "@dnd-kit/modifiers";
 import { CSS } from "@dnd-kit/utilities";
-import { FileText, GripVertical, Plus, Share2 } from "lucide-react";
+import { GripVertical, Plus, Trash2 } from "lucide-react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import { fetchWikiPages } from "@/fsd/shared/lib/wiki-pages/api";
+import {
+  deleteWikiPage,
+  fetchWikiPages,
+} from "@/fsd/shared/lib/wiki-pages/api";
 import type { WikiPage } from "@/fsd/shared/lib/wiki-pages/types";
 import { Button } from "@/fsd/shared/ui/button";
 
@@ -38,7 +43,9 @@ function readSavedOrder(): number[] {
     const raw = window.localStorage.getItem(LOCAL_ORDER_KEY);
     if (!raw) return [];
     const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed.filter((id): id is number => Number.isInteger(id)) : [];
+    return Array.isArray(parsed)
+      ? parsed.filter((id): id is number => Number.isInteger(id))
+      : [];
   } catch {
     return [];
   }
@@ -55,17 +62,27 @@ function applySavedOrder(pages: WikiPage[], savedIds: number[]): WikiPage[] {
   const ordered: WikiPage[] = [];
   for (const id of savedIds) {
     const p = map.get(id);
-    if (p) { ordered.push(p); map.delete(id); }
+    if (p) {
+      ordered.push(p);
+      map.delete(id);
+    }
   }
   return [...ordered, ...map.values()];
 }
 
 interface SortableTableRowProps {
   page: WikiPage;
+  isDeleting?: boolean;
   isOverlay?: boolean;
+  onDelete?: (page: WikiPage) => void;
 }
 
-function SortableTableRow({ page, isOverlay }: SortableTableRowProps) {
+function SortableTableRow({
+  page,
+  isDeleting,
+  isOverlay,
+  onDelete,
+}: SortableTableRowProps) {
   const router = useRouter();
   const {
     attributes,
@@ -101,13 +118,35 @@ function SortableTableRow({ page, isOverlay }: SortableTableRowProps) {
       </td>
       <td className="px-4 py-4 min-w-[200px]">
         <div className="flex items-center gap-3">
-          <span className={`font-medium text-foreground block truncate ${!isOverlay ? "group-hover:text-primary transition-colors" : ""}`}>
+          <span
+            className={`font-medium text-foreground block truncate ${!isOverlay ? "group-hover:text-primary transition-colors" : ""}`}
+          >
             {page.title}
           </span>
         </div>
       </td>
       <td className="w-1/3 px-4 py-4 text-muted-foreground text-sm truncate max-w-[350px]">
         {page.description || "—"}
+      </td>
+      <td className="w-[70px] px-2 py-4">
+        {!isOverlay && onDelete ? (
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            disabled={Boolean(isDeleting)}
+            className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive"
+            onPointerDown={(event) => event.stopPropagation()}
+            onClick={(event) => {
+              event.stopPropagation();
+              onDelete(page);
+            }}
+            aria-label="Удалить документ"
+            title="Удалить документ"
+          >
+            <Trash2 className="size-4" />
+          </Button>
+        ) : null}
       </td>
     </tr>
   );
@@ -121,11 +160,14 @@ export default function WikiPagesPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeId, setActiveId] = useState<number | null>(null);
+  const [deletingPageId, setDeletingPageId] = useState<number | null>(null);
   const initialOrderRef = useRef<number[]>([]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
-    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    }),
   );
 
   const loadPages = useCallback(async () => {
@@ -138,13 +180,17 @@ export default function WikiPagesPage() {
       saveOrder(ordered.map((p) => p.id));
       setError(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Не удалось загрузить документы");
+      setError(
+        err instanceof Error ? err.message : "Не удалось загрузить документы",
+      );
     } finally {
       setIsLoading(false);
     }
   }, []);
 
-  useEffect(() => { void loadPages(); }, [loadPages]);
+  useEffect(() => {
+    void loadPages();
+  }, [loadPages]);
 
   const handleDragStart = (event: DragStartEvent) => {
     initialOrderRef.current = pages.map((p) => p.id);
@@ -166,22 +212,58 @@ export default function WikiPagesPage() {
     }
   };
 
-  const activePage = useMemo(() => pages.find((p) => p.id === activeId), [activeId, pages]);
+  const handleDeletePage = useCallback(
+    async (page: WikiPage) => {
+      if (deletingPageId !== null) return;
+
+      const shouldDelete = window.confirm(
+        `Удалить документ "${page.title}"? Это действие нельзя отменить.`,
+      );
+      if (!shouldDelete) return;
+
+      try {
+        setDeletingPageId(page.id);
+        await deleteWikiPage(page.slug);
+        setPages((prev) => {
+          const next = prev.filter((item) => item.id !== page.id);
+          saveOrder(next.map((item) => item.id));
+          return next;
+        });
+      } catch (err) {
+        const message =
+          err instanceof Error ? err.message : "Не удалось удалить документ";
+        window.alert(message);
+      } finally {
+        setDeletingPageId(null);
+      }
+    },
+    [deletingPageId],
+  );
+
+  const activePage = useMemo(
+    () => pages.find((p) => p.id === activeId),
+    [activeId, pages],
+  );
 
   const dropAnimation = {
-    sideEffects: defaultDropAnimationSideEffects({ styles: { active: { opacity: "0.4" } } }),
+    sideEffects: defaultDropAnimationSideEffects({
+      styles: { active: { opacity: "0.4" } },
+    }),
   };
-
   return (
     <main className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-12">
       <header className="flex flex-wrap items-end justify-between gap-6">
         <div className="space-y-1">
           <h1 className="text-4xl font-bold tracking-tight">WikiLive</h1>
-          <p className="text-muted-foreground text-lg">Живые таблицы в тексте</p>
+          <p className="text-muted-foreground text-lg">
+            Живые таблицы в тексте
+          </p>
         </div>
         <div className="flex items-center gap-3">
           <Link href="/workbench">
-            <Button variant="outline" size="sm">Workbench</Button>
+            <Button variant="outline" size="sm">
+              Workbench
+            </Button>
           </Link>
           <Link href="/wiki/new">
             <Button className="gap-2 shadow-sm">
@@ -191,20 +273,29 @@ export default function WikiPagesPage() {
           </Link>
         </div>
       </header>
-
-      {isLoading && <div className="p-8 text-center text-muted-foreground animate-pulse">Загрузка документов...</div>}
+      {isLoading && (
+        <div className="p-8 text-center text-muted-foreground animate-pulse">
+          Загрузка документов...
+        </div>
+      )}
 
       {!isLoading && error && (
         <div className="rounded-xl border border-destructive/20 bg-destructive/5 p-6 text-destructive flex items-center gap-3">
-           <span className="font-semibold text-lg hover:underline cursor-pointer" onClick={() => void loadPages()}>
-             ⚠️ {error}. Нажмите, чтобы повторить.
-           </span>
+          <button
+            type="button"
+            className="font-semibold text-left text-lg hover:underline"
+            onClick={() => void loadPages()}
+          >
+            ⚠️ {error}. Нажмите, чтобы повторить.
+          </button>
         </div>
       )}
 
       {!isLoading && !error && pages.length === 0 && (
         <div className="rounded-xl border-2 border-dashed p-16 text-center space-y-4">
-          <p className="text-muted-foreground text-lg">Документов пока нет. Создайте первый документ WikiLive!</p>
+          <p className="text-muted-foreground text-lg">
+            Документов пока нет. Создайте первый документ WikiLive!
+          </p>
           <Link href="/wiki/new">
             <Button variant="secondary">Создать документ</Button>
           </Link>
@@ -225,14 +316,27 @@ export default function WikiPagesPage() {
               <thead className="bg-muted/30 border-b">
                 <tr>
                   <th className="w-12 px-3 py-4" />
-                  <th className="px-4 py-4 font-semibold text-foreground uppercase tracking-wider text-xs">Документ</th>
-                  <th className="w-1/3 px-4 py-4 font-semibold text-foreground uppercase tracking-wider text-xs">Описание</th>
+                  <th className="px-4 py-4 font-semibold text-foreground uppercase tracking-wider text-xs">
+                    Документ
+                  </th>
+                  <th className="w-1/3 px-4 py-4 font-semibold text-foreground uppercase tracking-wider text-xs">
+                    Описание
+                  </th>
+                  <th className="w-[70px] px-2 py-4" />
                 </tr>
               </thead>
               <tbody className="divide-y divide-border/40">
-                <SortableContext items={pages} strategy={verticalListSortingStrategy}>
+                <SortableContext
+                  items={pages}
+                  strategy={verticalListSortingStrategy}
+                >
                   {pages.map((page) => (
-                    <SortableTableRow key={page.id} page={page} />
+                    <SortableTableRow
+                      key={page.id}
+                      page={page}
+                      isDeleting={deletingPageId === page.id}
+                      onDelete={handleDeletePage}
+                    />
                   ))}
                 </SortableContext>
               </tbody>

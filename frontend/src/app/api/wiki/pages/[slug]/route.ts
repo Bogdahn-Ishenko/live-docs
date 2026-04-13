@@ -1,29 +1,21 @@
 import { type NextRequest, NextResponse } from "next/server";
 
-const BACKEND_BASE_URL =
-  (process.env.BACKEND_URL || "http://localhost:8085").replace(/\/+$/, "");
+import {
+  getWikiBackendBaseUrl,
+  getWikiWriteAuthHeader,
+} from "@/app/api/wiki/_lib/backend-config";
+import { buildWritePayload, normalizePageShape } from "@/app/api/wiki/_lib/page";
+import { encodeSlugPath } from "@/app/api/wiki/_lib/slug";
 
 type Params = {
   params: Promise<{ slug: string }>;
 };
 
-function normalizeSlug(slug: string): string {
-  try {
-    return decodeURIComponent(slug);
-  } catch {
-    return slug;
-  }
-}
-
-function encodeSlugPath(slug: string): string {
-  return encodeURIComponent(normalizeSlug(slug));
-}
-
 export async function GET(_request: NextRequest, { params }: Params) {
   try {
     const { slug } = await params;
     const response = await fetch(
-      `${BACKEND_BASE_URL}/api/pages/${encodeSlugPath(slug)}`,
+      `${getWikiBackendBaseUrl()}/api/pages/${encodeSlugPath(slug)}`,
       {
         method: "GET",
         cache: "no-store",
@@ -41,7 +33,9 @@ export async function GET(_request: NextRequest, { params }: Params) {
       );
     }
 
-    return NextResponse.json(data, { status: response.status });
+    return NextResponse.json(normalizePageShape(data), {
+      status: response.status,
+    });
   } catch (error) {
     console.error("Wiki page fetch failed:", error);
     return NextResponse.json(
@@ -57,15 +51,26 @@ export async function PUT(request: NextRequest, { params }: Params) {
   try {
     const { slug } = await params;
     const payload = await request.json();
+    const writeAuthHeader = getWikiWriteAuthHeader();
+
+    if (!writeAuthHeader) {
+      return NextResponse.json(
+        {
+          error: "На сервере не настроены учетные данные для записи",
+        },
+        { status: 500 },
+      );
+    }
 
     const response = await fetch(
-      `${BACKEND_BASE_URL}/api/pages/${encodeSlugPath(slug)}`,
+      `${getWikiBackendBaseUrl()}/api/pages/${encodeSlugPath(slug)}`,
       {
         method: "PUT",
         headers: {
+          Authorization: writeAuthHeader,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(payload),
+        body: JSON.stringify(buildWritePayload(payload)),
       },
     );
 
@@ -80,9 +85,57 @@ export async function PUT(request: NextRequest, { params }: Params) {
       );
     }
 
-    return NextResponse.json(data, { status: response.status });
+    return NextResponse.json(normalizePageShape(data), {
+      status: response.status,
+    });
   } catch (error) {
     console.error("Wiki page update failed:", error);
+    return NextResponse.json(
+      {
+        error: "Внутренняя ошибка сервера",
+      },
+      { status: 500 },
+    );
+  }
+}
+
+export async function DELETE(_request: NextRequest, { params }: Params) {
+  try {
+    const { slug } = await params;
+    const writeAuthHeader = getWikiWriteAuthHeader();
+
+    if (!writeAuthHeader) {
+      return NextResponse.json(
+        {
+          error: "На сервере не настроены учетные данные для записи",
+        },
+        { status: 500 },
+      );
+    }
+
+    const response = await fetch(
+      `${getWikiBackendBaseUrl()}/api/pages/${encodeSlugPath(slug)}`,
+      {
+        method: "DELETE",
+        headers: {
+          Authorization: writeAuthHeader,
+        },
+      },
+    );
+
+    if (!response.ok) {
+      const data = await response.json().catch(() => null);
+      return NextResponse.json(
+        data ?? {
+          error: "Не удалось удалить документ",
+        },
+        { status: response.status },
+      );
+    }
+
+    return new NextResponse(null, { status: 204 });
+  } catch (error) {
+    console.error("Wiki page delete failed:", error);
     return NextResponse.json(
       {
         error: "Внутренняя ошибка сервера",

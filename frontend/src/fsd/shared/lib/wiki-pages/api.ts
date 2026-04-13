@@ -78,3 +78,20 @@ export async function updateWikiPage(
 
   return parseApiResponse<WikiPage>(response);
 }
+
+export async function deleteWikiPage(slug: string): Promise<void> {
+  const response = await fetch(`/api/wiki/pages/${encodeSlugPath(slug)}`, {
+    method: "DELETE",
+  });
+
+  if (!response.ok) {
+    const payload = (await response.json().catch(() => null)) as {
+      error?: string;
+    } | null;
+    const message =
+      payload && typeof payload.error === "string"
+        ? payload.error
+        : `Ошибка запроса (статус ${response.status})`;
+    throw new Error(message);
+  }
+}
