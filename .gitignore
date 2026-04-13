@@ -22,6 +22,8 @@ build/
 
 coverage/
 *.log
+logs/
+*.log.*
 
 .DS_Store
 Thumbs.db
@@ -39,3 +41,14 @@ target/
 *.jar
 *.war
 *.ear
+
+# Java bytecode
+*.class
+
+*.zip
+*.tar
+*.tar.gz
+
+target/site/
+surefire-reports/
+failsafe-reports/
