@@ -38,7 +38,7 @@ import {
   type EditorState,
   type SerializedEditorState,
 } from "lexical";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useBlockViewer } from "@/fsd/app/providers/block-viewer-provider";
 import { Button } from "@/fsd/shared/ui/button";
 import { ContentEditable } from "@/fsd/shared/ui/editor/editor-ui/content-editable";
@@ -198,6 +198,11 @@ export function Editor({
     }
   };
 
+  // Keep the initial editor state stable so LexicalExtensionComposer
+  // does not recreate the editor on every content change.
+  const initialSerializedStateRef = useRef(editorSerializedState);
+  const initialEditorStateRef = useRef(editorState);
+
   const AppExtension = useMemo(
     () =>
       defineExtension({
@@ -263,16 +268,16 @@ export function Editor({
           TablesMwNode,
         ],
         $initialEditorState(editor) {
-          if (editorSerializedState) {
-            const parsedState = editor.parseEditorState(editorSerializedState);
+          if (initialSerializedStateRef.current) {
+            const parsedState = editor.parseEditorState(initialSerializedStateRef.current);
             editor.setEditorState(parsedState);
-          } else if (editorState) {
-            editor.setEditorState(editorState);
+          } else if (initialEditorStateRef.current) {
+            editor.setEditorState(initialEditorStateRef.current);
           }
         },
         theme: editorTheme,
       }),
-    [editorSerializedState, editorState],
+    [],
   );
 
   return (

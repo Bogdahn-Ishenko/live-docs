@@ -315,23 +315,39 @@ function BlockViewerProvider({ children }: { children: React.ReactNode }) {
     [],
   );
 
+  const value = React.useMemo(
+    () => ({
+      toolbarItems,
+      footerItems,
+      pluginItems,
+      blockFormatItems,
+      blockInsertItems,
+      componentPickerItems,
+      toggleToolbarItem,
+      toggleFooterItem,
+      togglePluginItem,
+      toggleBlockFormatItem,
+      toggleBlockInsertItem,
+      toggleComponentPickerItem,
+    }),
+    [
+      toolbarItems,
+      footerItems,
+      pluginItems,
+      blockFormatItems,
+      blockInsertItems,
+      componentPickerItems,
+      toggleToolbarItem,
+      toggleFooterItem,
+      togglePluginItem,
+      toggleBlockFormatItem,
+      toggleBlockInsertItem,
+      toggleComponentPickerItem,
+    ],
+  );
+
   return (
-    <BlockViewerContext.Provider
-      value={{
-        toolbarItems,
-        footerItems,
-        pluginItems,
-        blockFormatItems,
-        blockInsertItems,
-        componentPickerItems,
-        toggleToolbarItem,
-        toggleFooterItem,
-        togglePluginItem,
-        toggleBlockFormatItem,
-        toggleBlockInsertItem,
-        toggleComponentPickerItem,
-      }}
-    >
+    <BlockViewerContext.Provider value={value}>
       {children}
     </BlockViewerContext.Provider>
   );
