@@ -1,11 +1,12 @@
 package com.arkstech.wikilive.controller;
 
+import com.arkstech.wikilive.dto.GraphDTO;
+import com.arkstech.wikilive.dto.PageDTO;
 import com.arkstech.wikilive.dto.PageRequest;
-import com.arkstech.wikilive.dto.PageResponse;
+import com.arkstech.wikilive.model.WikiPage;
 import com.arkstech.wikilive.service.PageService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -23,29 +24,45 @@ public class PageController {
     private final PageService pageService;
 
     @PostMapping
-    public ResponseEntity<PageResponse> savePage(@Valid @RequestBody PageRequest request) {
-        return ResponseEntity
-                .status(HttpStatus.CREATED)
-                .body(PageResponse.fromEntity(pageService.createPage(request)));
+    public ResponseEntity<WikiPage> create(@RequestBody PageRequest request) {
+        return ResponseEntity.ok(pageService.createPage(request));
     }
 
     @PutMapping("/{slug}")
-    public PageResponse updatePage(
-            @PathVariable String slug, 
-            @Valid @RequestBody PageRequest request
-    ) {
-        return PageResponse.fromEntity(pageService.updatePage(slug, request));
+    public ResponseEntity<WikiPage> update(@PathVariable String slug,
+                                           @RequestBody PageRequest request) {
+        return ResponseEntity.ok(pageService.updatePage(slug, request));
     }
 
     @GetMapping("/{slug}")
-    public PageResponse getPage(@PathVariable String slug) {
-        return PageResponse.fromEntity(pageService.getPageBySlug(slug));
+    public ResponseEntity<WikiPage> get(@PathVariable String slug) {
+        return ResponseEntity.ok(pageService.getBySlug(slug));
     }
 
     @GetMapping
-    public List<PageResponse> getAllPages() {
-        return pageService.getAllPages().stream()
-                .map(PageResponse::fromEntity)
-                .collect(Collectors.toList());
+    public ResponseEntity<List<WikiPage>> getAll() {
+        return ResponseEntity.ok(pageService.getAll());
     }
+
+    @GetMapping("/{slug}/backlinks")
+    public ResponseEntity<List<PageDTO>> backlinks(@PathVariable String slug) {
+        return ResponseEntity.ok(pageService.getBacklinks(slug));
+    }
+
+    @GetMapping("/graph")
+    public ResponseEntity<GraphDTO> graph() {
+        return ResponseEntity.ok(pageService.getGraph());
+    }
+
+    @GetMapping("/search")
+    public ResponseEntity<List<PageDTO>> search(@RequestParam String query) {
+        return ResponseEntity.ok(pageService.search(query));
+    }
+
+    @DeleteMapping("/{slug}")
+    public ResponseEntity<Void> delete(@PathVariable String slug) {
+        pageService.deletePage(slug);
+        return ResponseEntity.noContent().build(); // 204
+    }
+
 }

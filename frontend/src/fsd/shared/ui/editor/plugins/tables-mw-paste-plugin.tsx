@@ -3,16 +3,12 @@ import { useEffect } from "react";
 
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
 import {
-  $createParagraphNode,
-  $createTextNode,
   COMMAND_PRIORITY_HIGH,
   PASTE_COMMAND,
 } from "lexical";
 
 import { $insertTablesMwNode } from "@/fsd/shared/ui/editor/nodes/tables-mw-node";
-
-const TABLES_MW_URL_REGEX =
-  /^https:\/\/tables\.mws\.ru\/fusion\/v1\/datasheets\/([^\/]+)\/records/;
+import { isTablesMwUrl, parseTablesMwUrl } from "@/fsd/shared/lib/tables-mw/url-utils";
 
 export function TablesMwPastePlugin(): null {
   const [editor] = useLexicalComposerContext();
@@ -30,17 +26,26 @@ export function TablesMwPastePlugin(): null {
 
         // Check if it's a tables.mws.ru URL
         const trimmedText = pastedText.trim();
-        if (!TABLES_MW_URL_REGEX.test(trimmedText)) {
+        if (!isTablesMwUrl(trimmedText)) {
           return false; // Not our URL, let other handlers process it
         }
+
+        // Parse URL to extract datasheetId and viewId
+        const parsed = parseTablesMwUrl(trimmedText);
+        if (!parsed) return false;
 
         // Prevent default paste behavior
         event.preventDefault();
         event.stopPropagation();
 
-        // Insert TablesMwNode
+        // Insert TablesMwNode with parsed IDs and converted API URL
         editor.update(() => {
-          $insertTablesMwNode(trimmedText);
+          $insertTablesMwNode(
+            parsed.apiUrl,
+            undefined, // spaceId
+            parsed.datasheetId,
+            parsed.viewId
+          );
         });
 
         return true; // Handled

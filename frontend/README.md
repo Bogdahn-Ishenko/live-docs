@@ -1,48 +1,226 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Live Docs - Wiki Editor
 
-## Getting Started
+Блок-редактор на базе Lexical с интеграцией MWS Tables.
 
-First, run the development server:
+## Быстрый старт
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+bun install
+bun run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Откройте [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Функционал
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### Обязательный функционал
 
-## Learn More
+| # | Функция | Статус |
+|---|---------|--------|
+| 1 | Интеграция с MWS Tables через API | ✅ |
+| 2 | Создание и редактирование вики-страницы в сценарии MWS Tables | ✅ |
+| 3 | Вставка существующей таблицы MWS Tables в тело страницы | ✅ |
+| 4 | Автосохранение при редактировании и восстановление после перезагрузки | ✅ |
+| 5 | Slash-menu для быстрого добавления блоков | ✅ |
+| 6 | Горячие клавиши для slash-menu / ключевых команд редактора | ✅ |
+| 7 | Ссылки на другие страницы и обратные ссылки (backlinks) | ✅ |
+| 8 | Совместная работа над документом | ⚠️ (через MWS Tables) |
+| 9 | Редактор на open-source основе, permissive лицензия (MIT-like) | ✅ (Lexical) |
 
-To learn more about Next.js, take a look at the following resources:
+### Дополнительный функционал
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+| # | Функция | Статус |
+|---|---------|--------|
+| 10 | Таблица на странице как «живой» объект (синхронизация с MWS Tables) | ✅ |
+| 11 | Комментирование | ✅ |
+| 12 | Версионирование / история правок / отдельные черновики | ✅ |
+| 13 | AI-подсказки или генерация блоков | ✅ |
+| 14 | Граф связей между страницами | ✅ |
+| 15 | Плагины / расширяемость редактора | ✅ |
+| 16 | Встраивание внешних элементов (виджеты, превью и т.д.) | ✅ |
+| 17 | Соответствие Design Kit | ⚠️ |
 
-## MWS GPT Integration
+## Горячие клавиши
 
-The editor includes an `AI Assistant` action that calls MWS GPT from a server route.
+### Редактор
 
-1. Create `frontend/.env.local` from `.env.example`.
-2. Set `MWS_GPT_API_KEY` to your key.
-3. Optionally set models:
-   - `MWS_GPT_MODEL_HINT` (fast hint model, default `gpt-oss-20b`)
-   - `MWS_GPT_MODEL_BLOCK` (higher-quality block generation model, default `qwen2.5-72b-instruct`)
+| Клавиша | Действие |
+|---------|----------|
+| `/` | Открыть slash-меню для добавления блоков |
+| `Ctrl/Cmd + Z` | Отменить |
+| `Ctrl/Cmd + Shift + Z` или `Ctrl/Cmd + Y` | Повторить |
+| `Ctrl/Cmd + B` | Жирный текст |
+| `Ctrl/Cmd + I` | Курсив |
+| `Ctrl/Cmd + U` | Подчеркнутый текст |
+| `Ctrl/Cmd + K` | Вставить/редактировать ссылку |
+| `Tab` | Увеличить отступ |
+| `Shift + Tab` | Уменьшить отступ |
+| `Ctrl/Cmd + Shift + V` | Вставить без форматирования |
 
-The API key is used only on the server in `src/app/api/ai/generate/route.ts` and is never exposed to the browser.
+### Slash-меню
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Введите `/` и начните печатать для поиска:
 
-## Deploy on Vercel
+| Команда | Описание |
+|---------|----------|
+| `h1`, `#` | Заголовок 1 |
+| `h2`, `##` | Заголовок 2 |
+| `h3`, `###` | Заголовок 3 |
+| `p` | Параграф |
+| `ul`, `-` | Маркированный список |
+| `ol`, `1.` | Нумерованный список |
+| `cl`, `[]` | Чек-лист |
+| `code`, `` ` `` | Блок кода |
+| `quote`, `>` | Цитата |
+| `divider`, `---` | Разделитель |
+| `image` | Изображение |
+| `table` | Таблица |
+| `columns` | Колонки |
+| `youtube` | YouTube видео |
+| `tweet` | Tweet |
+| `date` | Дата/время |
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+### Wiki
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+| Клавиша | Действие |
+|---------|----------|
+| `[[` | Быстрая ссылка на страницу wiki |
+| `Ctrl/Cmd + S` | Сохранить страницу |
+| `Ctrl/Cmd + Shift + S` | Сохранить как черновик |
+
+## Markdown shortcuts
+
+| Синтаксис | Результат |
+|-----------|-----------|
+| `# текст` | Заголовок 1 |
+| `## текст` | Заголовок 2 |
+| `### текст` | Заголовок 3 |
+| `**текст**` | Жирный |
+| `*текст*` | Курсив |
+| `` `код` `` | Инлайн код |
+| ``` ```код``` ``` | Блок кода |
+| `> текст` | Цитата |
+| `- текст` или `* текст` | Маркированный список |
+| `1. текст` | Нумерованный список |
+| `[] текст` | Чек-лист |
+| `---` или `***` | Разделитель |
+| `![alt](url)` | Изображение |
+| `[текст](url)` | Ссылка |
+
+## Комментирование
+
+Система комментариев к страницам с управлением доступом:
+
+### Основные функции
+1. **Выделите текст** в редакторе
+2. Нажмите кнопку "Комментировать" 
+3. Напишите комментарий в боковой панели
+4. Комментарии отображаются с автором и временем (формат: 27.10.25 18:03)
+5. Цитируемый текст подсвечивается желтым
+
+### История комментариев
+- Вкладка "Активные" — текущие обсуждения
+- Вкладка "История" — решенные и удаленные комментарии
+- Возможность восстановить удаленные комментарии
+- Кнопка "Показать удаленные" в истории
+
+### Управление доступом
+Создатель страницы может ограничить комментирование:
+- **Все пользователи** — anyone can comment
+- **Только авторизованные** — требуется вход
+- **Только создатель** — только владелец страницы
+
+Требования:
+- Создайте datasheet для комментариев с полями: Page ID, Content, Author ID, Author Name, Created At, Resolved, Selection
+- Установите `NEXT_PUBLIC_WIKI_COMMENTS_DATASHEET_ID`
+- Для управления доступом: `NEXT_PUBLIC_WIKI_ACCESS_DATASHEET_ID`
+
+## Машина времени (Версионирование)
+
+История изменений страницы:
+
+1. Каждое сохранение создает новую версию
+2. Откройте панель "Машина времени" в меню
+3. Просмотрите список всех версий с датой и автором
+4. Нажмите "Восстановить версию" для отката
+
+Требования:
+- Создайте datasheet для версий с полями: Page ID, Content, Author ID, Author Name, Created At, Action, Description
+- Установите `NEXT_PUBLIC_WIKI_VERSIONS_DATASHEET_ID`
+
+## Граф связей
+
+Визуализация связей между страницами wiki:
+
+1. Откройте панель "Граф связей" в меню
+2. Узлы — страницы, линии — связи
+3. Синие линии — ссылки в тексте, серые — иерархия (parent-child)
+4. Клик по узлу переходит на страницу
+5. Текущая страница выделена цветом
+
+## Wiki-страницы
+
+Wiki-страницы хранятся в MWS Tables. Для работы необходимо:
+
+1. Создать datasheet в MWS Tables со следующими полями:
+   - Title (SingleText)
+   - Slug (SingleText)
+   - Content (Text - для JSON контента)
+   - Parent ID (SingleText - для иерархии)
+   - Created At (DateTime)
+   - Updated At (DateTime)
+   - Is Published (Checkbox)
+
+2. Установить переменные окружения в `.env.local`:
+   ```
+   NEXT_PUBLIC_WIKI_DATASHEET_ID=your_datasheet_id
+   NEXT_PUBLIC_MWS_API_KEY=your_api_key
+   ```
+
+## MWS Tables интеграция
+
+Для интеграции с MWS Tables необходимо:
+
+1. Создать `.env.local` из `.env.example`
+2. Установить `MWS_API_KEY` для работы с API
+3. При желании настроить `NEXT_PUBLIC_WIKI_DATASHEET_ID` для хранения wiki-страниц
+
+## AI Интеграция
+
+Для работы AI-помощника:
+
+1. Установить `MWS_GPT_API_KEY` в `.env.local`
+2. При желании настроить модели:
+   - `MWS_GPT_MODEL_HINT` (быстрая модель для подсказок)
+   - `MWS_GPT_MODEL_BLOCK` (модель для генерации блоков)
+
+## Структура проекта
+
+```
+src/
+├── app/                    # Next.js App Router
+│   ├── api/               # API Routes
+│   │   ├── ai/           # AI генерация
+│   │   └── tables-mw/    # MWS Tables API
+│   ├── wiki/             # Wiki страницы
+│   └── workbench/        # Редактор
+├── fsd/
+│   ├── app/              # Провайдеры
+│   ├── pages/            # Страницы
+│   │   ├── wiki-page/   # Wiki компоненты
+│   │   └── workbench-page/
+│   └── shared/
+│       ├── hooks/        # React hooks
+│       │   ├── tables-mw/  # MWS Tables hooks
+│       │   └── wiki/       # Wiki hooks
+│       ├── lib/          # Утилиты
+│       │   ├── tables-mw/  # MWS Tables API
+│       │   └── wiki/       # Wiki утилиты
+│       └── ui/           # UI компоненты
+│           ├── editor/     # Lexical редактор
+│           └── tables-mw/  # MWS Tables UI
+```
+
+## Лицензия
+
+Редактор основан на [Lexical](https://github.com/facebook/lexical) (MIT License).

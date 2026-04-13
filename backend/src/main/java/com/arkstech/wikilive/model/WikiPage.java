@@ -2,25 +2,15 @@ package com.arkstech.wikilive.model;
 
 import jakarta.persistence.*;
 import lombok.*;
-import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.UpdateTimestamp;
-
 import java.time.LocalDateTime;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.ArrayList;
+import java.util.List;
 
-/**
- * Entity representing a Wiki Page.
- */
+
+//сущность для ХРАНЕНИЯ данных
 @Entity
 @Table(name = "pages")
-@Getter
-@Setter
-@Builder
-@NoArgsConstructor
-@AllArgsConstructor
-@ToString(exclude = "links")
-@EqualsAndHashCode(onlyExplicitlyIncluded = true)
+@Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
 public class WikiPage {
 
     @Id
@@ -31,32 +21,30 @@ public class WikiPage {
     @Column(nullable = false)
     private String title;
 
-    @Column(columnDefinition = "TEXT")
-    private String description;
-
-    @Column(unique = true, nullable = false)
+    @Column(nullable = false, unique = true)
     private String slug;
 
     @Column(columnDefinition = "TEXT")
     private String content;
 
     private String mwsTableId;
-
     private String ownerId;
 
-    @CreationTimestamp
-    @Column(updatable = false)
     private LocalDateTime createdAt;
-
-    @UpdateTimestamp
     private LocalDateTime updatedAt;
 
-    @ManyToMany
-    @JoinTable(
-            name = "page_links",
-            joinColumns = @JoinColumn(name = "source_id"),
-            inverseJoinColumns = @JoinColumn(name = "target_id")
-    )
+    @OneToMany(mappedBy = "sourcePage", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
-    private Set<WikiPage> links = new HashSet<>();
+    private List<PageLink> links = new ArrayList<>();
+
+    @PrePersist
+    protected void onCreate() {
+        createdAt = LocalDateTime.now();
+        updatedAt = LocalDateTime.now();
+    }
+
+    @PreUpdate
+    protected void onUpdate() {
+        updatedAt = LocalDateTime.now();
+    }
 }

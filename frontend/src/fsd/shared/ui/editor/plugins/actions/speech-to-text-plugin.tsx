@@ -92,9 +92,10 @@ function SpeechToTextPluginImpl() {
   const [editor] = useLexicalComposerContext();
   const [isEnabled, setIsEnabled] = useState<boolean>(false);
   const [isSpeechToText, setIsSpeechToText] = useState(false);
-  const SpeechRecognition: SpeechRecognitionConstructor | null =
+  const SpeechRecognition =
     typeof window !== "undefined"
-      ? (window.SpeechRecognition ?? window.webkitSpeechRecognition ?? null)
+      ? // @ts-expect-error missing type
+        window.SpeechRecognition || window.webkitSpeechRecognition
       : null;
   const recognition = useRef<SpeechRecognitionInstance | null>(null);
   const report = useReport();

@@ -4,10 +4,13 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
 
-/**
- * DTO for creating or updating a Wiki Page.
- */
+import lombok.NoArgsConstructor;
+
+
+//объект для ПЕРЕДАЧИ данных между фронтом и бэкендом
+
 @Data
+@NoArgsConstructor
 public class PageRequest {
     
     @NotBlank(message = "Title is required")
