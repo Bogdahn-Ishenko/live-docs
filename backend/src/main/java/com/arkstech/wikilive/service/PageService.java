@@ -13,6 +13,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -66,20 +67,17 @@ public class PageService {
         }
     }
 
+    @PreAuthorize("@pageAccessService.canEdit(#slug, authentication.name)")
     @Transactional
     public WikiPage updatePage(String slug, PageRequest request) {
         WikiPage page = getBySlug(slug);
 
-        page.getLinks().clear();
-        pageRepository.saveAndFlush(page);
-
-        //обновление
         page.setTitle(request.getTitle());
         page.setContent(request.getContent());
         page.setMwsTableId(request.getMwsTableId());
         page.setParentSlug(request.getParentSlug());
 
-        //новые связи
+        page.getLinks().clear();
         attachWikiLinks(page);
 
         WikiPage updated = pageRepository.saveAndFlush(page);
@@ -151,10 +149,13 @@ public class PageService {
     }
 
     private final CommentRepository commentRepository;
+    @PreAuthorize("@pageAccessService.canDelete(#slug, authentication.name)")
     @Transactional
     public void deletePage(String slug) {
+        WikiPage page = getBySlug(slug);
+
         commentRepository.deleteByPageSlug(slug);
-        pageRepository.delete(getBySlug(slug));
+        pageRepository.delete(page);
     }
 
     public List<PageDTO> search(String query) {
