@@ -1,4 +1,4 @@
-﻿import { type NextRequest, NextResponse } from "next/server";
+import { type NextRequest, NextResponse } from "next/server";
 
 import {
   getWikiBackendBaseUrl,
@@ -13,10 +13,25 @@ type Params = {
 export async function GET(_request: NextRequest, { params }: Params) {
   try {
     const { slug } = await params;
+    const writeAuthHeader = getWikiWriteAuthHeader();
+
+    if (!writeAuthHeader) {
+      return NextResponse.json(
+        {
+          error:
+            "На сервере не настроены учетные данные для чтения комментариев",
+        },
+        { status: 500 },
+      );
+    }
+
     const response = await fetch(
       `${getWikiBackendBaseUrl()}/api/pages/${encodeSlugPath(slug)}/comments`,
       {
         method: "GET",
+        headers: {
+          Authorization: writeAuthHeader,
+        },
         cache: "no-store",
       },
     );
