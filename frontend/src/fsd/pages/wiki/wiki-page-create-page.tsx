@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { createWikiPage } from "@/fsd/shared/lib/wiki-pages/api";
 import {
@@ -21,6 +21,13 @@ export default function WikiPageCreatePage() {
   const [title, setTitle] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const isMountedRef = useRef(true);
+
+  useEffect(() => {
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   const onCreate = async () => {
     if (isSubmitting) return;
@@ -38,13 +45,17 @@ export default function WikiPageCreatePage() {
 
       router.push(`/wiki/${page.slug}`);
     } catch (createError) {
-      setError(
-        createError instanceof Error
-          ? createError.message
-          : "Не удалось создать документ",
-      );
+      if (isMountedRef.current) {
+        setError(
+          createError instanceof Error
+            ? createError.message
+            : "Не удалось создать документ",
+        );
+      }
     } finally {
-      setIsSubmitting(false);
+      if (isMountedRef.current) {
+        setIsSubmitting(false);
+      }
     }
   };
 
@@ -53,7 +64,6 @@ export default function WikiPageCreatePage() {
       <header className="flex items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold">Новый документ WikiLive</h1>
-          
         </div>
         <Link href="/wiki">
           <Button variant="outline">К документам</Button>
@@ -78,7 +88,9 @@ export default function WikiPageCreatePage() {
           />
         </div>
 
-        {error && <p className="mt-3 text-sm text-destructive font-medium">{error}</p>}
+        {error && (
+          <p className="mt-3 text-sm text-destructive font-medium">{error}</p>
+        )}
 
         <div className="mt-4">
           <Button onClick={() => void onCreate()} disabled={isSubmitting}>

@@ -3,17 +3,16 @@ package com.arkstech.wikilive.service;
 import com.arkstech.wikilive.dto.GraphDTO;
 import com.arkstech.wikilive.dto.PageDTO;
 import com.arkstech.wikilive.dto.PageRequest;
+import com.arkstech.wikilive.dto.WsMessage;
 import com.arkstech.wikilive.model.PageLink;
 import com.arkstech.wikilive.model.WikiPage;
 import com.arkstech.wikilive.repository.PageLinkRepository;
 import com.arkstech.wikilive.repository.PageRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import org.springframework.messaging.simp.SimpMessagingTemplate;
-import com.arkstech.wikilive.dto.WsMessage;
 
 import java.util.List;
 import java.util.Locale;
@@ -23,7 +22,6 @@ import java.util.regex.Pattern;
 /**
  * Service for handling Wiki Page business logic.
  */
-@Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -31,7 +29,6 @@ public class PageService {
 
     private final PageRepository pageRepository;
     private final PageLinkRepository pageLinkRepository;
-
     private final SimpMessagingTemplate messagingTemplate;
 
     private final com.fasterxml.jackson.databind.ObjectMapper objectMapper =
@@ -47,6 +44,7 @@ public class PageService {
             try {
                 WikiPage page = WikiPage.builder()
                         .title(request.getTitle())
+                        .description(request.getDescription())
                         .content(request.getContent())
                         .slug(currentSlug)
                         .mwsTableId(request.getMwsTableId())
@@ -56,7 +54,6 @@ public class PageService {
                 WikiPage savedPage = pageRepository.saveAndFlush(page);
                 updateExistingRedLinks(savedPage);
 
-                // WebSocket уведомляет
                 try {
                     String jsonPayload = objectMapper.writeValueAsString(
                             java.util.Map.of("title", savedPage.getTitle(), "action", "created"));
@@ -68,7 +65,6 @@ public class PageService {
                 }
 
                 return savedPage;
-
             } catch (DataIntegrityViolationException e) {
                 currentSlug = baseSlug + "-" + counter++;
             }
@@ -80,6 +76,7 @@ public class PageService {
         WikiPage page = getBySlug(slug);
 
         page.setTitle(request.getTitle());
+        page.setDescription(request.getDescription());
         page.setContent(request.getContent());
         page.setMwsTableId(request.getMwsTableId());
 
@@ -87,7 +84,6 @@ public class PageService {
         WikiPage updated = pageRepository.saveAndFlush(page);
         updateExistingRedLinks(updated);
 
-        //уведомление
         try {
             String jsonPayload = objectMapper.writeValueAsString(
                     java.util.Map.of("title", updated.getTitle(), "action", "edited"));
@@ -104,7 +100,9 @@ public class PageService {
     private void attachWikiLinks(WikiPage page) {
         page.getLinks().clear();
 
-        if (page.getContent() == null) return;
+        if (page.getContent() == null) {
+            return;
+        }
 
         Pattern pattern = Pattern.compile("\\[\\[(.*?)\\]\\]");
         Matcher matcher = pattern.matcher(page.getContent());
@@ -122,9 +120,7 @@ public class PageService {
     }
 
     private void updateExistingRedLinks(WikiPage newPage) {
-        List<PageLink> redLinks =
-                pageLinkRepository.findRedLinksToSlug(newPage.getSlug());
-
+        List<PageLink> redLinks = pageLinkRepository.findRedLinksToSlug(newPage.getSlug());
         for (PageLink link : redLinks) {
             link.setTargetPage(newPage);
         }
@@ -150,6 +146,7 @@ public class PageService {
         WikiPage page = getBySlug(slug);
         pageRepository.delete(page);
     }
+
     public List<PageDTO> search(String query) {
         if (query == null || query.isBlank()) {
             return List.of();
@@ -160,7 +157,6 @@ public class PageService {
                 .toList();
     }
 
-    //ГРАФ ТУТ
     public GraphDTO getGraph() {
         List<WikiPage> pages = pageRepository.findAll();
 
@@ -182,79 +178,23 @@ public class PageService {
         return new GraphDTO(nodes, edges);
     }
 
-    //ЛОГИКА ИСПРАВЛЕНИЯ РУССКОГО СЛАГА
     private String toSlug(String input) {
-        if (input == null || input.isBlank()) return "untitled";
+        if (input == null || input.isBlank()) {
+            return "untitled";
+        }
 
         String s = input.toLowerCase(Locale.ROOT);
-        s = s.replace("а","a").replace("б","b").replace("в","v").replace("г","g")
-                .replace("д","d").replace("е","e").replace("ё","e").replace("ж","zh")
-                .replace("з","z").replace("и","i").replace("й","y").replace("к","k")
-                .replace("л","l").replace("м","m").replace("н","n").replace("о","o")
-                .replace("п","p").replace("р","r").replace("с","s").replace("т","t")
-                .replace("у","u").replace("ф","f").replace("х","h").replace("ц","c")
-                .replace("ч","ch").replace("ш","sh").replace("щ","sch").replace("ы","y")
-                .replace("э","e").replace("ю","yu").replace("я","ya");
+        s = s.replace("а", "a").replace("б", "b").replace("в", "v").replace("г", "g")
+                .replace("д", "d").replace("е", "e").replace("ё", "e").replace("ж", "zh")
+                .replace("з", "z").replace("и", "i").replace("й", "y").replace("к", "k")
+                .replace("л", "l").replace("м", "m").replace("н", "n").replace("о", "o")
+                .replace("п", "p").replace("р", "r").replace("с", "s").replace("т", "t")
+                .replace("у", "u").replace("ф", "f").replace("х", "h").replace("ц", "c")
+                .replace("ч", "ch").replace("ш", "sh").replace("щ", "sch").replace("ы", "y")
+                .replace("э", "e").replace("ю", "yu").replace("я", "ya");
 
         return s.replaceAll("[^a-z0-9]", "-")
                 .replaceAll("-+", "-")
                 .replaceAll("^-|-$", "");
-    }
-
-    @Transactional
-    public WikiPage updatePage(String slug, PageRequest request) {
-        log.info("Updating wiki page with slug: {}", slug);
-        WikiPage page = getPageBySlug(slug);
-
-        page.setTitle(normalizeTitle(request.getTitle()));
-        page.setDescription(request.getDescription());
-        page.setContent(request.getContent());
-        page.setMwsTableId(request.getMwsTableId());
-
-        return pageRepository.save(page);
-    }
-
-    public WikiPage getPageBySlug(String slug) {
-        return pageRepository.findBySlug(slug)
-                .orElseThrow(() -> {
-                    log.warn("Wiki page not found for slug: {}", slug);
-                    return new ResponseStatusException(
-                            HttpStatus.NOT_FOUND,
-                            "Документ не найден"
-                    );
-                });
-    }
-
-    public List<WikiPage> getAllPages() {
-        return pageRepository.findAll();
-    }
-
-    private String normalizeTitle(String title) {
-        if (title == null || title.trim().isEmpty()) {
-            return "Без названия";
-        }
-        return title.trim();
-    }
-
-    private String generateUniqueSlug(String title) {
-        // Simple transliteration or cleanup for slug
-        String baseSlug = title.toLowerCase()
-                .replaceAll("[^\\p{L}\\p{Nd}]", "-")
-                .replaceAll("-+", "-")
-                .replaceAll("^-|-$", "");
-
-        if (baseSlug.isBlank()) {
-            baseSlug = "page";
-        }
-
-        String finalSlug = baseSlug;
-        int count = 1;
-
-        while (pageRepository.existsBySlug(finalSlug)) {
-            finalSlug = baseSlug + "-" + count;
-            count++;
-        }
-
-        return finalSlug;
     }
 }

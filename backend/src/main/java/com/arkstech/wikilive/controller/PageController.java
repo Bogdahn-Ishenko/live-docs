@@ -11,7 +11,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  * REST Controller for Managing Wiki Pages.
@@ -24,13 +23,13 @@ public class PageController {
     private final PageService pageService;
 
     @PostMapping
-    public ResponseEntity<WikiPage> create(@RequestBody PageRequest request) {
+    public ResponseEntity<WikiPage> create(@Valid @RequestBody PageRequest request) {
         return ResponseEntity.ok(pageService.createPage(request));
     }
 
     @PutMapping("/{slug}")
     public ResponseEntity<WikiPage> update(@PathVariable String slug,
-                                           @RequestBody PageRequest request) {
+                                           @Valid @RequestBody PageRequest request) {
         return ResponseEntity.ok(pageService.updatePage(slug, request));
     }
 

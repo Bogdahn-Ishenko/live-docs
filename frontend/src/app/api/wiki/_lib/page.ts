@@ -37,6 +37,13 @@ export function buildWritePayload(payload: unknown) {
     content: typeof source.content === "string" ? source.content : "",
   };
 
+  if ("description" in source) {
+    requestPayload.description =
+      typeof source.description === "string" || source.description === null
+        ? source.description
+        : null;
+  }
+
   if ("mwsTableId" in source) {
     requestPayload.mwsTableId =
       typeof source.mwsTableId === "string" || source.mwsTableId === null
