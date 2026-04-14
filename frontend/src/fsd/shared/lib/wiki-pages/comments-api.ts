@@ -54,6 +54,14 @@ function normalizeStatus(status: string): ThreadStatus {
   return status.toLowerCase() === "resolved" ? "resolved" : "open";
 }
 
+function isValidHttpHeaderValue(value: string): boolean {
+  for (let i = 0; i < value.length; i += 1) {
+    const code = value.charCodeAt(i);
+    if (code > 255 || code === 127 || code < 32) return false;
+  }
+  return true;
+}
+
 function mapThread(raw: RawCommentThread): CommentThread {
   return {
     id: String(raw.id),
@@ -95,10 +103,13 @@ async function parseResponse<T>(response: Response): Promise<T> {
 
 function headers(actor: DemoActor): HeadersInit {
   if (!actor) return {};
-  return {
+  const safeHeaders: Record<string, string> = {
     "x-demo-user": actor.id,
-    "x-demo-user-name": actor.name,
   };
+  if (isValidHttpHeaderValue(actor.name)) {
+    safeHeaders["x-demo-user-name"] = actor.name;
+  }
+  return safeHeaders;
 }
 
 export async function fetchCommentThreads(
@@ -138,6 +149,26 @@ export async function createCommentThread(
     },
   );
   return mapThread(await parseResponse<RawCommentThread>(response));
+}
+
+export async function importCommentThreads(
+  slug: string,
+  threads: CommentThread[],
+  actor: DemoActor,
+): Promise<CommentThread[]> {
+  const response = await fetch(
+    `/api/wiki/pages/${encodeURIComponent(slug)}/comments/import`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...headers(actor),
+      },
+      body: JSON.stringify({ threads }),
+    },
+  );
+  const raw = await parseResponse<RawCommentThread[]>(response);
+  return raw.map(mapThread);
 }
 
 export async function addCommentMessage(

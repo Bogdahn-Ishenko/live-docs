@@ -8,6 +8,7 @@ import {
   ThumbsUp,
   X,
 } from "lucide-react";
+import { usePathname } from "next/navigation";
 import {
   type ChangeEvent,
   type KeyboardEvent,
@@ -26,6 +27,7 @@ import {
   addCommentMessage,
   createCommentThread,
   fetchCommentThreads,
+  importCommentThreads,
   patchCommentMessage,
   patchCommentThread,
 } from "@/fsd/shared/lib/wiki-pages/comments-api";
@@ -63,7 +65,6 @@ type CommentThread = {
 type SelectionDraft = {
   text: string;
   top: number;
-  viewportTop: number;
   height: number;
   right: number;
 };
@@ -134,6 +135,7 @@ const CURRENT_USER: Author = {
 const STORAGE_PREFIX = "wikilive:threads";
 const DEMO_USER_ID_STORAGE_KEY = "wikilive:demo-user-id";
 const DEMO_USER_NAME_STORAGE_KEY = "wikilive:demo-user-name";
+const LIKED_COMMENTS_STORAGE_PREFIX = "wikilive:liked-comments";
 const DEMO_USERS: DemoActor[] = [
   { id: "ivan", name: "Иван Иванов" },
   { id: "sergey", name: "Сергей Иванов" },
@@ -154,6 +156,7 @@ const MARKER_LINE_MAX_HEIGHT = 120;
 const COMMENT_MAX_LENGTH = 256;
 const DRAFT_MIN_HEIGHT = 28;
 const DRAFT_MAX_HEIGHT = 120;
+const REMOTE_POLL_INTERVAL_MS = 3000;
 
 function clamp(value: number, min: number, max: number) {
   return Math.max(min, Math.min(value, max));
@@ -252,6 +255,25 @@ function readStorage(storageKey: string): CommentThread[] {
   }
 }
 
+function normalizeThreadNumber(value: number, fallback: number) {
+  return Number.isFinite(value) ? value : fallback;
+}
+
+function getThreadSignature(thread: CommentThread): string {
+  const visibleComments = thread.comments
+    .filter((comment) => !comment.deleted && comment.text.trim().length > 0)
+    .map((comment) => comment.text.trim())
+    .join("||");
+
+  return [
+    thread.quote.trim(),
+    Math.round(normalizeThreadNumber(thread.top, 0)),
+    Math.round(normalizeThreadNumber(thread.height, 22)),
+    Math.round(normalizeThreadNumber(thread.right, 0)),
+    visibleComments,
+  ].join("|");
+}
+
 function mapApiThreadToUi(thread: ApiCommentThread): CommentThread {
   return {
     ...thread,
@@ -263,6 +285,27 @@ function mapApiThreadToUi(thread: ApiCommentThread): CommentThread {
       },
     })),
   };
+}
+
+function getLikedCommentsStorageKey(actorId: string) {
+  return `${LIKED_COMMENTS_STORAGE_PREFIX}:${actorId}`;
+}
+
+function readLikedComments(actorId: string): Set<string> {
+  if (typeof window === "undefined") return new Set();
+  try {
+    const raw = window.localStorage.getItem(
+      getLikedCommentsStorageKey(actorId),
+    );
+    if (!raw) return new Set();
+    const parsed = JSON.parse(raw) as unknown;
+    if (!Array.isArray(parsed)) return new Set();
+    return new Set(
+      parsed.filter((item): item is string => typeof item === "string"),
+    );
+  } catch {
+    return new Set();
+  }
 }
 
 function createComment(text: string, replyToId: string | null): ThreadComment {
@@ -301,18 +344,34 @@ function getSelectionPayload(
   const rect = range.getBoundingClientRect();
   const containerRect = container.getBoundingClientRect();
   const contentRect = content?.getBoundingClientRect();
-  const contentScrollTop = content?.scrollTop ?? 0;
+  const scrollTop = content?.scrollTop ?? 0;
   const logicalTop = contentRect
-    ? rect.top - contentRect.top + contentScrollTop
+    ? rect.top - contentRect.top + scrollTop
     : rect.top - containerRect.top;
-  const viewportTop = rect.top - containerRect.top;
   return {
     text: selectedText.slice(0, 220),
     top: Math.max(logicalTop, 0),
-    viewportTop: clamp(viewportTop, 28, containerRect.height - 28),
     height: Math.max(rect.height, 18),
     right: clamp(rect.right - containerRect.left, 0, containerRect.width - 32),
   };
+}
+
+function resolveEditorContentElement(
+  container: HTMLElement,
+): HTMLElement | null {
+  const byLegacyClass = container.querySelector(".ContentEditable__root");
+  if (byLegacyClass instanceof HTMLElement) return byLegacyClass;
+
+  const frame = container.querySelector("[data-comment-content-frame]");
+  if (frame instanceof HTMLElement) {
+    const editableInFrame = frame.querySelector('[contenteditable="true"]');
+    if (editableInFrame instanceof HTMLElement) return editableInFrame;
+  }
+
+  const editable = container.querySelector('[contenteditable="true"]');
+  if (editable instanceof HTMLElement) return editable;
+
+  return null;
 }
 
 type MarkerProps = {
@@ -321,7 +380,6 @@ type MarkerProps = {
   left: number;
   top: number;
   lineHeight: number;
-  active: boolean;
   status: ThreadStatus;
   label: string;
   onClick: () => void;
@@ -334,7 +392,6 @@ function Marker({
   left,
   top,
   lineHeight,
-  active,
   status,
   label,
   onClick,
@@ -373,10 +430,8 @@ function Marker({
                 ? "h-7 gap-1 px-2 text-[11px] font-medium"
                 : "size-5 rounded-[6px]",
               hasComments &&
-                !active &&
                 status === "open" &&
                 "bg-[#8B7BFF] text-white hover:bg-[#CFC3FF] hover:text-[#6F58FF]",
-              hasComments && active && "bg-[#D3C8FF] text-[#6F58FF]",
               hasComments &&
                 status === "resolved" &&
                 "bg-[#E7E2FF] text-white hover:bg-[#DBD3FF]",
@@ -431,20 +486,42 @@ export function CommentThreadLauncher({
   children: ReactNode;
   storageKey?: string;
 }) {
+  const pathname = usePathname();
   const rootRef = useRef<HTMLDivElement | null>(null);
   const panelRef = useRef<HTMLDivElement | null>(null);
   const contentRef = useRef<HTMLElement | null>(null);
   const draftTextareaRef = useRef<HTMLTextAreaElement | null>(null);
   const timerRef = useRef<number | null>(null);
   const isMountedRef = useRef(true);
+  const pollInFlightRef = useRef(false);
+  const didAttemptLegacySyncRef = useRef(false);
   const storage = useMemo(
     () => `${STORAGE_PREFIX}:${storageKey}`,
     [storageKey],
   );
-  const pageSlug = useMemo(
-    () => (storageKey.startsWith("wiki-") ? storageKey.slice(5) : null),
+  const remoteCacheStorage = useMemo(
+    () => `${STORAGE_PREFIX}:remote:${storageKey}`,
     [storageKey],
   );
+  const pageSlug = useMemo(() => {
+    if (storageKey.startsWith("wiki-")) {
+      const byStorage = storageKey.slice(5).trim();
+      if (byStorage.length > 0) return byStorage;
+    }
+
+    if (pathname.startsWith("/wiki/")) {
+      const byPath = pathname.slice("/wiki/".length).trim();
+      if (byPath.length > 0 && byPath.toLowerCase() !== "new") {
+        try {
+          return decodeURIComponent(byPath);
+        } catch {
+          return byPath;
+        }
+      }
+    }
+
+    return null;
+  }, [pathname, storageKey]);
   const isRemoteMode = pageSlug !== null && pageSlug.length > 0;
 
   const [threads, setThreads] = useState<CommentThread[]>([]);
@@ -458,23 +535,42 @@ export function CommentThreadLauncher({
   const [draft, setDraft] = useState("");
   const [replyToId, setReplyToId] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [editingText, setEditingText] = useState("");
   const [hoveredMarkerId, setHoveredMarkerId] = useState<string | null>(null);
   const [contentRight, setContentRight] = useState<number | null>(null);
   const [contentScrollTop, setContentScrollTop] = useState(0);
   const [contentTopOffset, setContentTopOffset] = useState(0);
+  const [contentEl, setContentEl] = useState<HTMLElement | null>(null);
   const [containerWidth, setContainerWidth] = useState(0);
   const [frameBounds, setFrameBounds] = useState<FrameBounds | null>(null);
   const [demoActor, setDemoActor] = useState<DemoActor>(DEMO_USERS[0]);
   const [panelError, setPanelError] = useState<string | null>(null);
+  const [likedCommentIds, setLikedCommentIds] = useState<Set<string>>(
+    () => new Set(),
+  );
+  const [pendingLikeIds, setPendingLikeIds] = useState<Set<string>>(
+    () => new Set(),
+  );
+  const likedCommentIdsRef = useRef<Set<string>>(new Set());
 
   const activeThread = useMemo(
     () => threads.find((thread) => thread.id === activeThreadId) ?? null,
     [threads, activeThreadId],
   );
+  const activeVisibleComments = useMemo(
+    () => activeThread?.comments.filter((comment) => !comment.deleted) ?? [],
+    [activeThread],
+  );
+  const editingComment = useMemo(
+    () =>
+      activeVisibleComments.find((comment) => comment.id === editingId) ?? null,
+    [activeVisibleComments, editingId],
+  );
   const lanes = useMemo(() => calculateLanes(threads), [threads]);
+  const isMarkerGeometryReady =
+    contentEl !== null && contentRight !== null && frameBounds !== null;
 
   useEffect(() => {
+    isMountedRef.current = true;
     return () => {
       isMountedRef.current = false;
     };
@@ -493,6 +589,22 @@ export function CommentThreadLauncher({
     window.localStorage.setItem(DEMO_USER_ID_STORAGE_KEY, demoActor.id);
     window.localStorage.setItem(DEMO_USER_NAME_STORAGE_KEY, demoActor.name);
   }, [demoActor]);
+
+  useEffect(() => {
+    setLikedCommentIds(readLikedComments(demoActor.id));
+  }, [demoActor.id]);
+
+  useEffect(() => {
+    likedCommentIdsRef.current = likedCommentIds;
+  }, [likedCommentIds]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    window.localStorage.setItem(
+      getLikedCommentsStorageKey(demoActor.id),
+      JSON.stringify([...likedCommentIds]),
+    );
+  }, [demoActor.id, likedCommentIds]);
 
   useEffect(() => {
     if (isRemoteMode) return;
@@ -517,12 +629,94 @@ export function CommentThreadLauncher({
     [],
   );
 
+  const getLikeKey = useCallback(
+    (threadId: string, messageId: string) =>
+      `${storageKey}:${threadId}:${messageId}`,
+    [storageKey],
+  );
+
+  const applyLikedState = useCallback(
+    (thread: CommentThread): CommentThread => ({
+      ...thread,
+      comments: thread.comments.map((comment) => ({
+        ...comment,
+        likedByMe: likedCommentIdsRef.current.has(
+          getLikeKey(thread.id, comment.id),
+        ),
+      })),
+    }),
+    [getLikeKey],
+  );
+
+  const syncLocalThreadsToRemote = useCallback(
+    async (remoteThreads: CommentThread[]): Promise<CommentThread[] | null> => {
+      if (!isRemoteMode || !pageSlug) return null;
+
+      const legacyThreads = readStorage(storage);
+      const cachedRemoteThreads = readStorage(remoteCacheStorage);
+      const localCandidates = [...legacyThreads, ...cachedRemoteThreads];
+      if (localCandidates.length === 0) return null;
+
+      const knownSignatures = new Set(remoteThreads.map(getThreadSignature));
+      const importCandidates: CommentThread[] = [];
+
+      for (const localThread of localCandidates) {
+        const signature = getThreadSignature(localThread);
+        if (knownSignatures.has(signature)) continue;
+
+        const visibleComments = localThread.comments.filter(
+          (comment) => !comment.deleted && comment.text.trim().length > 0,
+        );
+        if (visibleComments.length === 0) continue;
+
+        importCandidates.push({
+          ...localThread,
+          quote: localThread.quote.slice(0, 220),
+          top: normalizeThreadNumber(localThread.top, 0),
+          height: Math.round(
+            clamp(normalizeThreadNumber(localThread.height, 22), 0, 400),
+          ),
+          right: Math.max(
+            0,
+            Math.round(normalizeThreadNumber(localThread.right, 0)),
+          ),
+          comments: visibleComments.map((comment) => ({
+            ...comment,
+            text: comment.text.trim().slice(0, COMMENT_MAX_LENGTH),
+          })),
+        });
+        knownSignatures.add(signature);
+      }
+
+      if (importCandidates.length === 0) return null;
+
+      const imported = await importCommentThreads(
+        pageSlug,
+        importCandidates,
+        demoActor,
+      );
+      window.localStorage.removeItem(remoteCacheStorage);
+      return imported.map(mapApiThreadToUi);
+    },
+    [demoActor, isRemoteMode, pageSlug, remoteCacheStorage, storage],
+  );
+
   const reloadThreads = useCallback(async () => {
     if (!isRemoteMode || !pageSlug) return;
     try {
       const loaded = await fetchCommentThreads(pageSlug);
+      let mapped = loaded.map(mapApiThreadToUi);
+      if (!didAttemptLegacySyncRef.current) {
+        didAttemptLegacySyncRef.current = true;
+        try {
+          const imported = await syncLocalThreadsToRemote(mapped);
+          if (imported) mapped = imported;
+        } catch (error) {
+          console.error("Wiki comments legacy sync failed:", error);
+        }
+      }
       if (!isMountedRef.current) return;
-      applyThreadUpdate(loaded.map(mapApiThreadToUi));
+      applyThreadUpdate(mapped.map(applyLikedState));
       setPanelState("ready");
       setPanelError(null);
     } catch (error) {
@@ -530,17 +724,31 @@ export function CommentThreadLauncher({
       setPanelState("error");
       setPanelError(error instanceof Error ? error.message : "Ошибка загрузки");
     }
-  }, [applyThreadUpdate, isRemoteMode, pageSlug]);
+  }, [
+    applyLikedState,
+    applyThreadUpdate,
+    isRemoteMode,
+    pageSlug,
+    syncLocalThreadsToRemote,
+  ]);
 
   useEffect(() => {
     if (!isRemoteMode) return;
-    setPanelState("loading");
     void reloadThreads();
-    const poll = window.setInterval(() => {
-      void reloadThreads();
-    }, 4000);
-    return () => window.clearInterval(poll);
   }, [isRemoteMode, reloadThreads]);
+
+  useEffect(() => {
+    if (!isRemoteMode || !isPanelOpen) return;
+    const poll = window.setInterval(() => {
+      if (document.visibilityState !== "visible") return;
+      if (pollInFlightRef.current) return;
+      pollInFlightRef.current = true;
+      void reloadThreads().finally(() => {
+        pollInFlightRef.current = false;
+      });
+    }, REMOTE_POLL_INTERVAL_MS);
+    return () => window.clearInterval(poll);
+  }, [isRemoteMode, isPanelOpen, reloadThreads]);
 
   useEffect(() => {
     if (!isRemoteMode) {
@@ -548,6 +756,33 @@ export function CommentThreadLauncher({
       setPanelError(null);
     }
   }, [isRemoteMode]);
+
+  useEffect(() => {
+    if (panelDraft) return;
+    if (threads.length === 0) {
+      if (activeThreadId !== null) setActiveThreadId(null);
+      return;
+    }
+
+    const activeThread =
+      activeThreadId === null
+        ? null
+        : (threads.find((thread) => thread.id === activeThreadId) ?? null);
+    const activeHasVisibleComments =
+      activeThread?.comments.some((comment) => !comment.deleted) ?? false;
+    if (activeThread && activeHasVisibleComments) return;
+
+    const threadWithVisibleComments = [...threads]
+      .reverse()
+      .find((thread) => thread.comments.some((comment) => !comment.deleted));
+    if (!threadWithVisibleComments) {
+      if (activeThreadId !== null) setActiveThreadId(null);
+      return;
+    }
+    if (threadWithVisibleComments.id !== activeThreadId) {
+      setActiveThreadId(threadWithVisibleComments.id);
+    }
+  }, [threads, activeThreadId, panelDraft]);
 
   const openThread = useCallback((threadId: string) => {
     setIsPanelOpen(true);
@@ -594,11 +829,13 @@ export function CommentThreadLauncher({
       }
       return nextFrameBounds;
     });
-    const content = container.querySelector(".ContentEditable__root");
-    if (content instanceof HTMLElement) {
+    const content = resolveEditorContentElement(container);
+    if (content) {
       contentRef.current = content;
+      setContentEl((prev) => (prev === content ? prev : content));
       const contentRect = content.getBoundingClientRect();
       setContentTopOffset(contentRect.top - containerRect.top);
+      setContentScrollTop(content.scrollTop);
       const nextContentRight = clamp(
         contentRect.right - containerRect.left,
         0,
@@ -608,6 +845,19 @@ export function CommentThreadLauncher({
         prev !== null && isClose(prev, nextContentRight)
           ? prev
           : nextContentRight,
+      );
+    } else {
+      setContentEl((prev) => (prev === null ? prev : null));
+      // Fallback for first render when editor DOM is not yet mounted.
+      const fallbackRight = clamp(
+        frameRect.right - containerRect.left - 24,
+        0,
+        frameRect.right - containerRect.left,
+      );
+      setContentTopOffset(0);
+      setContentScrollTop(0);
+      setContentRight((prev) =>
+        prev !== null && isClose(prev, fallbackRight) ? prev : fallbackRight,
       );
     }
   }, []);
@@ -650,44 +900,69 @@ export function CommentThreadLauncher({
   useEffect(() => {
     const container = rootRef.current;
     if (!container) return;
-    updateGeometry();
-    const observer = new ResizeObserver(updateGeometry);
+    const handleGeometry = () => updateGeometry();
+    handleGeometry();
+    const rafId = window.requestAnimationFrame(handleGeometry);
+    const timeoutId = window.setTimeout(handleGeometry, 0);
+
+    const observer = new ResizeObserver(handleGeometry);
     observer.observe(container);
-    const content = container.querySelector(".ContentEditable__root");
-    if (content instanceof HTMLElement) observer.observe(content);
-    window.addEventListener("resize", updateGeometry);
+
+    const content = resolveEditorContentElement(container);
+    if (content) {
+      observer.observe(content);
+    }
+
+    const mutationObserver = new MutationObserver(handleGeometry);
+    mutationObserver.observe(container, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+    });
+
+    window.addEventListener("resize", handleGeometry);
     return () => {
+      window.cancelAnimationFrame(rafId);
+      window.clearTimeout(timeoutId);
       observer.disconnect();
-      window.removeEventListener("resize", updateGeometry);
+      mutationObserver.disconnect();
+      window.removeEventListener("resize", handleGeometry);
     };
   }, [updateGeometry]);
 
   useEffect(() => {
-    const content = contentRef.current;
-    if (!content) return;
+    const content = contentEl ?? contentRef.current;
+    if (!(content instanceof HTMLElement)) return;
+    contentRef.current = content;
     const onScroll = () => setContentScrollTop(content.scrollTop);
     onScroll();
     content.addEventListener("scroll", onScroll, { passive: true });
     return () => {
       content.removeEventListener("scroll", onScroll);
     };
-  }, []);
+  }, [contentEl]);
 
   const markers = useMemo(() => {
-    if (contentRight === null) {
-      return [];
-    }
-    return threads.map((thread) => {
-      const lane = lanes.get(thread.id) ?? 0;
-      const left = contentRight + RAIL_OFFSET + lane * LANE_GAP;
-      const count = thread.comments.filter((item) => !item.deleted).length;
-      const displayedTop = Math.max(
-        28,
-        contentTopOffset + thread.top - contentScrollTop,
-      );
-      return { thread, left, count, displayedTop };
-    });
-  }, [threads, lanes, contentRight, contentScrollTop, contentTopOffset]);
+    if (!isMarkerGeometryReady || contentRight === null) return [];
+
+    return threads
+      .map((thread) => {
+        const lane = lanes.get(thread.id) ?? 0;
+        const count = thread.comments.filter((item) => !item.deleted).length;
+        if (count === 0) return null;
+        const left = contentRight + RAIL_OFFSET + lane * LANE_GAP;
+        const displayedTop = contentTopOffset + thread.top - contentScrollTop;
+        return { thread, left, count, displayedTop };
+      })
+      .filter((item): item is NonNullable<typeof item> => item !== null);
+  }, [
+    threads,
+    lanes,
+    contentRight,
+    contentScrollTop,
+    contentTopOffset,
+    isMarkerGeometryReady,
+  ]);
 
   const maxThreadMarkerEdge = useMemo(() => {
     const edges = markers.map((item) => {
@@ -701,23 +976,38 @@ export function CommentThreadLauncher({
   const hasSelectionMarkerCollision = useMemo(() => {
     if (!selectionDraft) return false;
     return markers.some(
-      ({ displayedTop }) =>
-        Math.abs(displayedTop - selectionDraft.viewportTop) <
+      ({ thread }) =>
+        Math.abs(thread.top - selectionDraft.top) <
         SELECTION_MARKER_COLLISION_GAP,
     );
   }, [markers, selectionDraft]);
 
   const shouldShowSelectionMarker = useMemo(() => {
     if (!selectionDraft || contentRight === null) return false;
+    if (!isMarkerGeometryReady) return false;
+    if (isPanelOpen) return false;
     if (hoveredMarkerId !== null) return false;
     if (hasSelectionMarkerCollision) return false;
     return true;
   }, [
     selectionDraft,
     contentRight,
+    isMarkerGeometryReady,
+    isPanelOpen,
     hoveredMarkerId,
     hasSelectionMarkerCollision,
   ]);
+  const selectionMarkerLeft = useMemo(() => {
+    if (!selectionDraft || contentRight === null) return 0;
+    const width = markerBadgeWidth(0);
+    const unclampedLeft = contentRight + RAIL_OFFSET;
+    const maxLeft = Math.max(0, containerWidth - width - 24);
+    return clamp(unclampedLeft, 0, maxLeft);
+  }, [selectionDraft, contentRight, containerWidth]);
+  const selectionMarkerTop = useMemo(() => {
+    if (!selectionDraft) return 0;
+    return contentTopOffset + selectionDraft.top - contentScrollTop;
+  }, [selectionDraft, contentTopOffset, contentScrollTop]);
 
   const frameRight = frameBounds
     ? containerWidth - frameBounds.right
@@ -752,6 +1042,59 @@ export function CommentThreadLauncher({
   const submitComment = async () => {
     const text = draft.trim().slice(0, COMMENT_MAX_LENGTH);
     if (!text) return;
+    if (editingId) {
+      if (!activeThreadId || !activeThread) return;
+      if (isRemoteMode && pageSlug) {
+        try {
+          const updated = await patchCommentMessage(
+            pageSlug,
+            activeThreadId,
+            editingId,
+            { text },
+            demoActor,
+          );
+          applyThreadUpdate((prev) =>
+            prev.map((thread) =>
+              thread.id === activeThreadId
+                ? applyLikedState(mapApiThreadToUi(updated))
+                : thread,
+            ),
+          );
+          setPanelError(null);
+        } catch (error) {
+          setPanelError(
+            error instanceof Error
+              ? error.message
+              : "Не удалось сохранить комментарий",
+          );
+          return;
+        }
+      } else {
+        applyThreadUpdate((prev) =>
+          prev.map((thread) =>
+            thread.id === activeThreadId
+              ? {
+                  ...thread,
+                  comments: thread.comments.map((item) =>
+                    item.id === editingId
+                      ? {
+                          ...item,
+                          text,
+                          edited: true,
+                        }
+                      : item,
+                  ),
+                }
+              : thread,
+          ),
+        );
+      }
+      setEditingId(null);
+      setReplyToId(null);
+      setDraft("");
+      window.requestAnimationFrame(resizeDraftTextarea);
+      return;
+    }
     if (panelDraft || selectionDraft) {
       const source = panelDraft ?? selectionDraft;
       if (!source) return;
@@ -768,7 +1111,7 @@ export function CommentThreadLauncher({
             },
             demoActor,
           );
-          const next = mapApiThreadToUi(created);
+          const next = applyLikedState(mapApiThreadToUi(created));
           applyThreadUpdate((prev) => [...prev, next]);
           setActiveThreadId(next.id);
           setPanelDraft(null);
@@ -820,7 +1163,9 @@ export function CommentThreadLauncher({
         );
         applyThreadUpdate((prev) =>
           prev.map((thread) =>
-            thread.id === activeThreadId ? mapApiThreadToUi(updated) : thread,
+            thread.id === activeThreadId
+              ? applyLikedState(mapApiThreadToUi(updated))
+              : thread,
           ),
         );
         setPanelState("ready");
@@ -849,6 +1194,69 @@ export function CommentThreadLauncher({
     setDraft("");
     setReplyToId(null);
     window.requestAnimationFrame(resizeDraftTextarea);
+  };
+
+  const deleteComment = async (comment: ThreadComment) => {
+    if (!activeThread) return;
+    const confirmed = window.confirm(
+      "Удалить комментарий? Это действие нельзя отменить.",
+    );
+    if (!confirmed) return;
+
+    if (editingId === comment.id) {
+      setEditingId(null);
+      setDraft("");
+      window.requestAnimationFrame(resizeDraftTextarea);
+    }
+    setReplyToId((prev) => (prev === comment.id ? null : prev));
+
+    if (isRemoteMode && pageSlug) {
+      try {
+        const updated = await patchCommentMessage(
+          pageSlug,
+          activeThread.id,
+          comment.id,
+          { deleted: true },
+          demoActor,
+        );
+        applyThreadUpdate((prev) =>
+          prev.map((thread) =>
+            thread.id === activeThread.id
+              ? applyLikedState(mapApiThreadToUi(updated))
+              : thread,
+          ),
+        );
+        setPanelError(null);
+        void reloadThreads();
+      } catch (error) {
+        setPanelError(
+          error instanceof Error
+            ? error.message
+            : "Не удалось удалить комментарий",
+        );
+      }
+      return;
+    }
+
+    applyThreadUpdate((prev) =>
+      prev.map((thread) =>
+        thread.id === activeThread.id
+          ? {
+              ...thread,
+              comments: thread.comments.map((item) =>
+                item.id === comment.id
+                  ? {
+                      ...item,
+                      deleted: true,
+                      text: "Комментарий удален",
+                      edited: true,
+                    }
+                  : item,
+              ),
+            }
+          : thread,
+      ),
+    );
   };
 
   const handleDraftKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
@@ -884,7 +1292,12 @@ export function CommentThreadLauncher({
       className="relative flex h-full min-h-0 w-full flex-1 overflow-hidden"
     >
       {children}
-      <div className="pointer-events-none absolute inset-0 z-30">
+      <div
+        className="pointer-events-none absolute inset-0 z-30 overflow-hidden"
+        style={{
+          clipPath: `inset(${Math.max(0, contentTopOffset)}px 0 0 0)`,
+        }}
+      >
         {markers.map(({ thread, left, count, displayedTop }) => (
           <Marker
             id={thread.id}
@@ -897,7 +1310,6 @@ export function CommentThreadLauncher({
               MARKER_LINE_MIN_HEIGHT,
               MARKER_LINE_MAX_HEIGHT,
             )}
-            active={activeThreadId === thread.id && isPanelOpen}
             status={thread.status}
             label={`Показать ${getCommentLabel(count)}`}
             onClick={() => openThread(thread.id)}
@@ -909,14 +1321,13 @@ export function CommentThreadLauncher({
         contentRight !== null ? (
           <Marker
             count={0}
-            left={contentRight + RAIL_OFFSET}
-            top={selectionDraft.viewportTop}
+            left={selectionMarkerLeft}
+            top={selectionMarkerTop}
             lineHeight={clamp(
               selectionDraft.height,
               MARKER_LINE_MIN_HEIGHT,
               MARKER_LINE_MAX_HEIGHT,
             )}
-            active={false}
             status="open"
             label="Начать обсуждение"
             onClick={() => {
@@ -934,7 +1345,7 @@ export function CommentThreadLauncher({
 
       {isPanelOpen && panelWidth > 0 && frameBounds ? (
         <div
-          className="pointer-events-none absolute z-20 hidden sm:block"
+          className="pointer-events-none absolute z-40 hidden sm:block"
           style={{
             top: frameBounds.top + PANEL_INSET,
             left: panelLeft,
@@ -1005,7 +1416,7 @@ export function CommentThreadLauncher({
                             applyThreadUpdate((prev) =>
                               prev.map((thread) =>
                                 thread.id === activeThread.id
-                                  ? mapApiThreadToUi(updated)
+                                  ? applyLikedState(mapApiThreadToUi(updated))
                                   : thread,
                               ),
                             );
@@ -1083,19 +1494,22 @@ export function CommentThreadLauncher({
                 </div>
               ) : null}
               {panelState === "ready" ? (
-                (activeThread?.comments.length ?? 0) === 0 ? (
+                activeVisibleComments.length === 0 || !activeThread ? (
                   <div className="flex h-full min-h-48 items-center justify-center text-[14px] text-[#8E95A6]">
                     Нет комментариев
                   </div>
                 ) : (
                   <div>
-                    {activeThread?.comments.map((comment, index) => {
+                    {activeVisibleComments.map((comment, index) => {
                       const reply = comment.replyToId
                         ? (activeThread.comments.find(
-                            (item) => item.id === comment.replyToId,
+                            (item) =>
+                              item.id === comment.replyToId && !item.deleted,
                           ) ?? null)
                         : null;
                       const isEditing = editingId === comment.id;
+                      const likeKey = getLikeKey(activeThread.id, comment.id);
+                      const isLikePending = pendingLikeIds.has(likeKey);
                       return (
                         <article
                           key={comment.id}
@@ -1128,7 +1542,14 @@ export function CommentThreadLauncher({
                                   <button
                                     type="button"
                                     className="inline-flex size-6 items-center justify-center rounded-[6px] text-[#8E95A6] hover:bg-[#EEF1F7]"
-                                    onClick={() => setReplyToId(comment.id)}
+                                    onClick={() => {
+                                      setEditingId(null);
+                                      setDraft("");
+                                      setReplyToId(comment.id);
+                                      window.requestAnimationFrame(
+                                        resizeDraftTextarea,
+                                      );
+                                    }}
                                   >
                                     <Reply className="size-3.5" />
                                   </button>
@@ -1136,14 +1557,50 @@ export function CommentThreadLauncher({
                                     type="button"
                                     className={cn(
                                       "inline-flex size-6 items-center justify-center rounded-[6px]",
+                                      isLikePending &&
+                                        "pointer-events-none opacity-60",
                                       comment.likedByMe
                                         ? "text-[#7D6EEA] hover:bg-[#EBE7FF]"
                                         : "text-[#8E95A6] hover:bg-[#EEF1F7]",
                                     )}
+                                    disabled={isLikePending}
                                     onClick={async () => {
-                                      const nextLikes = comment.likedByMe
+                                      if (isLikePending) return;
+                                      const likedByMe =
+                                        likedCommentIds.has(likeKey);
+                                      const nextLikes = likedByMe
                                         ? Math.max(0, comment.likes - 1)
                                         : comment.likes + 1;
+                                      setPendingLikeIds((prev) => {
+                                        const next = new Set(prev);
+                                        next.add(likeKey);
+                                        return next;
+                                      });
+                                      setLikedCommentIds((prev) => {
+                                        const next = new Set(prev);
+                                        if (likedByMe) next.delete(likeKey);
+                                        else next.add(likeKey);
+                                        return next;
+                                      });
+                                      applyThreadUpdate((prev) =>
+                                        prev.map((thread) =>
+                                          thread.id === activeThread.id
+                                            ? {
+                                                ...thread,
+                                                comments: thread.comments.map(
+                                                  (item) =>
+                                                    item.id === comment.id
+                                                      ? {
+                                                          ...item,
+                                                          likedByMe: !likedByMe,
+                                                          likes: nextLikes,
+                                                        }
+                                                      : item,
+                                                ),
+                                              }
+                                            : thread,
+                                        ),
+                                      );
                                       if (isRemoteMode && pageSlug) {
                                         try {
                                           const updated =
@@ -1157,45 +1614,60 @@ export function CommentThreadLauncher({
                                           applyThreadUpdate((prev) =>
                                             prev.map((thread) =>
                                               thread.id === activeThread.id
-                                                ? mapApiThreadToUi(updated)
+                                                ? applyLikedState(
+                                                    mapApiThreadToUi(updated),
+                                                  )
                                                 : thread,
                                             ),
                                           );
                                           setPanelError(null);
                                         } catch (error) {
+                                          setLikedCommentIds((prev) => {
+                                            const next = new Set(prev);
+                                            if (likedByMe) next.add(likeKey);
+                                            else next.delete(likeKey);
+                                            return next;
+                                          });
+                                          applyThreadUpdate((prev) =>
+                                            prev.map((thread) =>
+                                              thread.id === activeThread.id
+                                                ? {
+                                                    ...thread,
+                                                    comments:
+                                                      thread.comments.map(
+                                                        (item) =>
+                                                          item.id === comment.id
+                                                            ? {
+                                                                ...item,
+                                                                likedByMe,
+                                                                likes:
+                                                                  comment.likes,
+                                                              }
+                                                            : item,
+                                                      ),
+                                                  }
+                                                : thread,
+                                            ),
+                                          );
                                           setPanelError(
                                             error instanceof Error
                                               ? error.message
                                               : "Не удалось обновить лайк",
                                           );
+                                        } finally {
+                                          setPendingLikeIds((prev) => {
+                                            const next = new Set(prev);
+                                            next.delete(likeKey);
+                                            return next;
+                                          });
                                         }
                                         return;
                                       }
-                                      applyThreadUpdate((prev) =>
-                                        prev.map((thread) =>
-                                          thread.id === activeThread.id
-                                            ? {
-                                                ...thread,
-                                                comments: thread.comments.map(
-                                                  (item) =>
-                                                    item.id === comment.id
-                                                      ? {
-                                                          ...item,
-                                                          likedByMe:
-                                                            !item.likedByMe,
-                                                          likes: item.likedByMe
-                                                            ? Math.max(
-                                                                0,
-                                                                item.likes - 1,
-                                                              )
-                                                            : item.likes + 1,
-                                                        }
-                                                      : item,
-                                                ),
-                                              }
-                                            : thread,
-                                        ),
-                                      );
+                                      setPendingLikeIds((prev) => {
+                                        const next = new Set(prev);
+                                        next.delete(likeKey);
+                                        return next;
+                                      });
                                     }}
                                   >
                                     <ThumbsUp className="size-3.5" />
@@ -1218,67 +1690,21 @@ export function CommentThreadLauncher({
                                           onSelect={(event) => {
                                             event.preventDefault();
                                             setEditingId(comment.id);
-                                            setEditingText(comment.text);
+                                            setReplyToId(null);
+                                            setDraft(comment.text);
+                                            window.requestAnimationFrame(() => {
+                                              resizeDraftTextarea();
+                                              draftTextareaRef.current?.focus();
+                                            });
                                           }}
                                         >
                                           Редактировать
                                         </DropdownMenuItem>
                                         <DropdownMenuItem
                                           variant="destructive"
-                                          onSelect={async (event) => {
+                                          onSelect={(event) => {
                                             event.preventDefault();
-                                            if (isRemoteMode && pageSlug) {
-                                              try {
-                                                const updated =
-                                                  await patchCommentMessage(
-                                                    pageSlug,
-                                                    activeThread.id,
-                                                    comment.id,
-                                                    { deleted: true },
-                                                    demoActor,
-                                                  );
-                                                applyThreadUpdate((prev) =>
-                                                  prev.map((thread) =>
-                                                    thread.id ===
-                                                    activeThread.id
-                                                      ? mapApiThreadToUi(
-                                                          updated,
-                                                        )
-                                                      : thread,
-                                                  ),
-                                                );
-                                                setPanelError(null);
-                                              } catch (error) {
-                                                setPanelError(
-                                                  error instanceof Error
-                                                    ? error.message
-                                                    : "Не удалось удалить комментарий",
-                                                );
-                                              }
-                                              return;
-                                            }
-                                            applyThreadUpdate((prev) =>
-                                              prev.map((thread) =>
-                                                thread.id === activeThread.id
-                                                  ? {
-                                                      ...thread,
-                                                      comments:
-                                                        thread.comments.map(
-                                                          (item) =>
-                                                            item.id ===
-                                                            comment.id
-                                                              ? {
-                                                                  ...item,
-                                                                  deleted: true,
-                                                                  text: "Комментарий удален",
-                                                                  edited: true,
-                                                                }
-                                                              : item,
-                                                        ),
-                                                    }
-                                                  : thread,
-                                              ),
-                                            );
+                                            void deleteComment(comment);
                                           }}
                                         >
                                           Удалить
@@ -1298,109 +1724,17 @@ export function CommentThreadLauncher({
                                   </p>
                                 </div>
                               ) : null}
-                              {isEditing ? (
-                                <div className="mt-2 rounded-[10px] border border-[#DDE3EF] bg-white px-2 py-2">
-                                  <Textarea
-                                    rows={2}
-                                    value={editingText}
-                                    onChange={(event) =>
-                                      setEditingText(
-                                        event.target.value.slice(
-                                          0,
-                                          COMMENT_MAX_LENGTH,
-                                        ),
-                                      )
-                                    }
-                                    maxLength={COMMENT_MAX_LENGTH}
-                                    className="min-h-14 resize-none border-0 bg-transparent px-0 py-0 text-[13px] text-[#2F3440] shadow-none placeholder:text-[#B2B8C5] focus-visible:border-0 focus-visible:ring-0"
-                                  />
-                                  <div className="mt-2 flex justify-end gap-2">
-                                    <button
-                                      type="button"
-                                      className="inline-flex h-7 items-center rounded-[6px] px-2 text-[11px] text-[#7E8799] hover:bg-[#EEF1F7]"
-                                      onClick={() => {
-                                        setEditingId(null);
-                                        setEditingText("");
-                                      }}
-                                    >
-                                      Отмена
-                                    </button>
-                                    <button
-                                      type="button"
-                                      className="inline-flex h-7 items-center rounded-[6px] bg-[#E8ECF7] px-2 text-[11px] text-[#5D6681] hover:bg-[#DEE4F2]"
-                                      onClick={async () => {
-                                        if (!editingText.trim()) return;
-                                        const text = editingText
-                                          .trim()
-                                          .slice(0, COMMENT_MAX_LENGTH);
-                                        if (isRemoteMode && pageSlug) {
-                                          try {
-                                            const updated =
-                                              await patchCommentMessage(
-                                                pageSlug,
-                                                activeThread.id,
-                                                comment.id,
-                                                { text },
-                                                demoActor,
-                                              );
-                                            applyThreadUpdate((prev) =>
-                                              prev.map((thread) =>
-                                                thread.id === activeThread.id
-                                                  ? mapApiThreadToUi(updated)
-                                                  : thread,
-                                              ),
-                                            );
-                                            setPanelError(null);
-                                          } catch (error) {
-                                            setPanelError(
-                                              error instanceof Error
-                                                ? error.message
-                                                : "Не удалось сохранить комментарий",
-                                            );
-                                            return;
-                                          }
-                                        } else {
-                                          applyThreadUpdate((prev) =>
-                                            prev.map((thread) =>
-                                              thread.id === activeThread.id
-                                                ? {
-                                                    ...thread,
-                                                    comments:
-                                                      thread.comments.map(
-                                                        (item) =>
-                                                          item.id === comment.id
-                                                            ? {
-                                                                ...item,
-                                                                text,
-                                                                edited: true,
-                                                              }
-                                                            : item,
-                                                      ),
-                                                  }
-                                                : thread,
-                                            ),
-                                          );
-                                        }
-                                        setEditingId(null);
-                                        setEditingText("");
-                                      }}
-                                    >
-                                      Сохранить
-                                    </button>
-                                  </div>
-                                </div>
-                              ) : (
-                                <p
-                                  className={cn(
-                                    "mt-1 whitespace-pre-wrap break-words text-[13px] leading-5 text-[#444B5A]",
-                                    comment.deleted
-                                      ? "italic text-[#7D8597]"
-                                      : "",
-                                  )}
-                                >
-                                  {comment.text}
-                                </p>
-                              )}
+                              <p
+                                className={cn(
+                                  "mt-1 whitespace-pre-wrap break-words text-[13px] leading-5 text-[#444B5A]",
+                                  comment.deleted
+                                    ? "italic text-[#7D8597]"
+                                    : "",
+                                  isEditing ? "opacity-60" : "",
+                                )}
+                              >
+                                {comment.text}
+                              </p>
                               {comment.likes > 0 ? (
                                 <div className="mt-1 flex justify-end">
                                   <span className="inline-flex items-center gap-1 rounded-[6px] px-1.5 text-[12px] text-[#7D6EEA]">
@@ -1420,14 +1754,39 @@ export function CommentThreadLauncher({
             </div>
 
             <footer className="border-t border-[#E3E6EF] px-4 py-3">
-              {replyToId && activeThread ? (
+              {editingComment ? (
+                <div className="mb-2 rounded-[8px] border border-[#DDE3EF] bg-white/80 px-2 py-1.5">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="text-[10px] text-[#8A90A1]">
+                        Редактирование
+                      </p>
+                      <p className="truncate text-[11px] text-[#6B7284]">
+                        {editingComment.text}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      className="inline-flex size-5 items-center justify-center rounded-full text-[#9AA2B3] hover:bg-[#EEF1F7]"
+                      onClick={() => {
+                        setEditingId(null);
+                        setDraft("");
+                        window.requestAnimationFrame(resizeDraftTextarea);
+                      }}
+                    >
+                      <X className="size-3.5" />
+                    </button>
+                  </div>
+                </div>
+              ) : null}
+              {!editingComment && replyToId && activeThread ? (
                 <div className="mb-2 rounded-[8px] border border-[#DDE3EF] bg-white/80 px-2 py-1.5">
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
                       <p className="text-[10px] text-[#8A90A1]">Ответ</p>
                       <p className="truncate text-[11px] text-[#6B7284]">
                         {activeThread.comments.find(
-                          (item) => item.id === replyToId,
+                          (item) => item.id === replyToId && !item.deleted,
                         )?.text ?? ""}
                       </p>
                     </div>
@@ -1459,13 +1818,15 @@ export function CommentThreadLauncher({
                   placeholder={
                     activeThread?.status === "resolved"
                       ? "Ветка отмечена как решенная"
-                      : "Новый комментарий"
+                      : editingComment
+                        ? "Редактировать комментарий"
+                        : "Новый комментарий"
                   }
                   disabled={
                     panelState !== "ready" ||
                     activeThread?.status === "resolved"
                   }
-                  className="min-h-6 max-h-[120px] resize-none overflow-y-hidden border-0 bg-transparent px-0 py-0 text-[13px] leading-5 text-[#5A6273] shadow-none placeholder:text-[#B2B8C5] focus-visible:border-0 focus-visible:ring-0"
+                  className="min-h-6 max-h-[120px] resize-none overflow-y-hidden border-0 bg-transparent pl-2 pr-0 py-0 text-[13px] leading-5 text-[#5A6273] shadow-none placeholder:text-[#B2B8C5] focus-visible:border-0 focus-visible:ring-0"
                 />
                 <Button
                   type="button"

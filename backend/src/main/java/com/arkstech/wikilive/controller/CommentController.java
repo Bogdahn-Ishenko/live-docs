@@ -34,6 +34,17 @@ public class CommentController {
         return ResponseEntity.ok(commentService.createThread(slug, request, actor.id(), actor.name()));
     }
 
+    @PostMapping("/import")
+    public ResponseEntity<List<CommentThreadDTO>> importThreads(
+            @PathVariable String slug,
+            @Valid @RequestBody ImportCommentThreadsRequest request,
+            HttpServletRequest httpRequest,
+            Authentication authentication
+    ) {
+        Actor actor = resolveActor(httpRequest, authentication);
+        return ResponseEntity.ok(commentService.importThreads(slug, request, actor.id(), actor.name()));
+    }
+
     @PostMapping("/{threadId}/messages")
     public ResponseEntity<CommentThreadDTO> addMessage(
             @PathVariable String slug,

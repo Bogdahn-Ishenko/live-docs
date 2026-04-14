@@ -9,7 +9,6 @@ import com.arkstech.wikilive.model.WikiPage;
 import com.arkstech.wikilive.repository.PageLinkRepository;
 import com.arkstech.wikilive.repository.PageRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -40,35 +39,33 @@ public class PageService {
         String currentSlug = baseSlug;
         int counter = 1;
 
-        while (true) {
-            try {
-                WikiPage page = WikiPage.builder()
-                        .title(request.getTitle())
-                        .description(request.getDescription())
-                        .content(request.getContent())
-                        .slug(currentSlug)
-                        .mwsTableId(request.getMwsTableId())
-                        .build();
-
-                attachWikiLinks(page);
-                WikiPage savedPage = pageRepository.saveAndFlush(page);
-                updateExistingRedLinks(savedPage);
-
-                try {
-                    String jsonPayload = objectMapper.writeValueAsString(
-                            java.util.Map.of("title", savedPage.getTitle(), "action", "created"));
-
-                    messagingTemplate.convertAndSend("/topic/pages",
-                            new WsMessage("CREATE", savedPage.getSlug(), jsonPayload, "system"));
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-
-                return savedPage;
-            } catch (DataIntegrityViolationException e) {
-                currentSlug = baseSlug + "-" + counter++;
-            }
+        while (pageRepository.existsBySlug(currentSlug)) {
+            currentSlug = baseSlug + "-" + counter++;
         }
+
+        WikiPage page = WikiPage.builder()
+                .title(request.getTitle())
+                .description(request.getDescription())
+                .content(request.getContent())
+                .slug(currentSlug)
+                .mwsTableId(request.getMwsTableId())
+                .build();
+
+        attachWikiLinks(page);
+        WikiPage savedPage = pageRepository.saveAndFlush(page);
+        updateExistingRedLinks(savedPage);
+
+        try {
+            String jsonPayload = objectMapper.writeValueAsString(
+                    java.util.Map.of("title", savedPage.getTitle(), "action", "created"));
+
+            messagingTemplate.convertAndSend("/topic/pages",
+                    new WsMessage("CREATE", savedPage.getSlug(), jsonPayload, "system"));
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return savedPage;
     }
 
     @Transactional

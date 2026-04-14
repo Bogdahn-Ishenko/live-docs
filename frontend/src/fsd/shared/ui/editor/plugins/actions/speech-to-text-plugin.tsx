@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
 import type { LexicalCommand, LexicalEditor, RangeSelection } from "lexical";
@@ -92,21 +92,20 @@ function SpeechToTextPluginImpl() {
   const [editor] = useLexicalComposerContext();
   const [isEnabled, setIsEnabled] = useState<boolean>(false);
   const [isSpeechToText, setIsSpeechToText] = useState(false);
-  const SpeechRecognition =
+  const speechRecognitionConstructor: SpeechRecognitionConstructor | null =
     typeof window !== "undefined"
-      ? // @ts-expect-error missing type
-        window.SpeechRecognition || window.webkitSpeechRecognition
+      ? window.SpeechRecognition ?? window.webkitSpeechRecognition ?? null
       : null;
   const recognition = useRef<SpeechRecognitionInstance | null>(null);
   const report = useReport();
 
   useEffect(() => {
-    if (!SpeechRecognition) {
+    if (!speechRecognitionConstructor) {
       return;
     }
 
     if (isEnabled && recognition.current === null) {
-      recognition.current = new SpeechRecognition();
+      recognition.current = new speechRecognitionConstructor();
       recognition.current.continuous = true;
       recognition.current.interimResults = true;
       recognition.current.addEventListener(
@@ -155,7 +154,7 @@ function SpeechToTextPluginImpl() {
         recognition.current.stop();
       }
     };
-  }, [SpeechRecognition, editor, isEnabled, report]);
+  }, [speechRecognitionConstructor, editor, isEnabled, report]);
   useEffect(() => {
     return editor.registerCommand(
       SPEECH_TO_TEXT_COMMAND,

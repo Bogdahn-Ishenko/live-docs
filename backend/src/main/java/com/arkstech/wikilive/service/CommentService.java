@@ -14,7 +14,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
@@ -29,6 +31,73 @@ public class CommentService {
         return commentThreadRepository.findByPage_SlugOrderByCreatedAtAsc(slug).stream()
                 .map(this::toThreadDTO)
                 .toList();
+    }
+
+    @Transactional
+    public List<CommentThreadDTO> importThreads(
+            String slug,
+            ImportCommentThreadsRequest request,
+            String fallbackActorId,
+            String fallbackActorName
+    ) {
+        WikiPage page = pageRepository.findBySlug(slug)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Page not found"));
+
+        Set<String> knownSignatures = new HashSet<>(
+                commentThreadRepository.findByPage_SlugOrderByCreatedAtAsc(slug).stream()
+                        .map(this::threadSignature)
+                        .toList()
+        );
+
+        if (request.threads() != null) {
+            for (ImportCommentThreadRequest importedThread : request.threads()) {
+                List<ImportCommentMessageRequest> messages = importedThread.comments() == null
+                        ? List.of()
+                        : importedThread.comments().stream()
+                                .filter(message -> message.text() != null && !message.text().trim().isEmpty())
+                                .toList();
+
+                if (messages.isEmpty()) {
+                    continue;
+                }
+
+                String signature = importThreadSignature(importedThread, messages);
+                if (knownSignatures.contains(signature)) {
+                    continue;
+                }
+
+                CommentThread thread = CommentThread.builder()
+                        .page(page)
+                        .quote(trimOrFallback(importedThread.quote(), "Комментарий"))
+                        .anchorTop(importedThread.top() != null ? importedThread.top() : 0.0)
+                        .anchorHeight(importedThread.height() != null ? importedThread.height() : 22)
+                        .anchorRight(importedThread.right() != null ? importedThread.right() : 0)
+                        .status(parseStatus(importedThread.status()))
+                        .build();
+
+                for (ImportCommentMessageRequest importedMessage : messages) {
+                    CommentAuthorDTO author = importedMessage.author();
+                    String authorId = trimOrFallback(author != null ? author.id() : null, fallbackActorId);
+                    String authorName = trimOrFallback(author != null ? author.name() : null, fallbackActorName);
+
+                    thread.getMessages().add(CommentMessage.builder()
+                            .thread(thread)
+                            .authorId(authorId)
+                            .authorName(authorName)
+                            .text(importedMessage.text().trim())
+                            .replyToId(importedMessage.replyToId())
+                            .likes(importedMessage.likes() != null ? Math.max(0, importedMessage.likes()) : 0)
+                            .deleted(importedMessage.deleted())
+                            .edited(importedMessage.edited())
+                            .build());
+                }
+
+                commentThreadRepository.save(thread);
+                knownSignatures.add(signature);
+            }
+        }
+
+        return getThreads(slug);
     }
 
     @Transactional
@@ -108,11 +177,14 @@ public class CommentService {
         CommentMessage message = commentMessageRepository.findByIdAndThread_Id(messageId, threadId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Comment message not found"));
 
-        if (!message.getAuthorId().equals(actorId)) {
+        boolean editingText = request.text() != null;
+        boolean deletingMessage = request.deleted() != null && request.deleted();
+
+        if ((editingText || deletingMessage) && !message.getAuthorId().equals(actorId)) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You can edit only your own comments");
         }
 
-        if (request.text() != null) {
+        if (editingText) {
             String text = request.text().trim();
             if (text.isEmpty()) {
                 throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Comment text cannot be empty");
@@ -121,7 +193,7 @@ public class CommentService {
             message.setEdited(true);
         }
 
-        if (request.deleted() != null && request.deleted()) {
+        if (deletingMessage) {
             message.setDeleted(true);
             message.setEdited(true);
             message.setText("Комментарий удален");
@@ -144,6 +216,62 @@ public class CommentService {
         }
 
         return thread;
+    }
+
+    private CommentThreadStatus parseStatus(String status) {
+        if (status == null || status.isBlank()) {
+            return CommentThreadStatus.OPEN;
+        }
+
+        try {
+            return CommentThreadStatus.valueOf(status.trim().toUpperCase());
+        } catch (IllegalArgumentException ignored) {
+            return CommentThreadStatus.OPEN;
+        }
+    }
+
+    private String trimOrFallback(String value, String fallback) {
+        if (value == null || value.trim().isEmpty()) {
+            return fallback;
+        }
+        return value.trim();
+    }
+
+    private String threadSignature(CommentThread thread) {
+        String comments = thread.getMessages().stream()
+                .filter(message -> !message.isDeleted() && message.getText() != null && !message.getText().trim().isEmpty())
+                .map(message -> message.getText().trim())
+                .reduce("", (left, right) -> left + "||" + right);
+
+        return signature(
+                thread.getQuote(),
+                thread.getAnchorTop(),
+                thread.getAnchorHeight(),
+                thread.getAnchorRight(),
+                comments
+        );
+    }
+
+    private String importThreadSignature(
+            ImportCommentThreadRequest thread,
+            List<ImportCommentMessageRequest> messages
+    ) {
+        String comments = messages.stream()
+                .filter(message -> !message.deleted())
+                .map(message -> message.text().trim())
+                .reduce("", (left, right) -> left + "||" + right);
+
+        return signature(thread.quote(), thread.top(), thread.height(), thread.right(), comments);
+    }
+
+    private String signature(String quote, Double top, Integer height, Integer right, String comments) {
+        return String.join("|",
+                trimOrFallback(quote, ""),
+                String.valueOf(Math.round(top != null ? top : 0.0)),
+                String.valueOf(height != null ? height : 22),
+                String.valueOf(right != null ? right : 0),
+                comments
+        );
     }
 
     private CommentThreadDTO toThreadDTO(CommentThread thread) {
