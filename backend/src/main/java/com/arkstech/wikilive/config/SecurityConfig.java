@@ -27,11 +27,25 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers(HttpMethod.GET, "/api/pages", "/api/pages/**").permitAll()
+                        //разрешаем чтение СТРАНИЦ
+                        .requestMatchers(HttpMethod.GET, "/api/pages").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/pages/{slug}").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/pages/{slug}/backlinks").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/pages/graph").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/pages/search").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/pages/tree").permitAll()
+
+                        //ЧТЕНИЕ + ЗАПИСЬ только авторизированным
+                        .requestMatchers("/api/pages/*/comments/**").authenticated()
+
+                        //вебсокет только авторизованным
+                        .requestMatchers("/ws/**").authenticated()
+
+                        //только авторизованным
                         .requestMatchers(HttpMethod.POST, "/api/pages/**").authenticated()
                         .requestMatchers(HttpMethod.PUT, "/api/pages/**").authenticated()
                         .requestMatchers(HttpMethod.DELETE, "/api/pages/**").authenticated()
-                        .requestMatchers("/ws/**").permitAll() //ВЕБСОКЕТ
+
                         .anyRequest().authenticated()
                 )
                 .httpBasic(basic -> basic.realmName("WikiLive API"));

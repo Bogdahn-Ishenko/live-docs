@@ -60,4 +60,9 @@ public class PageController {
         return ResponseEntity.noContent().build(); // 204
     }
 
+    @GetMapping("/tree")
+    public ResponseEntity<List<PageDTO>> getTree() {
+        return ResponseEntity.ok(pageService.getAllAsTreeDTO());
+    }
+
 }

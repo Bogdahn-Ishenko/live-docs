@@ -26,6 +26,8 @@ public class WikiPage {
     @Column(columnDefinition = "TEXT")
     private String content;
 
+    private String parentSlug;
+
     private String mwsTableId;
     private String ownerId;
 

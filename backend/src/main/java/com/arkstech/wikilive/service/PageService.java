@@ -3,22 +3,27 @@ package com.arkstech.wikilive.service;
 import com.arkstech.wikilive.dto.GraphDTO;
 import com.arkstech.wikilive.dto.PageDTO;
 import com.arkstech.wikilive.dto.PageRequest;
+import com.arkstech.wikilive.dto.WsMessage;
 import com.arkstech.wikilive.model.PageLink;
 import com.arkstech.wikilive.model.WikiPage;
+import com.arkstech.wikilive.repository.CommentRepository;
 import com.arkstech.wikilive.repository.PageLinkRepository;
 import com.arkstech.wikilive.repository.PageRepository;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import org.springframework.messaging.simp.SimpMessagingTemplate;
-import com.arkstech.wikilive.dto.WsMessage;
-
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.HashSet;
+import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
@@ -26,11 +31,8 @@ public class PageService {
 
     private final PageRepository pageRepository;
     private final PageLinkRepository pageLinkRepository;
-
     private final SimpMessagingTemplate messagingTemplate;
-
-    private final com.fasterxml.jackson.databind.ObjectMapper objectMapper =
-            new com.fasterxml.jackson.databind.ObjectMapper();
+    private final ObjectMapper objectMapper;
 
     @Transactional
     public WikiPage createPage(PageRequest request) {
@@ -45,22 +47,16 @@ public class PageService {
                         .content(request.getContent())
                         .slug(currentSlug)
                         .mwsTableId(request.getMwsTableId())
+                        .parentSlug(request.getParentSlug())
+                        .ownerId(SecurityContextHolder.getContext().getAuthentication().getName())
                         .build();
 
+                //парсим ссылки и сохраняем.
                 attachWikiLinks(page);
                 WikiPage savedPage = pageRepository.saveAndFlush(page);
                 updateExistingRedLinks(savedPage);
 
-                // WebSocket уведомляет
-                try {
-                    String jsonPayload = objectMapper.writeValueAsString(
-                            java.util.Map.of("title", savedPage.getTitle(), "action", "created"));
-
-                    messagingTemplate.convertAndSend("/topic/pages",
-                            new WsMessage("CREATE", savedPage.getSlug(), jsonPayload, "system"));
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
+                sendWebSocketNotification(savedPage, "created");
 
                 return savedPage;
 
@@ -74,38 +70,41 @@ public class PageService {
     public WikiPage updatePage(String slug, PageRequest request) {
         WikiPage page = getBySlug(slug);
 
+        page.getLinks().clear();
+        pageRepository.saveAndFlush(page);
+
+        //обновление
         page.setTitle(request.getTitle());
         page.setContent(request.getContent());
         page.setMwsTableId(request.getMwsTableId());
+        page.setParentSlug(request.getParentSlug());
 
+        //новые связи
         attachWikiLinks(page);
+
         WikiPage updated = pageRepository.saveAndFlush(page);
         updateExistingRedLinks(updated);
-
-        //уведомление
-        try {
-            String jsonPayload = objectMapper.writeValueAsString(
-                    java.util.Map.of("title", updated.getTitle(), "action", "edited"));
-
-            messagingTemplate.convertAndSend("/topic/pages",
-                    new WsMessage("UPDATE", updated.getSlug(), jsonPayload, "system"));
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+        sendWebSocketNotification(updated, "edited");
 
         return updated;
     }
 
     private void attachWikiLinks(WikiPage page) {
-        page.getLinks().clear();
 
         if (page.getContent() == null) return;
 
         Pattern pattern = Pattern.compile("\\[\\[(.*?)\\]\\]");
         Matcher matcher = pattern.matcher(page.getContent());
 
+        Set<String> uniqueSlugs = new HashSet<>();
+
         while (matcher.find()) {
             String targetSlug = toSlug(matcher.group(1));
+
+            if (!uniqueSlugs.add(targetSlug)) {
+                continue;
+            }
+
             WikiPage target = pageRepository.findBySlug(targetSlug).orElse(null);
 
             page.getLinks().add(PageLink.builder()
@@ -117,14 +116,25 @@ public class PageService {
     }
 
     private void updateExistingRedLinks(WikiPage newPage) {
-        List<PageLink> redLinks =
-                pageLinkRepository.findRedLinksToSlug(newPage.getSlug());
-
+        List<PageLink> redLinks = pageLinkRepository.findRedLinksToSlug(newPage.getSlug());
         for (PageLink link : redLinks) {
             link.setTargetPage(newPage);
         }
     }
 
+    private void sendWebSocketNotification(WikiPage page, String action) {
+        try {
+            String jsonPayload = objectMapper.writeValueAsString(
+                    Map.of("title", page.getTitle(), "action", action));
+
+            messagingTemplate.convertAndSend("/topic/pages",
+                    new WsMessage(action.toUpperCase(), page.getSlug(), jsonPayload, "system"));
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    @Transactional(readOnly = true)
     public WikiPage getBySlug(String slug) {
         return pageRepository.findBySlug(slug)
                 .orElseThrow(() -> new RuntimeException("Page not found"));
@@ -136,48 +146,40 @@ public class PageService {
 
     public List<PageDTO> getBacklinks(String slug) {
         return pageLinkRepository.findBacklinks(slug).stream()
-                .map(p -> new PageDTO(p.getSlug(), p.getTitle()))
+                .map(p -> new PageDTO(p.getSlug(), p.getTitle(), null))
                 .toList();
     }
 
+    private final CommentRepository commentRepository;
     @Transactional
     public void deletePage(String slug) {
-        WikiPage page = getBySlug(slug);
-        pageRepository.delete(page);
+        commentRepository.deleteByPageSlug(slug);
+        pageRepository.delete(getBySlug(slug));
     }
-    public List<PageDTO> search(String query) {
-        if (query == null || query.isBlank()) {
-            return List.of();
-        }
 
+    public List<PageDTO> search(String query) {
+        if (query == null || query.isBlank()) return List.of();
         return pageRepository.smartSearch(query).stream()
-                .map(p -> new PageDTO(p.getSlug(), p.getTitle()))
+                .map(p -> new PageDTO(p.getSlug(), p.getTitle(), p.getParentSlug()))
                 .toList();
     }
 
-    //ГРАФ ТУТ
+    @Transactional(readOnly = true)
     public GraphDTO getGraph() {
         List<WikiPage> pages = pageRepository.findAll();
 
         List<GraphDTO.NodeDTO> nodes = pages.stream()
-                .map(p -> new GraphDTO.NodeDTO(
-                        p.getSlug(),
-                        p.getTitle()
-                ))
+                .map(p -> new GraphDTO.NodeDTO(p.getSlug(), p.getTitle()))
                 .toList();
 
         List<GraphDTO.EdgeDTO> edges = pages.stream()
                 .flatMap(p -> p.getLinks().stream()
-                        .map(l -> new GraphDTO.EdgeDTO(
-                                p.getSlug(),
-                                l.getTargetSlug()
-                        )))
+                        .map(l -> new GraphDTO.EdgeDTO(p.getSlug(), l.getTargetSlug())))
                 .toList();
 
         return new GraphDTO(nodes, edges);
     }
 
-    //ЛОГИКА ИСПРАВЛЕНИЯ РУССКОГО СЛАГА
     private String toSlug(String input) {
         if (input == null || input.isBlank()) return "untitled";
 
@@ -194,5 +196,11 @@ public class PageService {
         return s.replaceAll("[^a-z0-9]", "-")
                 .replaceAll("-+", "-")
                 .replaceAll("^-|-$", "");
+    }
+
+    public List<PageDTO> getAllAsTreeDTO() {
+        return pageRepository.findAll().stream()
+                .map(p -> new PageDTO(p.getSlug(), p.getTitle(), p.getParentSlug()))
+                .toList();
     }
 }
