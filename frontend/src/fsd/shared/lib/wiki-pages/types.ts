@@ -1,8 +1,9 @@
-export type WikiPage = {
+﻿export type WikiPage = {
   id: number;
   title: string;
   description: string | null;
   slug: string;
+  parentSlug: string | null;
   content: string | null;
   mwsTableId: string | null;
   ownerId: string | null;
@@ -15,6 +16,7 @@ export type UpsertWikiPagePayload = {
   description?: string | null;
   content: string;
   mwsTableId?: string | null;
+  parentSlug?: string | null;
 };
 
 export type LocalWikiDraft = {

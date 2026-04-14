@@ -1,10 +1,13 @@
-import { type NextRequest, NextResponse } from "next/server";
+﻿import { type NextRequest, NextResponse } from "next/server";
 
 import {
   getWikiBackendBaseUrl,
   getWikiWriteAuthHeader,
 } from "@/app/api/wiki/_lib/backend-config";
-import { buildWritePayload, normalizePageShape } from "@/app/api/wiki/_lib/page";
+import {
+  buildWritePayload,
+  normalizePageShape,
+} from "@/app/api/wiki/_lib/page";
 
 const PAGES_API_URL = `${getWikiBackendBaseUrl()}/api/pages`;
 
@@ -32,11 +35,15 @@ export async function GET() {
     return NextResponse.json(normalized, { status: response.status });
   } catch (error) {
     console.error("Wiki pages list fetch failed:", error);
+    const details =
+      error instanceof Error ? error.message : "Unknown upstream error";
     return NextResponse.json(
       {
-        error: "Внутренняя ошибка сервера",
+        error: "Не удалось подключиться к backend Wiki",
+        details,
+        backendUrl: getWikiBackendBaseUrl(),
       },
-      { status: 500 },
+      { status: 502 },
     );
   }
 }
@@ -80,11 +87,15 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error("Wiki page create failed:", error);
+    const details =
+      error instanceof Error ? error.message : "Unknown upstream error";
     return NextResponse.json(
       {
-        error: "Внутренняя ошибка сервера",
+        error: "Не удалось создать страницу: backend недоступен",
+        details,
+        backendUrl: getWikiBackendBaseUrl(),
       },
-      { status: 500 },
+      { status: 502 },
     );
   }
 }

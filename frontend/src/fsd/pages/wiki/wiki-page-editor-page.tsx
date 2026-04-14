@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import type { SerializedEditorState } from "lexical";
 import dynamic from "next/dynamic";
@@ -94,14 +94,11 @@ function resolveBaseTitle(title: string): string {
   return normalized.length > 0 ? normalized : "Без названия";
 }
 
-/**
- * Editor page for a Wiki document.
- * Features: Auto-save to backend, local drafts fallback, and real-time sync status.
- */
 export default function WikiPageEditorPage({ slug }: { slug: string }) {
   const [page, setPage] = useState<WikiPage | null>(null);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
+  const [parentSlug, setParentSlug] = useState("");
   const [initialEditorState, setInitialEditorState] =
     useState<SerializedEditorState | null>(null);
   const [editorState, setEditorState] = useState<SerializedEditorState | null>(
@@ -114,6 +111,7 @@ export default function WikiPageEditorPage({ slug }: { slug: string }) {
 
   const latestTitleRef = useRef(title);
   const latestDescriptionRef = useRef(description);
+  const latestParentSlugRef = useRef(parentSlug);
   const latestEditorStateRef = useRef<SerializedEditorState | null>(null);
   const syncedSignatureRef = useRef<string>("");
 
@@ -124,6 +122,9 @@ export default function WikiPageEditorPage({ slug }: { slug: string }) {
     latestDescriptionRef.current = description;
   }, [description]);
   useEffect(() => {
+    latestParentSlugRef.current = parentSlug;
+  }, [parentSlug]);
+  useEffect(() => {
     latestEditorStateRef.current = editorState;
   }, [editorState]);
 
@@ -133,6 +134,7 @@ export default function WikiPageEditorPage({ slug }: { slug: string }) {
       setLoadError(null);
 
       const data = await fetchWikiPage(slug);
+
       const remoteState = parseStoredEditorState(data.content);
       const remoteSignature = buildPageSignature(
         data.title,
@@ -164,6 +166,7 @@ export default function WikiPageEditorPage({ slug }: { slug: string }) {
       }
 
       setPage(data);
+      setParentSlug(data.parentSlug || "");
       setTitle(nextTitle);
       setDescription(nextDescription);
       setInitialEditorState(nextState);
@@ -184,7 +187,6 @@ export default function WikiPageEditorPage({ slug }: { slug: string }) {
     void loadPage();
   }, [loadPage]);
 
-  // Auto-save logic
   useEffect(() => {
     if (!page || !editorState || saveStatus === "loading") return;
 
@@ -196,7 +198,10 @@ export default function WikiPageEditorPage({ slug }: { slug: string }) {
       editorState,
     );
 
-    if (signature === syncedSignatureRef.current) {
+    if (
+      signature === syncedSignatureRef.current &&
+      parentSlug === (page.parentSlug || "")
+    ) {
       clearLocalDraft(slug);
       if (saveStatus !== "idle") setSaveStatus("idle");
       return;
@@ -218,6 +223,7 @@ export default function WikiPageEditorPage({ slug }: { slug: string }) {
           description,
           content,
           mwsTableId: page.mwsTableId,
+          parentSlug: parentSlug || null,
         });
 
         const serverState = parseStoredEditorState(updated.content);
@@ -238,7 +244,10 @@ export default function WikiPageEditorPage({ slug }: { slug: string }) {
             latestDescriptionRef.current,
             latestState,
           );
-          if (currentSignature === serverSignature) {
+          if (
+            currentSignature === serverSignature &&
+            latestParentSlugRef.current === (updated.parentSlug || "")
+          ) {
             clearLocalDraft(slug);
             setSaveStatus("saved");
             return;
@@ -251,7 +260,7 @@ export default function WikiPageEditorPage({ slug }: { slug: string }) {
     }, 700);
 
     return () => clearTimeout(timer);
-  }, [title, description, editorState, page, saveStatus, slug]);
+  }, [title, description, parentSlug, editorState, page, saveStatus, slug]);
 
   const syncStatusText = useMemo(
     () => getSyncStatusText(saveStatus, lastSyncedAt),
@@ -265,16 +274,11 @@ export default function WikiPageEditorPage({ slug }: { slug: string }) {
         className="bg-background text-foreground"
       >
         <main className="flex h-svh w-full flex-col gap-2 overflow-hidden px-2 py-2">
-          <header className="flex flex-wrap items-center justify-between gap-4 px-2 py-1 bg-background/80 backdrop-blur sticky top-0 z-10 border-b">
+          <header className="sticky top-0 z-10 flex flex-wrap items-center justify-between gap-4 border-b bg-background/80 px-2 py-1 backdrop-blur">
             <div className="flex items-center gap-2">
               <Link href="/wiki">
                 <Button variant="ghost" size="sm">
                   Все страницы
-                </Button>
-              </Link>
-              <Link href="/wiki/new">
-                <Button variant="ghost" size="sm">
-                  Новая страница
                 </Button>
               </Link>
             </div>
@@ -304,13 +308,13 @@ export default function WikiPageEditorPage({ slug }: { slug: string }) {
                   <input
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
-                    className="w-full border-0 bg-transparent p-0 text-lg font-semibold leading-tight text-foreground outline-none focus-visible:ring-0 placeholder:text-muted-foreground/30"
+                    className="w-full border-0 bg-transparent p-0 text-lg font-semibold leading-tight text-foreground outline-none placeholder:text-muted-foreground/30"
                     placeholder="Без названия"
                   />
                   <input
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
-                    className="w-full border-0 bg-transparent p-0 text-xs leading-snug text-muted-foreground/60 outline-none focus-visible:ring-0 placeholder:text-muted-foreground/30"
+                    className="w-full border-0 bg-transparent p-0 text-xs leading-snug text-muted-foreground/60 outline-none placeholder:text-muted-foreground/30"
                     placeholder="Добавить описание"
                   />
                 </div>
