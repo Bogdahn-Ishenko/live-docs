@@ -223,7 +223,6 @@ public class PageService {
                 .replaceAll("-+", "-")
                 .replaceAll("^-|-$", "");
     }
-}
 
     @Transactional
     public WikiPage updatePageInternal(String slug, WikiPage updatedPage) {
