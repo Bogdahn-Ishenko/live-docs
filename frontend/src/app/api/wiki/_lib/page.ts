@@ -1,4 +1,4 @@
-export function normalizePageShape(page: unknown) {
+﻿export function normalizePageShape(page: unknown) {
   if (!page || typeof page !== "object") {
     return page;
   }
@@ -19,6 +19,10 @@ export function normalizePageShape(page: unknown) {
       typeof raw.mwsTableId === "string" || raw.mwsTableId === null
         ? raw.mwsTableId
         : null,
+    parentSlug:
+      typeof raw.parentSlug === "string" || raw.parentSlug === null
+        ? raw.parentSlug
+        : null,
     ownerId:
       typeof raw.ownerId === "string" || raw.ownerId === null
         ? raw.ownerId
@@ -37,10 +41,24 @@ export function buildWritePayload(payload: unknown) {
     content: typeof source.content === "string" ? source.content : "",
   };
 
+  if ("description" in source) {
+    requestPayload.description =
+      typeof source.description === "string" || source.description === null
+        ? source.description
+        : null;
+  }
+
   if ("mwsTableId" in source) {
     requestPayload.mwsTableId =
       typeof source.mwsTableId === "string" || source.mwsTableId === null
         ? source.mwsTableId
+        : null;
+  }
+
+  if ("parentSlug" in source) {
+    requestPayload.parentSlug =
+      typeof source.parentSlug === "string" || source.parentSlug === null
+        ? source.parentSlug
         : null;
   }
 

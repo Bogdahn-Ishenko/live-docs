@@ -1,7 +1,7 @@
 'use client'
 
 import type { JSX } from "react";
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo, useRef } from "react";
 
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
 import { $insertNodeToNearestRoot } from "@lexical/utils";
@@ -165,6 +165,16 @@ function TablesMwComponent({ url, spaceId, datasheetId, viewId }: TablesMwCompon
 
   const { datasheetId: effectiveDatasheetId, viewId: effectiveViewId, fieldKey } = parsedInfo();
 
+  // Keep params stable so useRecords doesn't recreate fetchRecords unnecessarily
+  const recordsParams = useMemo(
+    () => ({
+      viewId: effectiveViewId,
+      fieldKey,
+      pageSize: 100,
+    }),
+    [effectiveViewId, fieldKey]
+  );
+
   // Use the new hooks
   const { 
     records, 
@@ -172,11 +182,7 @@ function TablesMwComponent({ url, spaceId, datasheetId, viewId }: TablesMwCompon
     refetch 
   } = useRecords(
     effectiveDatasheetId || null,
-    { 
-      viewId: effectiveViewId,
-      fieldKey,
-      pageSize: 100 
-    }
+    recordsParams
   );
 
   const { createRecords, isLoading: isCreating } = useCreateRecords();
@@ -184,15 +190,20 @@ function TablesMwComponent({ url, spaceId, datasheetId, viewId }: TablesMwCompon
   const { deleteRecords, isLoading: isDeleting } = useDeleteRecords();
 
   // Auto-refresh
+  const refetchRef = useRef(refetch);
+  useEffect(() => {
+    refetchRef.current = refetch;
+  }, [refetch]);
+
   useEffect(() => {
     if (isEditing) return;
     
     const intervalId = setInterval(() => {
-      refetch();
+      refetchRef.current();
     }, REFRESH_INTERVAL);
 
     return () => clearInterval(intervalId);
-  }, [isEditing, refetch]);
+  }, [isEditing]);
 
   const handleAddRecord = async (fields: globalThis.Record<string, FieldValue>): Promise<boolean> => {
     if (!effectiveDatasheetId) return false;

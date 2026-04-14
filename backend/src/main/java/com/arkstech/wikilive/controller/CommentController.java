@@ -1,12 +1,12 @@
 package com.arkstech.wikilive.controller;
 
-import com.arkstech.wikilive.dto.CommentDTO;
-import com.arkstech.wikilive.dto.CommentRequest;
-import com.arkstech.wikilive.model.Comment;
-import com.arkstech.wikilive.repository.CommentRepository;
+import com.arkstech.wikilive.dto.comment.*;
+import com.arkstech.wikilive.service.CommentService;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -16,34 +16,92 @@ import java.util.List;
 @RequiredArgsConstructor
 public class CommentController {
 
-    private final CommentRepository commentRepository;
+    private final CommentService commentService;
 
     @GetMapping
-    public ResponseEntity<List<CommentDTO>> getComments(@PathVariable String slug) {
-        var comments = commentRepository.findByPageSlugOrderByCreatedAtAsc(slug);
-        var dtos = comments.stream()
-                .map(c -> new CommentDTO(c.getId(), c.getAuthor(), c.getContent(), c.getCreatedAt()))
-                .toList();
-        return ResponseEntity.ok(dtos);
+    public ResponseEntity<List<CommentThreadDTO>> list(@PathVariable String slug) {
+        return ResponseEntity.ok(commentService.getThreads(slug));
     }
 
-    @PostMapping
-    public ResponseEntity<CommentDTO> addComment(@PathVariable String slug,
-                                                 @RequestBody CommentRequest request) {
-        Comment comment = Comment.builder()
-                .pageSlug(slug)
-                .author(SecurityContextHolder.getContext().getAuthentication().getName())
-                .content(request.content())
-                .build();
-
-        Comment saved = commentRepository.save(comment);
-        return ResponseEntity.ok(new CommentDTO(saved.getId(), saved.getAuthor(), saved.getContent(), saved.getCreatedAt()));
+    @PostMapping("/threads")
+    public ResponseEntity<CommentThreadDTO> createThread(
+            @PathVariable String slug,
+            @Valid @RequestBody CreateCommentThreadRequest request,
+            HttpServletRequest httpRequest,
+            Authentication authentication
+    ) {
+        Actor actor = resolveActor(httpRequest, authentication);
+        return ResponseEntity.ok(commentService.createThread(slug, request, actor.id(), actor.name()));
     }
 
-    //удаление
-    @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteComment(@PathVariable Long id) {
-        commentRepository.deleteById(id);
-        return ResponseEntity.noContent().build();
+    @PostMapping("/import")
+    public ResponseEntity<List<CommentThreadDTO>> importThreads(
+            @PathVariable String slug,
+            @Valid @RequestBody ImportCommentThreadsRequest request,
+            HttpServletRequest httpRequest,
+            Authentication authentication
+    ) {
+        Actor actor = resolveActor(httpRequest, authentication);
+        return ResponseEntity.ok(commentService.importThreads(slug, request, actor.id(), actor.name()));
+    }
+
+    @PostMapping("/{threadId}/messages")
+    public ResponseEntity<CommentThreadDTO> addMessage(
+            @PathVariable String slug,
+            @PathVariable Long threadId,
+            @Valid @RequestBody AddCommentMessageRequest request,
+            HttpServletRequest httpRequest,
+            Authentication authentication
+    ) {
+        Actor actor = resolveActor(httpRequest, authentication);
+        return ResponseEntity.ok(commentService.addMessage(slug, threadId, request, actor.id(), actor.name()));
+    }
+
+    @PatchMapping("/{threadId}")
+    public ResponseEntity<CommentThreadDTO> updateThread(
+            @PathVariable String slug,
+            @PathVariable Long threadId,
+            @Valid @RequestBody UpdateCommentThreadRequest request
+    ) {
+        return ResponseEntity.ok(commentService.updateThread(slug, threadId, request));
+    }
+
+    @PatchMapping("/{threadId}/messages/{messageId}")
+    public ResponseEntity<CommentThreadDTO> updateMessage(
+            @PathVariable String slug,
+            @PathVariable Long threadId,
+            @PathVariable Long messageId,
+            @Valid @RequestBody UpdateCommentMessageRequest request,
+            HttpServletRequest httpRequest,
+            Authentication authentication
+    ) {
+        Actor actor = resolveActor(httpRequest, authentication);
+        return ResponseEntity.ok(commentService.updateMessage(slug, threadId, messageId, request, actor.id()));
+    }
+
+    private Actor resolveActor(HttpServletRequest request, Authentication authentication) {
+        String demoUser = trimToNull(request.getHeader("X-Demo-User"));
+        String demoUserName = trimToNull(request.getHeader("X-Demo-User-Name"));
+
+        if (demoUser != null) {
+            return new Actor(demoUser, demoUserName != null ? demoUserName : demoUser);
+        }
+
+        if (authentication != null && authentication.getName() != null) {
+            return new Actor(authentication.getName(), authentication.getName());
+        }
+
+        return new Actor("anonymous", "Anonymous");
+    }
+
+    private String trimToNull(String value) {
+        if (value == null) {
+            return null;
+        }
+        String trimmed = value.trim();
+        return trimmed.isEmpty() ? null : trimmed;
+    }
+
+    private record Actor(String id, String name) {
     }
 }
