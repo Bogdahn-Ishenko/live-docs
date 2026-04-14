@@ -271,7 +271,7 @@ paths:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/CommentDTO'
+                  $ref: '#/components/schemas/CommentThreadDTO'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -279,10 +279,11 @@ paths:
         'default':
           $ref: '#/components/responses/Error'
 
+  /api/pages/{slug}/comments/threads:
     post:
       tags:
         - Comments
-      summary: Add comment
+      summary: Create comment thread
       security: []
       parameters:
         - name: slug
@@ -297,14 +298,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/CommentRequest'
+              $ref: '#/components/schemas/CreateCommentThreadRequest'
       responses:
         '200':
           description: OK
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/CommentDTO'
+                $ref: '#/components/schemas/CommentThreadDTO'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -312,11 +313,11 @@ paths:
         'default':
           $ref: '#/components/responses/Error'
 
-  /api/pages/{slug}/comments/{id}:
-    delete:
+  /api/pages/{slug}/comments/import:
+    post:
       tags:
         - Comments
-      summary: Delete comment
+      summary: Import comment threads
       security: []
       parameters:
         - name: slug
@@ -326,15 +327,441 @@ paths:
             type: string
             maxLength: 255
             pattern: "^[a-z0-9-]+$"
-        - name: id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ImportCommentThreadsRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CommentThreadDTO'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        'default':
+          $ref: '#/components/responses/Error'
+
+  /api/pages/{slug}/comments/{threadId}/messages:
+    post:
+      tags:
+        - Comments
+      summary: Add comment message
+      security: []
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema:
+            type: string
+            maxLength: 255
+            pattern: "^[a-z0-9-]+$"
+        - name: threadId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddCommentMessageRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CommentThreadDTO'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        'default':
+          $ref: '#/components/responses/Error'
+
+  /api/pages/{slug}/comments/{threadId}:
+    patch:
+      tags:
+        - Comments
+      summary: Update comment thread
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema:
+            type: string
+            maxLength: 255
+            pattern: "^[a-z0-9-]+$"
+        - name: threadId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateCommentThreadRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CommentThreadDTO'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        'default':
+          $ref: '#/components/responses/Error'
+
+  /api/pages/{slug}/comments/{threadId}/messages/{messageId}:
+    patch:
+      tags:
+        - Comments
+      summary: Update comment message
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema:
+            type: string
+            maxLength: 255
+            pattern: "^[a-z0-9-]+$"
+        - name: threadId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+        - name: messageId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateCommentMessageRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CommentThreadDTO'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        'default':
+          $ref: '#/components/responses/Error'
+
+  /api/pages/{slug}/editors:
+    post:
+      tags:
+        - Permissions
+      summary: Add page editor
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema:
+            type: string
+            maxLength: 255
+            pattern: "^[a-z0-9-]+$"
+      requestBody:
+        required: true
+        content:
+          text/plain:
+            schema:
+              type: string
+      responses:
+        '200':
+          description: OK
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        'default':
+          $ref: '#/components/responses/Error'
+
+  /api/pages/{slug}/editors/{editorUsername}:
+    delete:
+      tags:
+        - Permissions
+      summary: Remove page editor
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema:
+            type: string
+            maxLength: 255
+            pattern: "^[a-z0-9-]+$"
+        - name: editorUsername
+          in: path
+          required: true
+          schema:
+            type: string
+            maxLength: 255
+      responses:
+        '200':
+          description: OK
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        'default':
+          $ref: '#/components/responses/Error'
+
+  /api/pages/{slug}/versions:
+    get:
+      tags:
+        - Versions
+      summary: Get page version history
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema:
+            type: string
+            maxLength: 255
+            pattern: "^[a-z0-9-]+$"
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PageVersionDTO'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        'default':
+          $ref: '#/components/responses/Error'
+
+  /api/pages/{slug}/versions/all:
+    get:
+      tags:
+        - Versions
+      summary: Get all page versions including drafts
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema:
+            type: string
+            maxLength: 255
+            pattern: "^[a-z0-9-]+$"
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PageVersionDTO'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        'default':
+          $ref: '#/components/responses/Error'
+
+  /api/pages/{slug}/versions/{versionId}:
+    get:
+      tags:
+        - Versions
+      summary: Get specific page version
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema:
+            type: string
+            maxLength: 255
+            pattern: "^[a-z0-9-]+$"
+        - name: versionId
           in: path
           required: true
           schema:
             type: integer
             format: int64
       responses:
-        '204':
-          description: No Content
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PageVersionDTO'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        'default':
+          $ref: '#/components/responses/Error'
+
+  /api/pages/{slug}/versions/{versionId}/restore:
+    post:
+      tags:
+        - Versions
+      summary: Restore page version
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema:
+            type: string
+            maxLength: 255
+            pattern: "^[a-z0-9-]+$"
+        - name: versionId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+        - name: comment
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WikiPage'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        'default':
+          $ref: '#/components/responses/Error'
+
+  /api/pages/{slug}/draft:
+    post:
+      tags:
+        - Versions
+      summary: Save draft
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema:
+            type: string
+            maxLength: 255
+            pattern: "^[a-z0-9-]+$"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DraftRequest'
+      responses:
+        '200':
+          description: OK
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        'default':
+          $ref: '#/components/responses/Error'
+
+    get:
+      tags:
+        - Versions
+      summary: Get draft for page
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema:
+            type: string
+            maxLength: 255
+            pattern: "^[a-z0-9-]+$"
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PageVersionDTO'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        'default':
+          $ref: '#/components/responses/Error'
+
+    delete:
+      tags:
+        - Versions
+      summary: Delete draft
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema:
+            type: string
+            maxLength: 255
+            pattern: "^[a-z0-9-]+$"
+      responses:
+        '200':
+          description: OK
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        'default':
+          $ref: '#/components/responses/Error'
+
+  /api/pages/{slug}/draft/publish:
+    post:
+      tags:
+        - Versions
+      summary: Publish draft
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema:
+            type: string
+            maxLength: 255
+            pattern: "^[a-z0-9-]+$"
+        - name: comment
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WikiPage'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -406,6 +833,10 @@ components:
           type: string
           maxLength: 255
           pattern: "^[a-zA-Z0-9 _-]+$"
+        parentSlug:
+          type: string
+          maxLength: 255
+          nullable: true
 
     GraphDTO:
       type: object
@@ -445,7 +876,54 @@ components:
           type: string
           nullable: true
 
-    CommentDTO:
+    DraftRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        title:
+          type: string
+        content:
+          type: string
+        changeComment:
+          type: string
+          nullable: true
+
+    PageVersionDTO:
+      type: object
+      additionalProperties: false
+      properties:
+        id:
+          type: integer
+          format: int64
+        versionNumber:
+          type: integer
+        title:
+          type: string
+        content:
+          type: string
+        authorUsername:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        isDraft:
+          type: boolean
+        changeComment:
+          type: string
+          nullable: true
+
+    CommentAuthorDTO:
+      type: object
+      additionalProperties: false
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        handle:
+          type: string
+
+    CommentMessageDTO:
       type: object
       additionalProperties: false
       properties:
@@ -453,24 +931,161 @@ components:
           type: integer
           format: int64
         author:
-          type: string
-        content:
+          $ref: '#/components/schemas/CommentAuthorDTO'
+        text:
           type: string
         createdAt:
           type: string
           format: date-time
+        edited:
+          type: boolean
+        replyToId:
+          type: integer
+          format: int64
+          nullable: true
+        likes:
+          type: integer
+          nullable: true
+        likedByMe:
+          type: boolean
+        deleted:
+          type: boolean
 
-    CommentRequest:
+    CommentThreadDTO:
+      type: object
+      additionalProperties: false
+      properties:
+        id:
+          type: integer
+          format: int64
+        quote:
+          type: string
+        top:
+          type: number
+        height:
+          type: integer
+        right:
+          type: integer
+        status:
+          type: string
+        comments:
+          type: array
+          items:
+            $ref: '#/components/schemas/CommentMessageDTO'
+
+    CreateCommentThreadRequest:
       type: object
       required:
-        - author
-        - content
+        - quote
+        - text
+      additionalProperties: false
+      properties:
+        quote:
+          type: string
+          maxLength: 220
+        text:
+          type: string
+          maxLength: 256
+        top:
+          type: number
+          minimum: 0.0
+        height:
+          type: integer
+          minimum: 0
+          maximum: 400
+        right:
+          type: integer
+          minimum: 0
+
+    AddCommentMessageRequest:
+      type: object
+      required:
+        - text
+      additionalProperties: false
+      properties:
+        text:
+          type: string
+          maxLength: 256
+        replyToId:
+          type: integer
+          format: int64
+          nullable: true
+
+    UpdateCommentThreadRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        status:
+          type: string
+          pattern: "^(OPEN|RESOLVED)$"
+
+    UpdateCommentMessageRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        text:
+          type: string
+          maxLength: 256
+        deleted:
+          type: boolean
+        likes:
+          type: integer
+
+    ImportCommentThreadsRequest:
+      type: object
+      required:
+        - threads
+      additionalProperties: false
+      properties:
+        threads:
+          type: array
+          items:
+            $ref: '#/components/schemas/ImportCommentThreadRequest'
+
+    ImportCommentThreadRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        quote:
+          type: string
+          maxLength: 220
+        top:
+          type: number
+          minimum: 0.0
+        height:
+          type: integer
+          minimum: 0
+          maximum: 400
+        right:
+          type: integer
+          minimum: 0
+        status:
+          type: string
+        comments:
+          type: array
+          items:
+            $ref: '#/components/schemas/ImportCommentMessageRequest'
+
+    ImportCommentMessageRequest:
+      type: object
       additionalProperties: false
       properties:
         author:
+          $ref: '#/components/schemas/CommentAuthorDTO'
+        text:
           type: string
-        content:
-          type: string
+          maxLength: 256
+        edited:
+          type: boolean
+        replyToId:
+          type: integer
+          format: int64
+          nullable: true
+        likes:
+          type: integer
+          nullable: true
+        deleted:
+          type: boolean
 
     ErrorResponse:
       type: object
