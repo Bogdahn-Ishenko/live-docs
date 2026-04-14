@@ -15,6 +15,7 @@ services:
   wikilive_app:
     build: .
     container_name: wikilive_app_cont
+    restart: always
     ports:
       - "8085:8085"
     environment:

@@ -61,7 +61,11 @@ public class PageController {
     @DeleteMapping("/{slug}")
     public ResponseEntity<Void> delete(@PathVariable String slug) {
         pageService.deletePage(slug);
-        return ResponseEntity.noContent().build(); // 204
+        return ResponseEntity.noContent().build();
     }
 
+    @GetMapping("/tree")
+    public ResponseEntity<List<PageDTO>> getTree() {
+        return ResponseEntity.ok(pageService.getAllAsTreeDTO());
+    }
 }

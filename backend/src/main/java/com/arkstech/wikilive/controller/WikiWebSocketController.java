@@ -13,7 +13,6 @@ public class WikiWebSocketController {
     @MessageMapping("/page.update")
     @SendTo("/topic/pages")
     public WsMessage broadcastPageUpdate(WsMessage message) {
-        // Просто ретранслируем всем подписчикам
         return message;
     }
 

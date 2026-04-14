@@ -10,4 +10,6 @@ public interface CommentThreadRepository extends JpaRepository<CommentThread, Lo
 
     @EntityGraph(attributePaths = {"messages"})
     List<CommentThread> findByPage_SlugOrderByCreatedAtAsc(String slug);
+
+    void deleteByPage_Slug(String slug);
 }

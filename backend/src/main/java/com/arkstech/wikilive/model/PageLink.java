@@ -18,8 +18,9 @@ public class PageLink {
     @JoinColumn(name = "source_id", nullable = false)
     private WikiPage sourcePage;
 
+    @JsonIgnore
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "target_id")
+    @JoinColumn(name = "target_id", nullable = true)
     private WikiPage targetPage;
 
     @Column(name = "target_slug", nullable = false)
