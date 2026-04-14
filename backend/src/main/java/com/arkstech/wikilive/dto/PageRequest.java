@@ -13,4 +13,5 @@ public class PageRequest {
     private String title;
     private String content;     //JSON
     private String mwsTableId;  //таблица из МТС
+    private String parentSlug;
 }
