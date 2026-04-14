@@ -31,6 +31,8 @@ public class WikiPage {
     private String parentSlug;
 
     private String mwsTableId;
+
+    @Column(name = "owner_id")
     private String ownerId;
 
     private LocalDateTime createdAt;
@@ -39,6 +41,15 @@ public class WikiPage {
     @OneToMany(mappedBy = "sourcePage", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
     private List<PageLink> links = new ArrayList<>();
+
+    @ElementCollection
+    @CollectionTable(
+            name = "page_editors",
+            joinColumns = @JoinColumn(name = "page_id")
+    )
+    @Column(name = "editor_username")
+    @Builder.Default
+    private List<String> editors = new ArrayList<>();
 
     @PrePersist
     protected void onCreate() {

@@ -3,6 +3,7 @@ package com.arkstech.wikilive.config;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.core.userdetails.User;
@@ -19,6 +20,7 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import java.util.List;
 
 @Configuration
+@EnableMethodSecurity(prePostEnabled = true)
 public class SecurityConfig {
 
     @Bean
@@ -27,25 +29,24 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .authorizeHttpRequests(auth -> auth
-                        //разрешаем чтение СТРАНИЦ
-                        .requestMatchers(HttpMethod.GET, "/api/pages").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/pages/{slug}").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/pages/{slug}/backlinks").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/pages/graph").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/pages/search").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/pages/tree").permitAll()
+                        // чтение страниц
+                        .requestMatchers(HttpMethod.GET, "/api/pages/**").permitAll()
 
-                        //ЧТЕНИЕ + ЗАПИСЬ только авторизированным
-                        .requestMatchers("/api/pages/*/comments/**").authenticated()
+                        // чтение комментариев
+                        .requestMatchers(HttpMethod.GET, "/api/pages/*/comments/**").permitAll()
 
-                        //вебсокет только авторизованным
-                        .requestMatchers("/ws/**").authenticated()
+                        // запись комментариев
+                        .requestMatchers(HttpMethod.POST, "/api/pages/*/comments/**").authenticated()
 
-                        //только авторизованным
+                        // все операции записи и удаления
                         .requestMatchers(HttpMethod.POST, "/api/pages/**").authenticated()
                         .requestMatchers(HttpMethod.PUT, "/api/pages/**").authenticated()
                         .requestMatchers(HttpMethod.DELETE, "/api/pages/**").authenticated()
 
+                        // вебсокет авторизованным
+                        .requestMatchers("/ws/**").authenticated()
+
+                        //остальное
                         .anyRequest().authenticated()
                 )
                 .httpBasic(basic -> basic.realmName("WikiLive API"));
@@ -55,35 +56,39 @@ public class SecurityConfig {
 
     @Bean
     public UserDetailsService users(PasswordEncoder passwordEncoder) {
-        //пароль для всех пререндеренных пользователей
-        String encodedPassword = passwordEncoder.encode("123");
+        String rootPass = passwordEncoder.encode("root");
+        String demoPass = passwordEncoder.encode("123");
 
-        // ============================================================
-        // ЗАГЛУШКА 3х ПОЛЬЗОВАТЕЛЕЙ
-        // ============================================================
-        // логин- uskO2BIAF6jREwNMJr95MSQ   пароль- 123
         UserDetails teammate = User.builder()
                 .username("uskO2BIAF6jREwNMJr95MSQ")
-                .password(encodedPassword)
-                .roles("USER")
+                .password(rootPass)
+                .roles("ADMIN")
                 .build();
 
-        //пользователь 2
-        UserDetails demo2 = User.builder()
-                .username("demo_user_2")
-                .password(encodedPassword)
-                .roles("USER")
+        UserDetails secondOwner = User.builder()
+                .username("uskZXqR1in7JRVX5lGD3JdE")
+                .password(rootPass)
+                .roles("ADMIN")
                 .build();
 
-        //пользователь 3
-        UserDetails demo3 = User.builder()
+        UserDetails editor = User.builder()
                 .username("demo_user_3")
-                .password(encodedPassword)
+                .password(rootPass)
                 .roles("USER")
                 .build();
 
+        UserDetails viewer = User.builder()
+                .username("demo_user_2")
+                .password(demoPass)
+                .roles("USER")
+                .build();
 
-        return new InMemoryUserDetailsManager(teammate, demo2, demo3);
+        return new InMemoryUserDetailsManager(
+                teammate,
+                secondOwner,
+                editor,
+                viewer
+        );
     }
 
     @Bean
