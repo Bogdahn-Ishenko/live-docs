@@ -204,4 +204,31 @@ public class PageService {
                 .map(p -> new PageDTO(p.getSlug(), p.getTitle(), p.getParentSlug()))
                 .toList();
     }
+
+
+    @Transactional
+    public WikiPage updatePageInternal(String slug, WikiPage updatedPage) {
+        WikiPage page = getBySlug(slug);
+
+        // Обновляем поля
+        page.setTitle(updatedPage.getTitle());
+        page.setContent(updatedPage.getContent());
+        page.setMwsTableId(updatedPage.getMwsTableId());
+        page.setParentSlug(updatedPage.getParentSlug());
+
+        // Пересоздаём связи
+        page.getLinks().clear();
+        attachWikiLinks(page);
+
+        WikiPage saved = pageRepository.saveAndFlush(page);
+        updateExistingRedLinks(saved);
+        sendWebSocketNotification(saved, "edited");
+
+        return saved;
+    }
+
+    @Transactional
+    public void saveWithoutVersioning(WikiPage page) {
+        pageRepository.save(page);
+    }
 }
