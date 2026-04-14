@@ -1,5 +1,4 @@
-'use client'
-import { useEffect, useRef, useState } from "react";
+﻿"use client";
 
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
 import type { LexicalCommand, LexicalEditor, RangeSelection } from "lexical";
@@ -7,21 +6,59 @@ import {
   $getSelection,
   $isRangeSelection,
   COMMAND_PRIORITY_EDITOR,
+  createCommand,
   REDO_COMMAND,
   UNDO_COMMAND,
-  createCommand,
 } from "lexical";
-
 import { MicIcon } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 
+import { Button } from "@/fsd/shared/ui/button";
 import { useReport } from "@/fsd/shared/ui/editor/editor-hooks/use-report";
 import { CAN_USE_DOM } from "@/fsd/shared/ui/editor/shared/can-use-dom";
-import { Button } from "@/fsd/shared/ui/button";
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
 } from "@/fsd/shared/ui/tooltip";
+
+type SpeechRecognitionInstance = {
+  continuous: boolean;
+  interimResults: boolean;
+  addEventListener: (
+    type: "result",
+    listener: (event: SpeechRecognitionEventLike) => void,
+  ) => void;
+  start: () => void;
+  stop: () => void;
+};
+
+type SpeechRecognitionConstructor = new () => SpeechRecognitionInstance;
+
+type SpeechRecognitionAlternativeLike = {
+  transcript: string;
+};
+
+type SpeechRecognitionResultLike = {
+  isFinal: boolean;
+  item: (index: number) => SpeechRecognitionAlternativeLike;
+};
+
+type SpeechRecognitionResultListLike = {
+  item: (index: number) => SpeechRecognitionResultLike;
+};
+
+type SpeechRecognitionEventLike = {
+  resultIndex: number;
+  results: SpeechRecognitionResultListLike;
+};
+
+declare global {
+  interface Window {
+    SpeechRecognition?: SpeechRecognitionConstructor;
+    webkitSpeechRecognition?: SpeechRecognitionConstructor;
+  }
+}
 
 export const SPEECH_TO_TEXT_COMMAND: LexicalCommand<boolean> = createCommand(
   "SPEECH_TO_TEXT_COMMAND",
@@ -60,7 +97,7 @@ function SpeechToTextPluginImpl() {
       ? // @ts-expect-error missing type
         window.SpeechRecognition || window.webkitSpeechRecognition
       : null;
-  const recognition = useRef<typeof SpeechRecognition | null>(null);
+  const recognition = useRef<SpeechRecognitionInstance | null>(null);
   const report = useReport();
 
   useEffect(() => {
@@ -74,7 +111,7 @@ function SpeechToTextPluginImpl() {
       recognition.current.interimResults = true;
       recognition.current.addEventListener(
         "result",
-        (event: typeof SpeechRecognition) => {
+        (event: SpeechRecognitionEventLike) => {
           const resultItem = event.results.item(event.resultIndex);
           const { transcript } = resultItem.item(0);
           report(transcript);
