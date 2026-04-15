@@ -100,7 +100,7 @@ export const FOOTER_ITEM_LABELS: Record<FooterItemKey, string> = {
   characterCount: "Character Count",
   speechToText: "Speech to Text",
   shareContent: "Share Content",
-  exportImport: "Export / Import",
+  exportImport: "Export / Import (PDF, DOCX, MD)",
   markdownToggle: "Markdown Toggle",
   viewOnly: "View Only",
   clearEditor: "Clear Editor",

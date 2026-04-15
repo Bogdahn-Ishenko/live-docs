@@ -7,6 +7,9 @@ import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext
 import { $insertNodeToNearestRoot } from "@lexical/utils";
 import {
   DecoratorNode,
+  type DOMConversionMap,
+  type DOMConversionOutput,
+  type DOMExportOutput,
   type EditorConfig,
   type LexicalEditor,
   type LexicalNode,
@@ -103,6 +106,49 @@ export class TablesMwNode extends DecoratorNode<JSX.Element> {
       viewId: this.__viewId,
       version: 1,
     };
+  }
+
+  static importDOM(): DOMConversionMap | null {
+    return {
+      div: (domNode: HTMLElement) => {
+        if (!domNode.hasAttribute("data-lexical-tables-mw")) {
+          return null;
+        }
+        return {
+          conversion: convertTablesMwElement,
+          priority: 2,
+        };
+      },
+    };
+  }
+
+  exportDOM(): DOMExportOutput {
+    const wrapper = document.createElement("div");
+    wrapper.setAttribute("data-lexical-tables-mw", "true");
+    wrapper.setAttribute("data-url", this.__url);
+    wrapper.setAttribute("data-datasheet-id", this.__datasheetId ?? "");
+    wrapper.setAttribute("data-view-id", this.__viewId ?? "");
+    wrapper.style.border = "1px solid #d1d5db";
+    wrapper.style.borderRadius = "8px";
+    wrapper.style.padding = "10px 12px";
+    wrapper.style.margin = "12px 0";
+    wrapper.style.background = "#f9fafb";
+
+    const title = document.createElement("div");
+    title.textContent = "Tables.mws.ru table";
+    title.style.fontWeight = "600";
+    title.style.marginBottom = "4px";
+    wrapper.appendChild(title);
+
+    const link = document.createElement("a");
+    link.href = this.__url;
+    link.textContent = this.__url;
+    link.target = "_blank";
+    link.rel = "noopener noreferrer";
+    link.style.wordBreak = "break-all";
+    wrapper.appendChild(link);
+
+    return { element: wrapper };
   }
 
   getUrl(): string {
@@ -280,6 +326,22 @@ function TablesMwComponent({ url, spaceId, datasheetId, viewId }: TablesMwCompon
       onEditingChange={setIsEditing}
     />
   );
+}
+
+function convertTablesMwElement(domNode: HTMLElement): DOMConversionOutput {
+  const url = domNode.getAttribute("data-url");
+  const datasheetId = domNode.getAttribute("data-datasheet-id");
+  const viewId = domNode.getAttribute("data-view-id");
+  if (url) {
+    const node = $createTablesMwNode(
+      url,
+      undefined,
+      datasheetId || undefined,
+      viewId || undefined
+    );
+    return { node };
+  }
+  return { node: null };
 }
 
 export function $createTablesMwNode(

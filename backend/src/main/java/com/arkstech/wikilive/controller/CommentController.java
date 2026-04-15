@@ -80,11 +80,10 @@ public class CommentController {
     }
 
     private Actor resolveActor(HttpServletRequest request, Authentication authentication) {
-        String demoUser = trimToNull(request.getHeader("X-Demo-User"));
-        String demoUserName = trimToNull(request.getHeader("X-Demo-User-Name"));
-
-        if (demoUser != null) {
-            return new Actor(demoUser, demoUserName != null ? demoUserName : demoUser);
+        String actorId = trimToNull(request.getHeader("X-Demo-User"));
+        String actorName = trimToNull(request.getHeader("X-Demo-User-Name"));
+        if (actorId != null) {
+            return new Actor(actorId, actorName != null ? actorName : actorId);
         }
 
         if (authentication != null && authentication.getName() != null) {
@@ -95,9 +94,7 @@ public class CommentController {
     }
 
     private String trimToNull(String value) {
-        if (value == null) {
-            return null;
-        }
+        if (value == null) return null;
         String trimmed = value.trim();
         return trimmed.isEmpty() ? null : trimmed;
     }
