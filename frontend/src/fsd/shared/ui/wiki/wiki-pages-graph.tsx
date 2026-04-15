@@ -12,8 +12,11 @@ import ReactFlow, {
   useEdgesState,
   useNodesState,
 } from "reactflow";
+import { MarkerType } from "@reactflow/core";
+import { Folder } from "lucide-react";
 import { cn } from "@/fsd/shared/lib/utils";
-import { fetchWikiPagesGraph } from "@/fsd/shared/lib/wiki-pages/api";
+import { fetchWikiPages, fetchWikiPagesGraph } from "@/fsd/shared/lib/wiki-pages/api";
+import { isFolderPage } from "@/fsd/shared/lib/wiki-pages/folders";
 import type { WikiPageGraph } from "@/fsd/shared/lib/wiki-pages/types";
 
 interface WikiPagesGraphProps {
@@ -23,12 +26,21 @@ interface WikiPagesGraphProps {
 interface GraphNodeData {
   label: string;
   slug: string;
+  isFolder: boolean;
 }
 
 function PageNode({ data }: { data: GraphNodeData }) {
   return (
-    <div className="px-3 py-2 rounded-lg border shadow-sm text-sm font-medium cursor-pointer transition-colors bg-background hover:bg-accent border-border max-w-[200px] truncate">
-      {data.label}
+    <div
+      className={cn(
+        "px-3 py-2 rounded-lg border shadow-sm text-sm font-medium transition-colors max-w-[200px] truncate flex items-center gap-2",
+        data.isFolder
+          ? "bg-muted/60 border-border text-muted-foreground"
+          : "bg-background hover:bg-accent border-border cursor-pointer",
+      )}
+    >
+      {data.isFolder && <Folder className="size-4 shrink-0" />}
+      <span className="truncate">{data.label}</span>
     </div>
   );
 }
@@ -39,6 +51,7 @@ const nodeTypes: NodeTypes = {
 
 function computeCircularLayout(
   nodes: WikiPageGraph["nodes"],
+  folderSlugs: Set<string>,
 ): Node<GraphNodeData>[] {
   const radius = Math.max(200, nodes.length * 35);
   return nodes.map((node, index) => {
@@ -53,6 +66,7 @@ function computeCircularLayout(
       data: {
         label: node.title || "(Без названия)",
         slug: node.slug,
+        isFolder: folderSlugs.has(node.slug),
       },
     };
   });
@@ -61,13 +75,14 @@ function computeCircularLayout(
 export function WikiPagesGraph({ className }: WikiPagesGraphProps) {
   const router = useRouter();
   const [graph, setGraph] = useState<WikiPageGraph | null>(null);
+  const [folderSlugs, setFolderSlugs] = useState<Set<string>>(new Set());
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const initialNodes = useMemo(() => {
     if (!graph || graph.nodes.length === 0) return [];
-    return computeCircularLayout(graph.nodes);
-  }, [graph]);
+    return computeCircularLayout(graph.nodes, folderSlugs);
+  }, [graph, folderSlugs]);
 
   const initialEdges = useMemo<Edge[]>(() => {
     if (!graph) return [];
@@ -76,7 +91,13 @@ export function WikiPagesGraph({ className }: WikiPagesGraphProps) {
       source: edge.from,
       target: edge.to,
       animated: true,
-      style: { stroke: "#94a3b8", strokeWidth: 1.5 },
+      style: { stroke: "#ffffff", strokeWidth: 1.5 },
+      markerEnd: {
+        type: MarkerType.ArrowClosed,
+        width: 15,
+        height: 15,
+        color: "#ffffff",
+      },
     }));
   }, [graph]);
 
@@ -86,10 +107,13 @@ export function WikiPagesGraph({ className }: WikiPagesGraphProps) {
   useEffect(() => {
     let cancelled = false;
     setIsLoading(true);
-    fetchWikiPagesGraph()
-      .then((data) => {
+    Promise.all([fetchWikiPagesGraph(), fetchWikiPages()])
+      .then(([graphData, pages]) => {
         if (!cancelled) {
-          setGraph(data);
+          setGraph(graphData);
+          setFolderSlugs(
+            new Set(pages.filter(isFolderPage).map((p) => p.slug)),
+          );
           setError(null);
         }
       })
@@ -122,6 +146,7 @@ export function WikiPagesGraph({ className }: WikiPagesGraphProps) {
 
   const onNodeClick = useCallback(
     (_: React.MouseEvent, node: Node<GraphNodeData>) => {
+      if (node.data.isFolder) return;
       if (node.data.slug) {
         router.push(`/wiki/${encodeURIComponent(node.data.slug)}`);
       }

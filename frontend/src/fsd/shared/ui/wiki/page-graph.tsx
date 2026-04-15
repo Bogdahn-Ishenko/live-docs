@@ -11,6 +11,7 @@ import ReactFlow, {
   useEdgesState,
   useNodesState,
 } from "reactflow";
+import { MarkerType } from "@reactflow/core";
 import "reactflow/dist/style.css";
 import { useRouter } from "next/navigation";
 
@@ -102,7 +103,13 @@ export function PageGraph({
             source: page.recordId,
             target: targetId,
             animated: true,
-            style: { stroke: "#94a3b8", strokeWidth: 1 },
+            style: { stroke: "#ffffff", strokeWidth: 1 },
+            markerEnd: {
+              type: MarkerType.ArrowClosed,
+              width: 15,
+              height: 15,
+              color: "#ffffff",
+            },
           });
         }
       });
@@ -113,7 +120,13 @@ export function PageGraph({
           id: `${page.parentId}-${page.recordId}-parent`,
           source: page.parentId,
           target: page.recordId,
-          style: { stroke: "#64748b", strokeWidth: 2 },
+          style: { stroke: "#ffffff", strokeWidth: 2 },
+          markerEnd: {
+            type: MarkerType.ArrowClosed,
+            width: 18,
+            height: 18,
+            color: "#ffffff",
+          },
         });
       }
     });
