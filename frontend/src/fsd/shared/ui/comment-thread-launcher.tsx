@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import {
   Check,
@@ -38,6 +38,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/fsd/shared/ui/dropdown-menu";
+import { useWikiAuth } from "@/fsd/shared/hooks/wiki/use-wiki-auth";
 import { Textarea } from "@/fsd/shared/ui/textarea";
 
 type Author = { id: string; name: string; color: string; handle: string };
@@ -76,7 +77,6 @@ type FrameBounds = {
   width: number;
 };
 type PanelState = "idle" | "loading" | "ready" | "error";
-type DemoActor = { id: string; name: string };
 
 function CommentGlyph({ className }: { className?: string }) {
   return (
@@ -133,14 +133,7 @@ const CURRENT_USER: Author = {
   color: "#57B9ED",
 };
 const STORAGE_PREFIX = "wikilive:threads";
-const DEMO_USER_ID_STORAGE_KEY = "wikilive:demo-user-id";
-const DEMO_USER_NAME_STORAGE_KEY = "wikilive:demo-user-name";
 const LIKED_COMMENTS_STORAGE_PREFIX = "wikilive:liked-comments";
-const DEMO_USERS: DemoActor[] = [
-  { id: "ivan", name: "Иван Иванов" },
-  { id: "sergey", name: "Сергей Иванов" },
-  { id: "anna", name: "Анна Карпова" },
-];
 const RAIL_OFFSET = 8;
 const LANE_GAP = 24;
 const COLLISION_GAP = 36;
@@ -219,6 +212,13 @@ function getCommentLabel(count: number) {
   return `${count} комментариев`;
 }
 
+function normalizeAuthorName(rawName: string, rawId: string): string {
+  const source = (rawName || rawId || "").trim();
+  if (!source) return "Пользователь";
+  if (/^usk[A-Za-z0-9]{8,}$/.test(source)) return "Пользователь";
+  return source.replaceAll("_", " ");
+}
+
 function markerBadgeWidth(count: number) {
   if (count <= 0) return 20;
   return count > 9 ? 42 : 34;
@@ -281,6 +281,7 @@ function mapApiThreadToUi(thread: ApiCommentThread): CommentThread {
       ...comment,
       author: {
         ...comment.author,
+        name: normalizeAuthorName(comment.author.name, comment.author.id),
         color: getAuthorColor(comment.author.id),
       },
     })),
@@ -486,6 +487,7 @@ export function CommentThreadLauncher({
   children: ReactNode;
   storageKey?: string;
 }) {
+  const { username } = useWikiAuth();
   const pathname = usePathname();
   const rootRef = useRef<HTMLDivElement | null>(null);
   const panelRef = useRef<HTMLDivElement | null>(null);
@@ -523,6 +525,8 @@ export function CommentThreadLauncher({
     return null;
   }, [pathname, storageKey]);
   const isRemoteMode = pageSlug !== null && pageSlug.length > 0;
+  const currentActorId = username?.trim() || CURRENT_USER.id;
+  const currentActorName = username?.trim() || CURRENT_USER.name;
 
   const [threads, setThreads] = useState<CommentThread[]>([]);
   const [activeThreadId, setActiveThreadId] = useState<string | null>(null);
@@ -542,7 +546,6 @@ export function CommentThreadLauncher({
   const [contentEl, setContentEl] = useState<HTMLElement | null>(null);
   const [containerWidth, setContainerWidth] = useState(0);
   const [frameBounds, setFrameBounds] = useState<FrameBounds | null>(null);
-  const [demoActor, setDemoActor] = useState<DemoActor>(DEMO_USERS[0]);
   const [panelError, setPanelError] = useState<string | null>(null);
   const [likedCommentIds, setLikedCommentIds] = useState<Set<string>>(
     () => new Set(),
@@ -577,22 +580,8 @@ export function CommentThreadLauncher({
   }, []);
 
   useEffect(() => {
-    if (typeof window === "undefined") return;
-    const savedId = window.localStorage.getItem(DEMO_USER_ID_STORAGE_KEY);
-    const savedName = window.localStorage.getItem(DEMO_USER_NAME_STORAGE_KEY);
-    if (!savedId || !savedName) return;
-    setDemoActor({ id: savedId, name: savedName });
-  }, []);
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    window.localStorage.setItem(DEMO_USER_ID_STORAGE_KEY, demoActor.id);
-    window.localStorage.setItem(DEMO_USER_NAME_STORAGE_KEY, demoActor.name);
-  }, [demoActor]);
-
-  useEffect(() => {
-    setLikedCommentIds(readLikedComments(demoActor.id));
-  }, [demoActor.id]);
+    setLikedCommentIds(readLikedComments(currentActorId));
+  }, [currentActorId]);
 
   useEffect(() => {
     likedCommentIdsRef.current = likedCommentIds;
@@ -601,10 +590,10 @@ export function CommentThreadLauncher({
   useEffect(() => {
     if (typeof window === "undefined") return;
     window.localStorage.setItem(
-      getLikedCommentsStorageKey(demoActor.id),
+      getLikedCommentsStorageKey(currentActorId),
       JSON.stringify([...likedCommentIds]),
     );
-  }, [demoActor.id, likedCommentIds]);
+  }, [currentActorId, likedCommentIds]);
 
   useEffect(() => {
     if (isRemoteMode) return;
@@ -693,12 +682,12 @@ export function CommentThreadLauncher({
       const imported = await importCommentThreads(
         pageSlug,
         importCandidates,
-        demoActor,
+        null,
       );
       window.localStorage.removeItem(remoteCacheStorage);
       return imported.map(mapApiThreadToUi);
     },
-    [demoActor, isRemoteMode, pageSlug, remoteCacheStorage, storage],
+    [isRemoteMode, pageSlug, remoteCacheStorage, storage],
   );
 
   const reloadThreads = useCallback(async () => {
@@ -1051,7 +1040,7 @@ export function CommentThreadLauncher({
             activeThreadId,
             editingId,
             { text },
-            demoActor,
+            null,
           );
           applyThreadUpdate((prev) =>
             prev.map((thread) =>
@@ -1109,7 +1098,7 @@ export function CommentThreadLauncher({
               height: source.height,
               right: source.right,
             },
-            demoActor,
+            null,
           );
           const next = applyLikedState(mapApiThreadToUi(created));
           applyThreadUpdate((prev) => [...prev, next]);
@@ -1159,7 +1148,7 @@ export function CommentThreadLauncher({
           pageSlug,
           activeThreadId,
           { text, replyToId },
-          demoActor,
+          null,
         );
         applyThreadUpdate((prev) =>
           prev.map((thread) =>
@@ -1217,7 +1206,7 @@ export function CommentThreadLauncher({
           activeThread.id,
           comment.id,
           { deleted: true },
-          demoActor,
+          null,
         );
         applyThreadUpdate((prev) =>
           prev.map((thread) =>
@@ -1293,9 +1282,9 @@ export function CommentThreadLauncher({
     >
       {children}
       <div
-        className="pointer-events-none absolute inset-0 z-20 overflow-hidden"
+        className="pointer-events-none absolute inset-0 z-30 overflow-hidden"
         style={{
-          clipPath: `inset(${Math.max(0, contentTopOffset)}px 0 ${Math.max(0, frameBounds?.bottom ?? 0)}px 0)`,
+          clipPath: `inset(${Math.max(0, contentTopOffset)}px 0 0 0)`,
         }}
       >
         {markers.map(({ thread, left, count, displayedTop }) => (
@@ -1372,22 +1361,9 @@ export function CommentThreadLauncher({
                     <span className="text-[11px] text-[#8E95A6]">
                       Пользователь:
                     </span>
-                    <select
-                      value={demoActor.id}
-                      onChange={(event) => {
-                        const next = DEMO_USERS.find(
-                          (user) => user.id === event.target.value,
-                        );
-                        if (next) setDemoActor(next);
-                      }}
-                      className="h-6 rounded-[6px] border border-[#D9DEEA] bg-white px-2 text-[11px] text-[#5C6475]"
-                    >
-                      {DEMO_USERS.map((user) => (
-                        <option key={user.id} value={user.id}>
-                          {user.name}
-                        </option>
-                      ))}
-                    </select>
+                    <span className="rounded-[6px] border border-[#D9DEEA] bg-white px-2 py-1 text-[11px] text-[#5C6475]">
+                      {currentActorName}
+                    </span>
                   </div>
                 </div>
                 <div className="flex items-center gap-1">
@@ -1609,7 +1585,7 @@ export function CommentThreadLauncher({
                                               activeThread.id,
                                               comment.id,
                                               { likes: nextLikes },
-                                              demoActor,
+                                              null,
                                             );
                                           applyThreadUpdate((prev) =>
                                             prev.map((thread) =>
@@ -1672,7 +1648,7 @@ export function CommentThreadLauncher({
                                   >
                                     <ThumbsUp className="size-3.5" />
                                   </button>
-                                  {comment.author.id === demoActor.id ? (
+                                  {comment.author.id === currentActorId ? (
                                     <DropdownMenu>
                                       <DropdownMenuTrigger asChild>
                                         <button
@@ -1849,3 +1825,4 @@ export function CommentThreadLauncher({
     </div>
   );
 }
+

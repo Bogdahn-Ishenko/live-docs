@@ -77,6 +77,12 @@ public class SecurityConfig {
                 .roles("USER")
                 .build();
 
+        UserDetails editor2 = User.builder()
+                .username("demo_user_4")
+                .password(rootPass)
+                .roles("USER")
+                .build();
+
         UserDetails viewer = User.builder()
                 .username("demo_user_2")
                 .password(demoPass)
@@ -87,6 +93,7 @@ public class SecurityConfig {
                 teammate,
                 secondOwner,
                 editor,
+                editor2,
                 viewer
         );
     }

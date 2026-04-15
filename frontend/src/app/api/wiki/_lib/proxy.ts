@@ -50,12 +50,31 @@ export async function proxyToBackend(
     headers.set("Authorization", authHeader);
   }
 
-  const response = await fetch(backendUrl, {
-    method: options.method ?? request.method,
-    headers,
-    body: options.body ?? null,
-    cache: "no-store",
-  });
+  // When body is rebuilt in proxy (JSON.stringify(buildWritePayload(...))),
+  // original incoming content-length becomes stale and breaks upstream fetch.
+  if (options.body !== undefined) {
+    headers.delete("content-length");
+  }
+
+  let response: Response;
+  try {
+    response = await fetch(backendUrl, {
+      method: options.method ?? request.method,
+      headers,
+      body: options.body ?? null,
+      cache: "no-store",
+    });
+  } catch (error) {
+    const details = error instanceof Error ? error.message : "Unknown error";
+    return NextResponse.json(
+      {
+        error: "Не удалось подключиться к backend Wiki",
+        details,
+        backendUrl,
+      },
+      { status: 502 },
+    );
+  }
 
   const responseHeaders = new Headers(response.headers);
   responseHeaders.delete("www-authenticate");

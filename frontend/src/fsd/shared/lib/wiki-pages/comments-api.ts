@@ -48,18 +48,8 @@ type RawCommentThread = {
   }>;
 };
 
-type DemoActor = { id: string; name: string } | null;
-
 function normalizeStatus(status: string): ThreadStatus {
   return status.toLowerCase() === "resolved" ? "resolved" : "open";
-}
-
-function isValidHttpHeaderValue(value: string): boolean {
-  for (let i = 0; i < value.length; i += 1) {
-    const code = value.charCodeAt(i);
-    if (code > 255 || code === 127 || code < 32) return false;
-  }
-  return true;
 }
 
 function mapThread(raw: RawCommentThread): CommentThread {
@@ -84,6 +74,16 @@ function mapThread(raw: RawCommentThread): CommentThread {
   };
 }
 
+function getCurrentActorHeaders(): Record<string, string> {
+  if (typeof window === "undefined") return {};
+  const username = window.localStorage.getItem("wikilive:auth:user")?.trim();
+  if (!username) return {};
+  return {
+    "x-demo-user": username,
+    "x-demo-user-name": username.replaceAll("_", " "),
+  };
+}
+
 async function parseResponse<T>(response: Response): Promise<T> {
   const payload = (await response.json().catch(() => null)) as
     | T
@@ -99,17 +99,6 @@ async function parseResponse<T>(response: Response): Promise<T> {
   }
 
   return payload as T;
-}
-
-function headers(actor: DemoActor): HeadersInit {
-  if (!actor) return {};
-  const safeHeaders: Record<string, string> = {
-    "x-demo-user": actor.id,
-  };
-  if (isValidHttpHeaderValue(actor.name)) {
-    safeHeaders["x-demo-user-name"] = actor.name;
-  }
-  return safeHeaders;
 }
 
 export async function fetchCommentThreads(
@@ -135,7 +124,7 @@ export async function createCommentThread(
     height: number;
     right: number;
   },
-  actor: DemoActor,
+  _actor?: unknown,
 ): Promise<CommentThread> {
   const response = await fetch(
     `/api/wiki/pages/${encodeURIComponent(slug)}/comments`,
@@ -143,7 +132,7 @@ export async function createCommentThread(
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        ...headers(actor),
+        ...getCurrentActorHeaders(),
       },
       body: JSON.stringify(payload),
     },
@@ -154,7 +143,7 @@ export async function createCommentThread(
 export async function importCommentThreads(
   slug: string,
   threads: CommentThread[],
-  actor: DemoActor,
+  _actor?: unknown,
 ): Promise<CommentThread[]> {
   const response = await fetch(
     `/api/wiki/pages/${encodeURIComponent(slug)}/comments/import`,
@@ -162,7 +151,7 @@ export async function importCommentThreads(
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        ...headers(actor),
+        ...getCurrentActorHeaders(),
       },
       body: JSON.stringify({ threads }),
     },
@@ -175,7 +164,7 @@ export async function addCommentMessage(
   slug: string,
   threadId: string,
   payload: { text: string; replyToId: string | null },
-  actor: DemoActor,
+  _actor?: unknown,
 ): Promise<CommentThread> {
   const response = await fetch(
     `/api/wiki/pages/${encodeURIComponent(slug)}/comments/${encodeURIComponent(threadId)}/messages`,
@@ -183,7 +172,7 @@ export async function addCommentMessage(
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        ...headers(actor),
+        ...getCurrentActorHeaders(),
       },
       body: JSON.stringify({
         text: payload.text,
@@ -205,6 +194,7 @@ export async function patchCommentThread(
       method: "PATCH",
       headers: {
         "Content-Type": "application/json",
+        ...getCurrentActorHeaders(),
       },
       body: JSON.stringify(payload),
     },
@@ -217,7 +207,7 @@ export async function patchCommentMessage(
   threadId: string,
   messageId: string,
   payload: { text?: string; deleted?: boolean; likes?: number },
-  actor: DemoActor,
+  _actor?: unknown,
 ): Promise<CommentThread> {
   const response = await fetch(
     `/api/wiki/pages/${encodeURIComponent(slug)}/comments/${encodeURIComponent(threadId)}/messages/${encodeURIComponent(messageId)}`,
@@ -225,7 +215,6 @@ export async function patchCommentMessage(
       method: "PATCH",
       headers: {
         "Content-Type": "application/json",
-        ...headers(actor),
       },
       body: JSON.stringify(payload),
     },
