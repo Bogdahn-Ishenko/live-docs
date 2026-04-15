@@ -15,6 +15,14 @@ function normalizeSlug(slug: string): string {
   }
 }
 
+function assertValidSlug(slug: string): string {
+  const normalized = String(slug ?? "").trim();
+  if (!normalized || normalized.toLowerCase() === "undefined") {
+    throw new Error("Некорректный slug страницы для сохранения");
+  }
+  return normalized;
+}
+
 function encodeSlugPath(slug: string): string {
   return encodeURIComponent(normalizeSlug(slug));
 }
@@ -58,7 +66,8 @@ export async function fetchWikiPages(): Promise<WikiPage[]> {
 }
 
 export async function fetchWikiPage(slug: string): Promise<WikiPage> {
-  const response = await fetch(`/api/wiki/pages/${encodeSlugPath(slug)}`, {
+  const safeSlug = assertValidSlug(slug);
+  const response = await fetch(`/api/wiki/pages/${encodeSlugPath(safeSlug)}`, {
     method: "GET",
     cache: "no-store",
   });
@@ -84,7 +93,8 @@ export async function updateWikiPage(
   slug: string,
   payload: UpsertWikiPagePayload,
 ): Promise<WikiPage> {
-  const response = await fetch(`/api/wiki/pages/${encodeSlugPath(slug)}`, {
+  const safeSlug = assertValidSlug(slug);
+  const response = await fetch(`/api/wiki/pages/${encodeSlugPath(safeSlug)}`, {
     method: "PUT",
     headers: {
       "Content-Type": "application/json",
@@ -96,7 +106,8 @@ export async function updateWikiPage(
 }
 
 export async function deleteWikiPage(slug: string): Promise<void> {
-  const response = await fetch(`/api/wiki/pages/${encodeSlugPath(slug)}`, {
+  const safeSlug = assertValidSlug(slug);
+  const response = await fetch(`/api/wiki/pages/${encodeSlugPath(safeSlug)}`, {
     method: "DELETE",
   });
 
@@ -115,8 +126,9 @@ export async function deleteWikiPage(slug: string): Promise<void> {
 export async function fetchPageVersions(
   slug: string,
 ): Promise<WikiPageVersion[]> {
+  const safeSlug = assertValidSlug(slug);
   const response = await fetch(
-    `/api/wiki/pages/${encodeSlugPath(slug)}/versions`,
+    `/api/wiki/pages/${encodeSlugPath(safeSlug)}/versions`,
     {
       method: "GET",
       cache: "no-store",
@@ -129,8 +141,9 @@ export async function fetchPageVersions(
 export async function fetchPageAllVersions(
   slug: string,
 ): Promise<WikiPageVersion[]> {
+  const safeSlug = assertValidSlug(slug);
   const response = await fetch(
-    `/api/wiki/pages/${encodeSlugPath(slug)}/versions/all`,
+    `/api/wiki/pages/${encodeSlugPath(safeSlug)}/versions/all`,
     {
       method: "GET",
       cache: "no-store",
@@ -144,8 +157,9 @@ export async function fetchPageVersion(
   slug: string,
   versionId: number | string,
 ): Promise<WikiPageVersion> {
+  const safeSlug = assertValidSlug(slug);
   const response = await fetch(
-    `/api/wiki/pages/${encodeSlugPath(slug)}/versions/${encodeURIComponent(String(versionId))}`,
+    `/api/wiki/pages/${encodeSlugPath(safeSlug)}/versions/${encodeURIComponent(String(versionId))}`,
     {
       method: "GET",
       cache: "no-store",
@@ -160,9 +174,10 @@ export async function restorePageVersion(
   versionId: number | string,
   comment?: string,
 ): Promise<WikiPage> {
+  const safeSlug = assertValidSlug(slug);
   const query = comment ? `?comment=${encodeURIComponent(comment)}` : "";
   const response = await fetch(
-    `/api/wiki/pages/${encodeSlugPath(slug)}/versions/${encodeURIComponent(String(versionId))}/restore${query}`,
+    `/api/wiki/pages/${encodeSlugPath(safeSlug)}/versions/${encodeURIComponent(String(versionId))}/restore${query}`,
     {
       method: "POST",
       cache: "no-store",
@@ -175,8 +190,9 @@ export async function restorePageVersion(
 export async function fetchPageDraft(
   slug: string,
 ): Promise<WikiPageDraft | null> {
+  const safeSlug = assertValidSlug(slug);
   const response = await fetch(
-    `/api/wiki/pages/${encodeSlugPath(slug)}/draft`,
+    `/api/wiki/pages/${encodeSlugPath(safeSlug)}/draft`,
     {
       method: "GET",
       cache: "no-store",
@@ -194,8 +210,9 @@ export async function savePageDraft(
   slug: string,
   payload: { title: string; description?: string | null; content: string },
 ): Promise<WikiPageDraft> {
+  const safeSlug = assertValidSlug(slug);
   const response = await fetch(
-    `/api/wiki/pages/${encodeSlugPath(slug)}/draft`,
+    `/api/wiki/pages/${encodeSlugPath(safeSlug)}/draft`,
     {
       method: "POST",
       headers: {
@@ -209,8 +226,9 @@ export async function savePageDraft(
 }
 
 export async function deletePageDraft(slug: string): Promise<void> {
+  const safeSlug = assertValidSlug(slug);
   const response = await fetch(
-    `/api/wiki/pages/${encodeSlugPath(slug)}/draft`,
+    `/api/wiki/pages/${encodeSlugPath(safeSlug)}/draft`,
     {
       method: "DELETE",
     },
@@ -232,9 +250,10 @@ export async function publishPageDraft(
   slug: string,
   comment?: string,
 ): Promise<WikiPage> {
+  const safeSlug = assertValidSlug(slug);
   const query = comment ? `?comment=${encodeURIComponent(comment)}` : "";
   const response = await fetch(
-    `/api/wiki/pages/${encodeSlugPath(slug)}/draft/publish${query}`,
+    `/api/wiki/pages/${encodeSlugPath(safeSlug)}/draft/publish${query}`,
     {
       method: "POST",
       cache: "no-store",
@@ -245,8 +264,9 @@ export async function publishPageDraft(
 }
 
 export async function fetchPageEditors(slug: string): Promise<PageEditor[]> {
+  const safeSlug = assertValidSlug(slug);
   const response = await fetch(
-    `/api/wiki/pages/${encodeSlugPath(slug)}/editors`,
+    `/api/wiki/pages/${encodeSlugPath(safeSlug)}/editors`,
     {
       method: "GET",
       cache: "no-store",
@@ -263,8 +283,9 @@ export async function addPageEditor(
   slug: string,
   username: string,
 ): Promise<PageEditor> {
+  const safeSlug = assertValidSlug(slug);
   const response = await fetch(
-    `/api/wiki/pages/${encodeSlugPath(slug)}/editors`,
+    `/api/wiki/pages/${encodeSlugPath(safeSlug)}/editors`,
     {
       method: "POST",
       headers: {
@@ -282,8 +303,9 @@ export async function removePageEditor(
   slug: string,
   username: string,
 ): Promise<void> {
+  const safeSlug = assertValidSlug(slug);
   const response = await fetch(
-    `/api/wiki/pages/${encodeSlugPath(slug)}/editors/${encodeURIComponent(username)}`,
+    `/api/wiki/pages/${encodeSlugPath(safeSlug)}/editors/${encodeURIComponent(username)}`,
     {
       method: "DELETE",
     },

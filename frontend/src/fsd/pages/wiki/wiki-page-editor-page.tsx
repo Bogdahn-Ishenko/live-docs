@@ -283,7 +283,11 @@ export default function WikiPageEditorPage({ slug }: { slug: string }) {
 
     const timer = setTimeout(async () => {
       try {
-        const updated = await updateWikiPage(page.slug, {
+        const targetSlug =
+          typeof page.slug === "string" && page.slug.trim().length > 0
+            ? page.slug
+            : slug;
+        const updated = await updateWikiPage(targetSlug, {
           title: normalizedTitle,
           description,
           content,

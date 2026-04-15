@@ -7,7 +7,10 @@ export interface ParsedTableUrl {
   viewId: string;
   fieldKey: "name" | "id";
   apiUrl: string;
+  browserUrl: string;
 }
+
+const DEFAULT_VIEW_ID = "viw0Lfw3STnJg";
 
 /**
  * Workbench URL regex: https://tables.mws.ru/workbench/{datasheetId}/{viewId}
@@ -20,6 +23,34 @@ const WORKBENCH_URL_REGEX =
  */
 const API_URL_REGEX =
   /^https:\/\/tables\.mws\.ru\/fusion\/v1\/datasheets\/([^\/]+)\/records/;
+const PROXY_API_PATH_REGEX = /^\/fusion\/v1\/datasheets\/([^\/]+)\/records$/i;
+
+export function buildTablesMwApiUrl(params: {
+  datasheetId: string;
+  viewId?: string;
+  fieldKey?: "name" | "id";
+}): string {
+  const { datasheetId, viewId, fieldKey } = params;
+  const url = new URL(
+    `https://tables.mws.ru/fusion/v1/datasheets/${datasheetId}/records`,
+  );
+  url.searchParams.set("viewId", viewId || DEFAULT_VIEW_ID);
+  url.searchParams.set("fieldKey", fieldKey || "name");
+  return url.toString();
+}
+
+export function buildTablesMwBrowserUrl(params: {
+  datasheetId: string;
+  viewId?: string;
+}): string {
+  const { datasheetId, viewId } = params;
+  if (!viewId) {
+    return `https://tables.mws.ru/workbench/${datasheetId}`;
+  }
+  const url = new URL(`https://tables.mws.ru/workbench/${datasheetId}/${viewId}`);
+  url.searchParams.set("comment", "1");
+  return url.toString();
+}
 
 /**
  * Check if URL is a tables.mws.ru URL (either workbench or API format)
@@ -29,47 +60,61 @@ export function isTablesMwUrl(url: string): boolean {
 }
 
 /**
- * Parse any tables.mws.ru URL and convert to API URL
+ * Parse any tables.mws.ru URL and convert to both API and browser forms.
  * Supports:
  * - Workbench: https://tables.mws.ru/workbench/{datasheetId}/{viewId}
  * - API: https://tables.mws.ru/fusion/v1/datasheets/{datasheetId}/records?viewId={viewId}
  */
 export function parseTablesMwUrl(url: string): ParsedTableUrl | null {
   try {
-    // Try workbench format first
+    const proxyUrlObj = new URL(url, "https://dummy.local");
+    if (proxyUrlObj.pathname === "/api/tables-mw") {
+      const path = proxyUrlObj.searchParams.get("path") || "";
+      const proxyMatch = PROXY_API_PATH_REGEX.exec(path);
+      if (proxyMatch) {
+        const datasheetId = proxyMatch[1];
+        const viewId =
+          proxyUrlObj.searchParams.get("viewId") || DEFAULT_VIEW_ID;
+        const fieldKey =
+          (proxyUrlObj.searchParams.get("fieldKey") as "name" | "id") || "name";
+        return {
+          datasheetId,
+          viewId,
+          fieldKey,
+          apiUrl: buildTablesMwApiUrl({ datasheetId, viewId, fieldKey }),
+          browserUrl: buildTablesMwBrowserUrl({ datasheetId, viewId }),
+        };
+      }
+    }
+
     const workbenchMatch = WORKBENCH_URL_REGEX.exec(url);
     if (workbenchMatch) {
       const datasheetId = workbenchMatch[1];
-      const viewId = workbenchMatch[2] || "viw0Lfw3STnJg"; // default view
-      const fieldKey: "name" | "id" = "name";
-
-      const apiUrl = `https://tables.mws.ru/fusion/v1/datasheets/${datasheetId}/records?viewId=${viewId}&fieldKey=${fieldKey}`;
-
+      const urlObj = new URL(url);
+      const viewId = workbenchMatch[2] || urlObj.searchParams.get("viewId") || DEFAULT_VIEW_ID;
+      const fieldKey = "name" as const;
       return {
         datasheetId,
         viewId,
         fieldKey,
-        apiUrl,
+        apiUrl: buildTablesMwApiUrl({ datasheetId, viewId, fieldKey }),
+        browserUrl: buildTablesMwBrowserUrl({ datasheetId, viewId }),
       };
     }
 
-    // Try API format
     const apiMatch = API_URL_REGEX.exec(url);
     if (apiMatch) {
       const urlObj = new URL(url);
       const datasheetId = apiMatch[1];
-      const viewId = urlObj.searchParams.get("viewId") || "viw0Lfw3STnJg";
+      const viewId = urlObj.searchParams.get("viewId") || DEFAULT_VIEW_ID;
       const fieldKey =
         (urlObj.searchParams.get("fieldKey") as "name" | "id") || "name";
-
-      // Normalize to consistent API URL
-      const apiUrl = `https://tables.mws.ru/fusion/v1/datasheets/${datasheetId}/records?viewId=${viewId}&fieldKey=${fieldKey}`;
-
       return {
         datasheetId,
         viewId,
         fieldKey,
-        apiUrl,
+        apiUrl: buildTablesMwApiUrl({ datasheetId, viewId, fieldKey }),
+        browserUrl: buildTablesMwBrowserUrl({ datasheetId, viewId }),
       };
     }
 
@@ -86,6 +131,15 @@ export function parseTablesMwUrl(url: string): ParsedTableUrl | null {
 export function toApiUrl(url: string): string {
   const parsed = parseTablesMwUrl(url);
   return parsed?.apiUrl || url;
+}
+
+/**
+ * Convert any tables.mws.ru URL to browser URL format
+ * Returns original URL if it's not a valid tables.mws.ru URL
+ */
+export function toBrowserUrl(url: string): string {
+  const parsed = parseTablesMwUrl(url);
+  return parsed?.browserUrl || url;
 }
 
 /**
