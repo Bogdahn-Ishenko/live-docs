@@ -11,7 +11,7 @@
 
   <p>
     WikiLive — система для совместного редактирования вики-документов<br>
-    с поддержкой real-time синхронизации, версионирования и интеграции с таблицами. Ссылка на допматериалы о нашем решении - https://disk.yandex.ru/d/27HS7XwqRcaCag
+    с поддержкой real-time синхронизации, версионирования и интеграции с таблицами. Ссылка на допматериалы о нашем решении - <a href="https://disk.yandex.ru/d/27HS7XwqRcaCag">https://disk.yandex.ru/d/27HS7XwqRcaCag</a>
   </p>
 
   <a href="./backend/openapi.yml">
