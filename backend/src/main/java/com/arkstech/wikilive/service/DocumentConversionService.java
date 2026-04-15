@@ -183,7 +183,7 @@ public class DocumentConversionService {
             """;
 
     private static final Set<String> MARKDOWN_EXTENSIONS = Set.of("md", "markdown", "txt");
-    private static final long MAX_IMPORT_FILE_SIZE_BYTES = 15L * 1024L * 1024L;
+    private static final long MAX_IMPORT_FILE_SIZE_BYTES = 50L * 1024L * 1024L;
 
     public ExportedDocument exportDocument(ExportDocumentRequest request) {
         String format = normalizeFormat(request.format());

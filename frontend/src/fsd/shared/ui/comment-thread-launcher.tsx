@@ -1293,9 +1293,9 @@ export function CommentThreadLauncher({
     >
       {children}
       <div
-        className="pointer-events-none absolute inset-0 z-30 overflow-hidden"
+        className="pointer-events-none absolute inset-0 z-20 overflow-hidden"
         style={{
-          clipPath: `inset(${Math.max(0, contentTopOffset)}px 0 0 0)`,
+          clipPath: `inset(${Math.max(0, contentTopOffset)}px 0 ${Math.max(0, frameBounds?.bottom ?? 0)}px 0)`,
         }}
       >
         {markers.map(({ thread, left, count, displayedTop }) => (

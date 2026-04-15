@@ -1,10 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 
-import { importFile } from "@lexical/file";
 import { $generateHtmlFromNodes } from "@lexical/html";
 import { $convertToMarkdownString } from "@lexical/markdown";
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
-import { DownloadIcon, FileTextIcon, UploadIcon } from "lucide-react";
+import { DownloadIcon, FileTextIcon } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/fsd/shared/ui/button";
@@ -1003,22 +1002,6 @@ export function ImportExportPlugin({
 
   return (
     <>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <Button
-            variant={"ghost"}
-            onClick={() => importFile(editor)}
-            title="Import"
-            aria-label="Import editor state from JSON"
-            size={"sm"}
-            className="p-2"
-          >
-            <UploadIcon className="size-4" />
-          </Button>
-        </TooltipTrigger>
-        <TooltipContent>Import JSON</TooltipContent>
-      </Tooltip>
-
       <DropdownMenu>
         <Tooltip>
           <TooltipTrigger asChild>

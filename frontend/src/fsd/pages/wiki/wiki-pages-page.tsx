@@ -38,15 +38,14 @@ import {
   Folder,
   FolderPlus,
   FolderTree,
+  GripVertical,
   Pencil,
   Plus,
-  Trash2,
-  Upload,
+  Trash2
 } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import {
-  type ChangeEvent,
   type KeyboardEvent,
   useCallback,
   useEffect,
@@ -59,7 +58,6 @@ import {
   createWikiPage,
   deleteWikiPage,
   fetchWikiPages,
-  importWikiFile,
   updateWikiPage,
 } from "@/fsd/shared/lib/wiki-pages/api";
 import {
@@ -346,10 +344,12 @@ function Row({
   isOverlay?: boolean;
 }) {
   const router = useRouter();
+  const renameInputRef = useRef<HTMLInputElement | null>(null);
   const {
     attributes,
     listeners,
     setNodeRef,
+    setActivatorNodeRef,
     transform,
     transition,
     isDragging,
@@ -389,11 +389,26 @@ function Row({
     }
   };
 
+  useEffect(() => {
+    if (!isEditing) return;
+    const applyFocus = () => {
+      const input = renameInputRef.current;
+      if (!input) return;
+      input.focus();
+      input.select();
+    };
+
+    const frame = requestAnimationFrame(applyFocus);
+    const timer = window.setTimeout(applyFocus, 0);
+    return () => {
+      cancelAnimationFrame(frame);
+      window.clearTimeout(timer);
+    };
+  }, [isEditing, row.page.id]);
+
   return (
     <div
       ref={setNodeRef}
-      {...attributes}
-      {...listeners}
       style={{ transform: CSS.Transform.toString(transform), transition }}
       className={`group relative flex items-center gap-3 rounded-md px-4 py-3 text-lg transition-colors ${
         isOverlay
@@ -407,6 +422,22 @@ function Row({
         className="flex items-center gap-2"
         style={{ paddingLeft: `${Math.max(0, row.depth) * 22}px` }}
       >
+        {!isOverlay ? (
+          <button
+            type="button"
+            ref={setActivatorNodeRef}
+            {...attributes}
+            {...listeners}
+            onClick={(event) => event.stopPropagation()}
+            className="flex size-5 items-center justify-center rounded text-muted-foreground/70 hover:bg-muted hover:text-foreground cursor-grab active:cursor-grabbing"
+            aria-label="Drag row"
+            title="Drag"
+          >
+            <GripVertical className="size-4" />
+          </button>
+        ) : (
+          <span className="size-5" />
+        )}
         <button
           type="button"
           onClick={(event) => {
@@ -436,6 +467,7 @@ function Row({
       <div className="min-w-0 flex-1">
         {isEditing ? (
           <input
+            ref={renameInputRef}
             value={editingTitle}
             onClick={(event) => event.stopPropagation()}
             onChange={(event) => onChangeEditingTitle(event.target.value)}
@@ -592,8 +624,7 @@ export default function WikiPagesPage() {
   const [editingTitle, setEditingTitle] = useState("");
   const [isCreatingDocument, setIsCreatingDocument] = useState(false);
   const [isCreatingFolder, setIsCreatingFolder] = useState(false);
-  const [isImporting, setIsImporting] = useState(false);
-  const importInputRef = useRef<HTMLInputElement | null>(null);
+  const [isImporting] = useState(false);
   const [modal, setModal] = useState<ModalState>({
     open: false,
     title: "",
@@ -875,50 +906,6 @@ export default function WikiPagesPage() {
     [isCreatingDocument, isCreatingFolder, pages],
   );
 
-  const handleImportFile = useCallback(
-    async (event: ChangeEvent<HTMLInputElement>) => {
-      const file = event.target.files?.[0];
-      event.target.value = "";
-      if (!file || isImporting) return;
-
-      setIsImporting(true);
-      try {
-        const imported = await importWikiFile(file);
-        const rawTitle = imported.suggestedTitle?.trim() || "Импортированный документ";
-        const title = getNextDefaultTitle(pages, rawTitle);
-        const description = imported.originalFileName
-          ? `Импортировано из ${imported.originalFileName}`
-          : "Импортированный документ";
-
-        const created = await createWikiPage({
-          title,
-          description,
-          content: imported.content,
-          mwsTableId: null,
-          parentSlug: null,
-        });
-
-        setPages((prev) => {
-          const next = [created, ...prev];
-          saveOrder(next.map((item) => item.id));
-          return next;
-        });
-
-        router.push(`/wiki/${created.slug}`);
-      } catch (err) {
-        setModal({
-          open: true,
-          title: "Ошибка импорта",
-          description:
-            err instanceof Error ? err.message : "Не удалось импортировать файл",
-        });
-      } finally {
-        setIsImporting(false);
-      }
-    },
-    [isImporting, pages, router],
-  );
-
   const handleDragStart = useCallback((event: DragStartEvent) => {
     setActiveId(event.active.id as number);
     setOverTarget(null);
@@ -1122,22 +1109,6 @@ export default function WikiPagesPage() {
         </div>
 
         <div className="flex items-center gap-3">
-          <input
-            ref={importInputRef}
-            type="file"
-            accept=".md,.markdown,.txt,.docx,.pdf,text/plain,text/markdown,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-            className="hidden"
-            onChange={(event) => void handleImportFile(event)}
-          />
-          <Button
-            variant="outline"
-            className="gap-2"
-            disabled={isCreatingDocument || isCreatingFolder || isImporting}
-            onClick={() => importInputRef.current?.click()}
-          >
-            <Upload className="size-4" />
-            {isImporting ? "Импорт..." : "Импорт"}
-          </Button>
           <Button
             className="gap-2"
             disabled={isCreatingDocument || isCreatingFolder || isImporting}
@@ -1292,3 +1263,8 @@ export default function WikiPagesPage() {
     </main>
   );
 }
+
+
+
+
+
