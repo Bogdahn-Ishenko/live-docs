@@ -18,6 +18,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.HashSet;
@@ -40,7 +41,24 @@ public class PageService {
     private final SimpMessagingTemplate messagingTemplate;
     private final ObjectMapper objectMapper;
 
-    @Transactional
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public WikiPage createSingle(PageRequest request, String slug) {
+        WikiPage page = WikiPage.builder()
+                .title(request.getTitle())
+                .content(request.getContent())
+                .slug(slug)
+                .mwsTableId(request.getMwsTableId())
+                .parentSlug(request.getParentSlug())
+                .ownerId(SecurityContextHolder.getContext().getAuthentication().getName())
+                .build();
+
+        attachWikiLinks(page);
+        WikiPage saved = pageRepository.saveAndFlush(page);
+        updateExistingRedLinks(saved);
+        sendWebSocketNotification(saved, "created");
+
+        return saved;
+    }
     public WikiPage createPage(PageRequest request) {
         String baseSlug = toSlug(request.getTitle());
         String currentSlug = baseSlug;
@@ -48,22 +66,7 @@ public class PageService {
 
         while (true) {
             try {
-                WikiPage page = WikiPage.builder()
-                        .title(request.getTitle())
-                        .description(request.getDescription())
-                        .content(request.getContent())
-                        .slug(currentSlug)
-                        .mwsTableId(request.getMwsTableId())
-                        .parentSlug(request.getParentSlug())
-                        .ownerId(resolveOwnerId())
-                        .build();
-
-                attachWikiLinks(page);
-                WikiPage savedPage = pageRepository.saveAndFlush(page);
-                updateExistingRedLinks(savedPage);
-                sendWebSocketNotification(savedPage, "created");
-
-                return savedPage;
+                return createSingle(request, currentSlug);
             } catch (DataIntegrityViolationException e) {
                 currentSlug = baseSlug + "-" + counter++;
             }
@@ -250,4 +253,3 @@ public class PageService {
         pageRepository.save(page);
     }
 }
-
