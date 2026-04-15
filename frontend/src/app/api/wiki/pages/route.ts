@@ -1,13 +1,10 @@
-﻿import { type NextRequest, NextResponse } from "next/server";
-
-import {
-  getWikiBackendBaseUrl,
-  getWikiWriteAuthHeader,
-} from "@/app/api/wiki/_lib/backend-config";
+import { type NextRequest, NextResponse } from "next/server";
+import { getWikiBackendBaseUrl } from "@/app/api/wiki/_lib/backend-config";
 import {
   buildWritePayload,
   normalizePageShape,
 } from "@/app/api/wiki/_lib/page";
+import { proxyToBackend } from "@/app/api/wiki/_lib/proxy";
 
 const PAGES_API_URL = `${getWikiBackendBaseUrl()}/api/pages`;
 
@@ -21,18 +18,21 @@ export async function GET() {
     const data = await response.json().catch(() => null);
 
     if (!response.ok) {
+      const headers = new Headers(response.headers);
+      headers.delete("www-authenticate");
       return NextResponse.json(
-        data ?? {
-          error: "Не удалось получить список документов",
-        },
-        { status: response.status },
+        data ?? { error: "Не удалось получить список документов" },
+        { status: response.status, headers },
       );
     }
 
     const normalized = Array.isArray(data)
       ? data.map((page) => normalizePageShape(page))
       : data;
-    return NextResponse.json(normalized, { status: response.status });
+
+    const headers = new Headers(response.headers);
+    headers.delete("www-authenticate");
+    return NextResponse.json(normalized, { status: response.status, headers });
   } catch (error) {
     console.error("Wiki pages list fetch failed:", error);
     const details =
@@ -51,39 +51,12 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const payload = await request.json();
-    const writeAuthHeader = getWikiWriteAuthHeader();
 
-    if (!writeAuthHeader) {
-      return NextResponse.json(
-        {
-          error: "На сервере не настроены учетные данные для записи",
-        },
-        { status: 500 },
-      );
-    }
-
-    const response = await fetch(PAGES_API_URL, {
+    return await proxyToBackend(request, PAGES_API_URL, {
       method: "POST",
-      headers: {
-        Authorization: writeAuthHeader,
-        "Content-Type": "application/json",
-      },
+      requiresAuth: true,
       body: JSON.stringify(buildWritePayload(payload)),
-    });
-
-    const data = await response.json().catch(() => null);
-
-    if (!response.ok) {
-      return NextResponse.json(
-        data ?? {
-          error: "Не удалось создать документ",
-        },
-        { status: response.status },
-      );
-    }
-
-    return NextResponse.json(normalizePageShape(data), {
-      status: response.status,
+      extraHeaders: { "Content-Type": "application/json" },
     });
   } catch (error) {
     console.error("Wiki page create failed:", error);

@@ -1,9 +1,6 @@
-﻿import { type NextRequest, NextResponse } from "next/server";
-
-import {
-  getWikiBackendBaseUrl,
-  getWikiWriteAuthHeader,
-} from "@/app/api/wiki/_lib/backend-config";
+import { type NextRequest, NextResponse } from "next/server";
+import { getWikiBackendBaseUrl } from "@/app/api/wiki/_lib/backend-config";
+import { proxyToBackend } from "@/app/api/wiki/_lib/proxy";
 import { encodeSlugPath } from "@/app/api/wiki/_lib/slug";
 
 type Params = {
@@ -14,39 +11,23 @@ export async function PATCH(request: NextRequest, { params }: Params) {
   try {
     const { slug, threadId, messageId } = await params;
     const payload = await request.json();
-    const writeAuthHeader = getWikiWriteAuthHeader();
 
-    if (!writeAuthHeader) {
-      return NextResponse.json(
-        { error: "На сервере не настроены учетные данные для записи" },
-        { status: 500 },
-      );
-    }
-
+    const extraHeaders: Record<string, string> = {
+      "Content-Type": "application/json",
+    };
     const demoUser = request.headers.get("x-demo-user");
+    if (demoUser) extraHeaders["X-Demo-User"] = demoUser;
 
-    const response = await fetch(
-      `${getWikiBackendBaseUrl()}/api/pages/${encodeSlugPath(slug)}/comments/${threadId}/messages/${messageId}`,
-      {
-        method: "PATCH",
-        headers: {
-          Authorization: writeAuthHeader,
-          "Content-Type": "application/json",
-          ...(demoUser ? { "X-Demo-User": demoUser } : {}),
-        },
-        body: JSON.stringify(payload),
-      },
-    );
+    const backendUrl = `${getWikiBackendBaseUrl()}/api/pages/${encodeSlugPath(
+      slug,
+    )}/comments/${threadId}/messages/${messageId}`;
 
-    const data = await response.json().catch(() => null);
-    if (!response.ok) {
-      return NextResponse.json(
-        data ?? { error: "Не удалось обновить комментарий" },
-        { status: response.status },
-      );
-    }
-
-    return NextResponse.json(data, { status: response.status });
+    return await proxyToBackend(request, backendUrl, {
+      method: "PATCH",
+      requiresAuth: true,
+      body: JSON.stringify(payload),
+      extraHeaders,
+    });
   } catch (error) {
     console.error("Wiki comment message patch failed:", error);
     return NextResponse.json(
