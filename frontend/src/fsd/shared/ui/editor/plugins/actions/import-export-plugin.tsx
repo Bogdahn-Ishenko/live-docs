@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 
-import { exportFile, importFile } from "@lexical/file";
+import { importFile } from "@lexical/file";
 import { $generateHtmlFromNodes } from "@lexical/html";
 import { $convertToMarkdownString } from "@lexical/markdown";
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
@@ -12,7 +12,6 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/fsd/shared/ui/dropdown-menu";
 import { MARKDOWN_TRANSFORMERS } from "@/fsd/shared/ui/editor/transformers/markdown-transformers";
@@ -302,15 +301,15 @@ function enrichMarkdownWithCustomBlocks(rawMarkdown: string, html: string): stri
     .map((line) => line.trim())
     .filter((line) => line.length > 0);
 
-  const hasLayoutContent = rawLines.some((line) => line.includes("|") || /^\*\*Columns:\*\*/i.test(line));
-  normalized = normalized.replace(/^\s*##\s+Р В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В Р В Р’В Р В Р вЂ№Р В Р вЂ Р Р†Р вЂљРЎвЂєР РЋРЎвЂєР В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В Р В Р’В Р В Р вЂ№Р В Р вЂ Р В РІР‚С™Р РЋРЎвЂєР В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В Р В Р’В Р Р†Р вЂљРІвЂћСћР В РІР‚в„ўР вЂ™Р’В»Р В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В Р В Р’В Р В Р вЂ№Р В Р вЂ Р В РІР‚С™Р РЋРЎвЂєР В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В Р В Р’В Р вЂ™Р’В Р В Р вЂ Р В РІР‚С™Р вЂ™Р’В¦Р В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В Р В Р’В Р В Р вЂ№Р В Р вЂ Р В РІР‚С™Р РЋРЎС™Р В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В Р В Р’В Р В Р вЂ№Р В Р вЂ Р В РІР‚С™Р вЂ™Р’В\s*$/gim, "").trimEnd();
+  const hasLayoutContent = rawLines.some((line) => line.includes("|") || /^\*\*Колонки:\*\*/i.test(line) || /^\*\*Columns:\*\*/i.test(line));
+  normalized = normalized.replace(/^\s*##\s+Columns\s*$/gim, "").trimEnd();
   normalized = normalized.replace(/^\s*##\s+Columns\s*$/gim, "").trimEnd();
 
   const missingSections = extraSections.filter((section) => {
     if (section.startsWith("[[TABLES_MW:")) {
       return !normalized.includes(section);
     }
-    if (section.startsWith("## Р В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В Р В Р’В Р Р†Р вЂљРІвЂћСћР В РІР‚в„ўР вЂ™Р’В Р В Р’В Р вЂ™Р’В Р В Р’В Р В РІР‚в„–Р В Р’В Р В РІР‚В Р В Р вЂ Р В РІР‚С™Р РЋРІР‚С”Р В Р Р‹Р РЋРІР‚С”Р В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В Р В Р’В Р Р†Р вЂљРІвЂћСћР В РІР‚в„ўР вЂ™Р’В Р В Р’В Р вЂ™Р’В Р В Р’В Р В РІР‚в„–Р В Р’В Р В РІР‚В Р В Р’В Р Р†Р вЂљРЎв„ўР В Р Р‹Р РЋРІР‚С”Р В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В Р В Р’В Р Р†Р вЂљРІвЂћСћР В РІР‚в„ўР вЂ™Р’В Р В Р’В Р вЂ™Р’В Р В Р вЂ Р В РІР‚С™Р Р†РІР‚С›РЎС›Р В Р’В Р Р†Р вЂљРІвЂћСћР В РІР‚в„ўР вЂ™Р’В»Р В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В Р В Р’В Р Р†Р вЂљРІвЂћСћР В РІР‚в„ўР вЂ™Р’В Р В Р’В Р вЂ™Р’В Р В Р’В Р В РІР‚в„–Р В Р’В Р В РІР‚В Р В Р’В Р Р†Р вЂљРЎв„ўР В Р Р‹Р РЋРІР‚С”Р В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В Р В Р’В Р Р†Р вЂљРІвЂћСћР В РІР‚в„ўР вЂ™Р’В Р В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В Р В Р’В Р В РІР‚В Р В Р’В Р Р†Р вЂљРЎв„ўР В РІР‚в„ўР вЂ™Р’В¦Р В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В Р В Р’В Р Р†Р вЂљРІвЂћСћР В РІР‚в„ўР вЂ™Р’В Р В Р’В Р вЂ™Р’В Р В Р’В Р В РІР‚в„–Р В Р’В Р В РІР‚В Р В Р’В Р Р†Р вЂљРЎв„ўР В Р Р‹Р РЋРЎв„ўР В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В Р В Р’В Р Р†Р вЂљРІвЂћСћР В РІР‚в„ўР вЂ™Р’В Р В Р’В Р вЂ™Р’В Р В Р’В Р В РІР‚в„–Р В Р’В Р В РІР‚В Р В Р’В Р Р†Р вЂљРЎв„ўР В РІР‚в„ўР вЂ™Р’В")) {
+    if (section.startsWith("**Колонки:**")) {
       return !hasLayoutContent;
     }
     return true;
@@ -352,7 +351,13 @@ function insertZeroWidthBreaks(value: string, every = SOFT_BREAK_EVERY): string 
   return value.replace(new RegExp(`([^\\s-]{${every}})`, "g"), "$1\u200B");
 }
 
-function normalizeDocxCellValue(value: string): string {
+function insertHardBreaksForPdf(value: string, every = 6): string {
+  return value.replace(/[^\s]{16,}/g, (token) =>
+    token.replace(new RegExp(`(.{${every}})`, "g"), "$1 ").trimEnd(),
+  );
+}
+
+function normalizeTableCellValue(value: string, isPdf = false): string {
   const compact = value
     .replace(/[\u200B-\u200D\uFEFF]/g, "")
     .replaceAll("\r\n", "\n")
@@ -361,6 +366,7 @@ function normalizeDocxCellValue(value: string): string {
     .replace(/[ ]{2,}/g, " ")
     .trim();
   const truncated = compact.length > 700 ? `${compact.slice(0, 699)}...` : compact;
+  if (isPdf) return insertHardBreaksForPdf(truncated, 6);
   return insertZeroWidthBreaks(truncated, 8);
 }
 
@@ -404,8 +410,8 @@ async function loadTablesData(url: string): Promise<{
   const fieldsResponse = await fetch(`/api/tables-mw?${fieldsQuery.toString()}`);
   const fieldsPayload = fieldsResponse.ok
     ? ((await fieldsResponse.json()) as TablesApiSuccess<{
-        fields?: Array<{ name?: string }>;
-      }>)
+      fields?: Array<{ name?: string }>;
+    }>)
     : null;
 
   const headersFromApi = (fieldsPayload?.data?.fields || [])
@@ -421,9 +427,9 @@ async function loadTablesData(url: string): Promise<{
   const headers =
     headersFromApi.length > 0
       ? [
-          ...headersFromApi,
-          ...headersFromRows.filter((header) => !headersFromApi.includes(header)),
-        ]
+        ...headersFromApi,
+        ...headersFromRows.filter((header) => !headersFromApi.includes(header)),
+      ]
       : headersFromRows.length > 0
         ? headersFromRows
         : ["Value"];
@@ -445,9 +451,9 @@ function buildExportTableHtml(
   const tableStyle =
     `border-collapse:collapse;width:100%;margin:8px 0;table-layout:fixed;border:1px solid #d1d5db;font-size:${compact ? "9px" : "11px"};`;
   const thStyle =
-    `border:1px solid #d1d5db;padding:${compact ? "3px 4px" : "5px 6px"};background:#f3f4f6;font-weight:600;font-size:${compact ? "9px" : "11px"};text-align:left;vertical-align:top;word-break:break-word;overflow-wrap:anywhere;hyphens:auto;`;
+    `border:1px solid #d1d5db;padding:${compact ? "3px 4px" : "5px 6px"};background:#f3f4f6;font-weight:600;font-size:${compact ? "9px" : "11px"};text-align:left;vertical-align:top;word-break:break-all;overflow-wrap:anywhere;`;
   const tdStyle =
-    `border:1px solid #e5e7eb;padding:${compact ? "3px 4px" : "5px 6px"};font-size:${compact ? "9px" : "11px"};vertical-align:top;word-break:break-word;overflow-wrap:anywhere;white-space:normal;line-height:1.35;`;
+    `border:1px solid #e5e7eb;padding:${compact ? "3px 4px" : "5px 6px"};font-size:${compact ? "9px" : "11px"};vertical-align:top;word-break:break-all;overflow-wrap:anywhere;white-space:normal;line-height:1.4;`;
 
   const thead = `<thead><tr>${headers
     .map((header) => `<th style="${thStyle}">${escapeHtml(header)}</th>`)
@@ -461,11 +467,10 @@ function buildExportTableHtml(
               const raw = stringifyTableCellValue(row[header]);
               const short =
                 raw.length > PRETTY_TABLE_MAX_CELL_LENGTH
-                  ? `${raw.slice(0, PRETTY_TABLE_MAX_CELL_LENGTH - 1)}Р В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В Р В Р’В Р вЂ™Р’В Р В Р вЂ Р В РІР‚С™Р вЂ™Р’В Р В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В Р В Р’В Р В РІР‚В Р В Р’В Р Р†Р вЂљРЎв„ўР В Р Р‹Р Р†РІР‚С›РЎС›Р В Р’В Р вЂ™Р’В Р В Р вЂ Р В РІР‚С™Р Р†РІР‚С›РЎС›Р В Р’В Р Р†Р вЂљРІвЂћСћР В РІР‚в„ўР вЂ™Р’В¦`
+                  ? `${raw.slice(0, PRETTY_TABLE_MAX_CELL_LENGTH - 1)}...`
                   : raw;
-              const withBreaks = insertZeroWidthBreaks(short);
               const title = raw.length > short.length ? ` title="${escapeHtml(raw)}"` : "";
-              return `<td style="${tdStyle}"${title}>${escapeHtml(withBreaks)}</td>`;
+              return `<td style="${tdStyle}"${title}>${escapeHtml(short)}</td>`;
             },
           )
           .join("")}</tr>`,
@@ -473,7 +478,7 @@ function buildExportTableHtml(
     .join("");
 
   const truncatedRow = truncated
-    ? `<tr><td style="${tdStyle};font-style:italic;background:#f9fafb;" colspan="${headers.length}">Р В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В Р В Р’В Р Р†Р вЂљРІвЂћСћР В РІР‚в„ўР вЂ™Р’В Р В Р’В Р вЂ™Р’В Р В Р’В Р В РІР‚в„–Р В Р’В Р В Р вЂ№Р В Р Р‹Р РЋРЎСџР В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В Р В Р’В Р Р†Р вЂљРІвЂћСћР В РІР‚в„ўР вЂ™Р’В Р В Р’В Р вЂ™Р’В Р В Р’В Р В РІР‚в„–Р В Р’В Р В РІР‚В Р В Р’В Р Р†Р вЂљРЎв„ўР В Р Р‹Р РЋРІР‚С”Р В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В Р В Р’В Р Р†Р вЂљРІвЂћСћР В РІР‚в„ўР вЂ™Р’В Р В Р’В Р вЂ™Р’В Р В Р’В Р В РІР‚в„–Р В Р’В Р В РІР‚В Р В Р’В Р Р†Р вЂљРЎв„ўР В Р Р‹Р РЋРЎв„ўР В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В Р В Р’В Р Р†Р вЂљРІвЂћСћР В РІР‚в„ўР вЂ™Р’В Р В Р’В Р вЂ™Р’В Р В Р вЂ Р В РІР‚С™Р Р†РІР‚С›РЎС›Р В Р’В Р Р†Р вЂљРІвЂћСћР В РІР‚в„ўР вЂ™Р’В°Р В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В Р В Р’В Р Р†Р вЂљРІвЂћСћР В РІР‚в„ўР вЂ™Р’В Р В Р’В Р вЂ™Р’В Р В Р вЂ Р В РІР‚С™Р Р†РІР‚С›РЎС›Р В Р’В Р Р†Р вЂљРІвЂћСћР В РІР‚в„ўР вЂ™Р’В·Р В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В Р В Р’В Р Р†Р вЂљРІвЂћСћР В РІР‚в„ўР вЂ™Р’В Р В Р’В Р вЂ™Р’В Р В Р вЂ Р В РІР‚С™Р Р†РІР‚С›РЎС›Р В Р’В Р Р†Р вЂљРІвЂћСћР В РІР‚в„ўР вЂ™Р’В°Р В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В Р В Р’В Р Р†Р вЂљРІвЂћСћР В РІР‚в„ўР вЂ™Р’В Р В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В Р В Р’В Р В РІР‚В Р В Р’В Р Р†Р вЂљРЎв„ўР В РІР‚в„ўР вЂ™Р’В¦Р В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В Р В Р’В Р вЂ™Р’В Р В Р’В Р Р†Р вЂљРІвЂћвЂ“Р В Р’В Р вЂ™Р’В Р В Р’В Р Р†Р вЂљР’В Р В Р’В Р вЂ™Р’В Р В Р вЂ Р В РІР‚С™Р РЋРІвЂћСћР В Р’В Р В РІР‚В Р В Р вЂ Р В РІР‚С™Р РЋРІР‚С”Р В Р вЂ Р В РІР‚С™Р Р†Р вЂљРЎС™ Р В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В Р В Р’В Р Р†Р вЂљРІвЂћСћР В РІР‚в„ўР вЂ™Р’В Р В Р’В Р вЂ™Р’В Р В Р’В Р В РІР‚в„–Р В Р’В Р В РІР‚В Р В Р’В Р Р†Р вЂљРЎв„ўР В Р вЂ Р В РІР‚С™Р РЋРЎС™Р В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В Р В Р’В Р Р†Р вЂљРІвЂћСћР В РІР‚в„ўР вЂ™Р’В Р В Р’В Р вЂ™Р’В Р В Р вЂ Р В РІР‚С™Р Р†РІР‚С›РЎС›Р В Р’В Р Р†Р вЂљРІвЂћСћР В РІР‚в„ўР вЂ™Р’ВµР В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В Р В Р’В Р вЂ™Р’В Р В Р’В Р Р†Р вЂљРІвЂћвЂ“Р В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В Р В Р’В Р В РІР‚В Р В Р’В Р Р†Р вЂљРЎв„ўР В Р Р‹Р Р†РІР‚С›РЎС›Р В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В Р В Р’В Р Р†Р вЂљРІвЂћСћР В РІР‚в„ўР вЂ™Р’В Р В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В Р В Р’В Р В РІР‚В Р В Р’В Р Р†Р вЂљРЎв„ўР В РІР‚в„ўР вЂ™Р’В Р В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В Р В Р’В Р вЂ™Р’В Р В Р’В Р Р†Р вЂљРІвЂћвЂ“Р В Р’В Р вЂ™Р’В Р В Р’В Р Р†Р вЂљР’В Р В Р’В Р вЂ™Р’В Р В Р вЂ Р В РІР‚С™Р РЋРІвЂћСћР В Р’В Р В РІР‚В Р В Р вЂ Р В РІР‚С™Р РЋРІР‚С”Р В Р вЂ Р В РІР‚С™Р Р†Р вЂљРЎС™Р В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В Р В Р’В Р Р†Р вЂљРІвЂћСћР В РІР‚в„ўР вЂ™Р’В Р В Р’В Р вЂ™Р’В Р В Р вЂ Р В РІР‚С™Р Р†РІР‚С›РЎС›Р В Р’В Р Р†Р вЂљРІвЂћСћР В РІР‚в„ўР вЂ™Р’Вµ ${TABLES_EXPORT_MAX_ROWS} Р В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В Р В Р’В Р вЂ™Р’В Р В Р’В Р Р†Р вЂљРІвЂћвЂ“Р В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В Р В Р’В Р В Р вЂ№Р В Р вЂ Р В РІР‚С™Р РЋРЎв„ўР В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В Р В Р’В Р вЂ™Р’В Р В Р’В Р Р†Р вЂљРІвЂћвЂ“Р В Р’В Р вЂ™Р’В Р В Р’В Р Р†Р вЂљР’В Р В Р’В Р вЂ™Р’В Р В Р вЂ Р В РІР‚С™Р РЋРІвЂћСћР В Р’В Р В Р вЂ№Р В Р вЂ Р Р†Р вЂљРЎвЂєР РЋРЎвЂєР В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В Р В Р’В Р вЂ™Р’В Р В Р’В Р Р†Р вЂљРІвЂћвЂ“Р В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В Р В Р’В Р В РІР‚В Р В Р’В Р Р†Р вЂљРЎв„ўР В Р Р‹Р Р†РІР‚С›РЎС›Р В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В Р В Р’В Р Р†Р вЂљРІвЂћСћР В РІР‚в„ўР вЂ™Р’В Р В Р’В Р вЂ™Р’В Р В Р’В Р В РІР‚в„–Р В Р’В Р В РІР‚В Р В Р’В Р Р†Р вЂљРЎв„ўР В Р Р‹Р РЋРІР‚С”Р В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В Р В Р’В Р Р†Р вЂљРІвЂћСћР В РІР‚в„ўР вЂ™Р’В Р В Р’В Р вЂ™Р’В Р В Р’В Р В РІР‚в„–Р В Р’В Р В РІР‚В Р В Р’В Р Р†Р вЂљРЎв„ўР В Р Р‹Р РЋРЎв„ў.</td></tr>`
+    ? `<tr><td style="${tdStyle};font-style:italic;background:#f9fafb;" colspan="${headers.length}">Таблица была обрезана. См. исходную ссылку.</td></tr>`
     : "";
 
   return `<table style="${tableStyle}">${colGroup}${thead}<tbody>${tbodyRows}${truncatedRow}</tbody></table>`;
@@ -483,18 +488,19 @@ function buildExportTableHtmlDocx(
   headers: string[],
   rows: Record<string, unknown>[],
   truncated: boolean,
+  isPdf = false,
 ): string {
   const colPct = (100 / Math.max(1, headers.length)).toFixed(2);
   const colGroup = `<colgroup>${headers
     .map(() => `<col style="width:${colPct}%">`)
     .join("")}</colgroup>`;
   const cellStyle =
-    "border:1px solid #d1d5db;padding:4px;vertical-align:top;white-space:normal;word-break:break-word;font-size:10px;line-height:1.25;";
+    "border:1px solid #d1d5db;padding:4px;vertical-align:top;white-space:normal;word-break:break-all;overflow-wrap:anywhere;font-size:10px;line-height:1.25;";
 
   const thead = `<thead><tr>${headers
     .map(
       (header) =>
-        `<th style="${cellStyle};font-weight:600;background:#f3f4f6;">${escapeHtml(header)}</th>`,
+        `<th style="${cellStyle};font-weight:600;background:#f3f4f6;">${escapeHtml(normalizeTableCellValue(header, isPdf))}</th>`,
     )
     .join("")}</tr></thead>`;
   const tbody = rows
@@ -502,8 +508,9 @@ function buildExportTableHtmlDocx(
       const tds = headers
         .map((header) => {
           const raw = stringifyTableCellValue(row[header]);
-          const normalized = normalizeDocxCellValue(raw);
-          return `<td style="${cellStyle}">${escapeHtml(normalized)}</td>`;
+          const normalized = normalizeTableCellValue(raw, isPdf);
+          const content = `<div style="display:block;width:100%;max-width:100%;min-width:0;word-break:break-all;word-wrap:break-word;overflow-wrap:anywhere;white-space:${isPdf ? "pre-wrap" : "normal"};overflow:hidden;">${escapeHtml(normalized)}</div>`;
+          return `<td style="${cellStyle};max-width:0;min-width:0;">${content}</td>`;
         })
         .join("");
       return `<tr>${tds}</tr>`;
@@ -561,18 +568,15 @@ function buildExportTableHtmlByTarget(
   rows: Record<string, unknown>[],
   truncated: boolean,
   target: ExportTarget,
-  compact: boolean,
+  _compact: boolean,
 ): string {
-  return target === "docx"
-    ? buildExportTableHtmlDocx(headers, rows, truncated)
-    : buildExportTableHtml(headers, rows, truncated, compact);
+  return buildExportTableHtmlDocx(headers, rows, truncated, target === "pdf");
 }
 
 function hydrateLayoutInExportHtml(
   html: string,
-  target: ExportTarget,
+  _target: ExportTarget,
 ): string {
-  if (target !== "docx") return html;
 
   const parser = new DOMParser();
   const doc = parser.parseFromString(
@@ -767,18 +771,13 @@ async function hydrateTablesInExportHtml(
       const browserUrl =
         data.browserUrl || parseTablesMwUrl(sourceUrl)?.browserUrl || sourceUrl;
       if (!policy.allowed) {
-        if (target === "docx") {
-          block.innerHTML = buildDocxCompactPreviewHtml(
-            data.headers,
-            data.rows,
-            browserUrl,
-          );
-          return;
-        }
-        block.innerHTML = buildTableLinkFallbackHtml(
-          browserUrl,
-          policy.reason || "Table is too large for pretty export.",
-        );
+        block.innerHTML =
+          target === "docx" || target === "pdf"
+            ? buildDocxCompactPreviewHtml(data.headers, data.rows, browserUrl)
+            : buildTableLinkFallbackHtml(
+                browserUrl,
+                policy.reason || "Table is too large for pretty export.",
+              );
         return;
       }
       const headerChunks = splitHeaders(
@@ -786,11 +785,7 @@ async function hydrateTablesInExportHtml(
         target === "docx" ? DOCX_MAX_COLUMNS_PER_CHUNK : TABLE_COLUMNS_SPLIT_START,
       );
       if (target === "docx" && headerChunks.length > DOCX_MAX_TABLE_PARTS) {
-        block.innerHTML = buildDocxCompactPreviewHtml(
-          data.headers,
-          data.rows,
-          browserUrl,
-        );
+        block.innerHTML = buildDocxCompactPreviewHtml(data.headers, data.rows, browserUrl);
         return;
       }
       const compact = data.headers.length >= TABLE_COLUMNS_LANDSCAPE_START;
@@ -803,26 +798,17 @@ async function hydrateTablesInExportHtml(
             target,
             compact,
           );
-          if (headerChunks.length === 1) {
-            if (target === "docx") {
-              return buildDocxTableWithSourceHtml(
-                headersChunk,
-                data.rows,
-                data.truncated,
-                browserUrl,
-              );
-            }
-            return tableHtml;
-          }
           if (target === "docx") {
-            return `<div style="margin:6px 0 2px;font-weight:600;font-size:11px;color:#4b5563;">Part ${index + 1}/${headerChunks.length}</div>${buildDocxTableWithSourceHtml(
+            return buildDocxTableWithSourceHtml(
               headersChunk,
               data.rows,
               data.truncated,
               browserUrl,
-            )}`;
+            );
           }
-          return `<div style="margin:6px 0 2px;font-weight:600;font-size:11px;color:#4b5563;">Part ${index + 1}/${headerChunks.length}</div>${tableHtml}`;
+          const tableWithSource = `${tableHtml}${buildDocxTableSourceNoteHtml(browserUrl)}`;
+          if (headerChunks.length === 1) return tableWithSource;
+          return `<div style="margin:6px 0 2px;font-weight:600;font-size:11px;color:#4b5563;">Part ${index + 1}/${headerChunks.length}</div>${tableWithSource}`;
         })
         .join("");
     }),
@@ -959,6 +945,28 @@ export function ImportExportPlugin({
           format === "docx" ? "docx" : "pdf",
         );
 
+        let finalHtml = htmlWithTables;
+        if (format === "pdf") {
+          const pdfStyles = `
+            <style>
+              body { font-family: sans-serif; }
+              pre, code { 
+                font-family: sans-serif !important; 
+                background: #f4f4f4; 
+                padding: 4px; 
+                border-radius: 4px; 
+                word-break: break-all !important; 
+                word-wrap: break-word !important; 
+                white-space: pre-wrap !important;
+              }
+              table { table-layout: fixed; width: 100%; border-collapse: collapse; }
+              td, th { word-break: break-all !important; overflow-wrap: anywhere !important; }
+            </style>
+          `;
+          finalHtml = pdfStyles + htmlWithTables.replace(/[\u0000-\u001F\u007F-\u009F\u00AD\u200C-\u200F\u2028-\u202E\uFEFF]/g, "");
+          finalHtml = finalHtml.replaceAll("\u00A0", " ");
+        }
+
         const response = await fetchWithTimeout("/api/wiki/export", {
           method: "POST",
           headers: {
@@ -968,7 +976,7 @@ export function ImportExportPlugin({
             format,
             title: documentTitle || "Document",
             description: documentDescription || null,
-            html: htmlWithTables,
+            html: finalHtml,
           }),
         });
 
@@ -992,13 +1000,6 @@ export function ImportExportPlugin({
     },
     [activeExport, baseFileName, documentDescription, documentTitle, editor],
   );
-
-  const handleExportJson = useCallback(() => {
-    exportFile(editor, {
-      fileName: `Editor ${new Date().toISOString()}`,
-      source: "Editor",
-    });
-  }, [editor]);
 
   return (
     <>
@@ -1062,14 +1063,6 @@ export function ImportExportPlugin({
           >
             <DownloadIcon className="size-4" />
             Word (.docx)
-          </DropdownMenuItem>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem
-            onSelect={() => handleExportJson()}
-            className="gap-2"
-          >
-            <DownloadIcon className="size-4" />
-            Lexical JSON (.json)
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>

@@ -7,6 +7,8 @@ import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext
 import { $insertNodeToNearestRoot } from "@lexical/utils";
 import {
   DecoratorNode,
+  type DOMConversionMap,
+  type DOMConversionOutput,
   type DOMExportOutput,
   type EditorConfig,
   type LexicalEditor,
@@ -103,6 +105,20 @@ export class TablesMwNode extends DecoratorNode<JSX.Element> {
       datasheetId: this.__datasheetId,
       viewId: this.__viewId,
       version: 1,
+    };
+  }
+
+  static importDOM(): DOMConversionMap | null {
+    return {
+      div: (domNode: HTMLElement) => {
+        if (!domNode.hasAttribute("data-lexical-tables-mw")) {
+          return null;
+        }
+        return {
+          conversion: convertTablesMwElement,
+          priority: 2,
+        };
+      },
     };
   }
 
@@ -310,6 +326,22 @@ function TablesMwComponent({ url, spaceId, datasheetId, viewId }: TablesMwCompon
       onEditingChange={setIsEditing}
     />
   );
+}
+
+function convertTablesMwElement(domNode: HTMLElement): DOMConversionOutput {
+  const url = domNode.getAttribute("data-url");
+  const datasheetId = domNode.getAttribute("data-datasheet-id");
+  const viewId = domNode.getAttribute("data-view-id");
+  if (url) {
+    const node = $createTablesMwNode(
+      url,
+      undefined,
+      datasheetId || undefined,
+      viewId || undefined
+    );
+    return { node };
+  }
+  return { node: null };
 }
 
 export function $createTablesMwNode(

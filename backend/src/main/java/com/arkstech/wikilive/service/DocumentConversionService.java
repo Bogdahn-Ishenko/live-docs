@@ -133,10 +133,18 @@ public class DocumentConversionService {
               background: #f3f4f6;
               overflow: auto;
               white-space: pre-wrap;
+              font-family: "UnicodeFallback", "DejaVu Sans Mono", Consolas, "Courier New", monospace;
+              font-size: 11px;
+              line-height: 1.35;
             }
             .content code {
-              font-family: Consolas, "Courier New", monospace;
-              font-size: 12px;
+              font-family: "UnicodeFallback", "DejaVu Sans Mono", Consolas, "Courier New", monospace;
+              font-size: 11px;
+            }
+            .content pre code {
+              font-family: inherit;
+              font-size: inherit;
+              line-height: inherit;
             }
             .content table {
               width: 100%;
@@ -280,7 +288,7 @@ public class DocumentConversionService {
 
     private String removeUnsafeHtml(String rawHtml) {
         Document contentDoc = Jsoup.parseBodyFragment(rawHtml);
-        contentDoc.select("script, iframe, object, embed").remove();
+        contentDoc.select("script, style, link[rel=stylesheet], iframe, object, embed").remove();
         return contentDoc.body().html();
     }
 
