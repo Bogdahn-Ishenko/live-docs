@@ -7,6 +7,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { BlockViewerProvider } from "@/fsd/app/providers/block-viewer-provider";
+import { useWikiAuth } from "@/fsd/shared/hooks/wiki/use-wiki-auth";
 import { fetchWikiPage, updateWikiPage } from "@/fsd/shared/lib/wiki-pages/api";
 import {
   buildPageSignature,
@@ -20,6 +21,7 @@ import type {
 import { Button } from "@/fsd/shared/ui/button";
 import { CommentThreadLauncher } from "@/fsd/shared/ui/comment-thread-launcher";
 import { SidebarProvider } from "@/fsd/shared/ui/sidebar";
+import { WikiLoginDialog } from "@/fsd/shared/ui/wiki/login-dialog";
 
 const Editor = dynamic(
   () => import("@/fsd/shared/ui/blocks/editor-x").then((mod) => mod.Editor),
@@ -95,6 +97,8 @@ function resolveBaseTitle(title: string): string {
 }
 
 export default function WikiPageEditorPage({ slug }: { slug: string }) {
+  const { isAuthenticated, logout } = useWikiAuth();
+  const [loginOpen, setLoginOpen] = useState(false);
   const [page, setPage] = useState<WikiPage | null>(null);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -188,6 +192,11 @@ export default function WikiPageEditorPage({ slug }: { slug: string }) {
   }, [loadPage]);
 
   useEffect(() => {
+    if (!isAuthenticated) {
+      clearLocalDraft(slug);
+      if (saveStatus !== "idle") setSaveStatus("idle");
+      return;
+    }
     if (!page || !editorState || saveStatus === "loading") return;
 
     const normalizedTitle = resolveBaseTitle(title);
@@ -260,7 +269,16 @@ export default function WikiPageEditorPage({ slug }: { slug: string }) {
     }, 700);
 
     return () => clearTimeout(timer);
-  }, [title, description, parentSlug, editorState, page, saveStatus, slug]);
+  }, [
+    isAuthenticated,
+    title,
+    description,
+    parentSlug,
+    editorState,
+    page,
+    saveStatus,
+    slug,
+  ]);
 
   const syncStatusText = useMemo(
     () => getSyncStatusText(saveStatus, lastSyncedAt),
@@ -282,9 +300,24 @@ export default function WikiPageEditorPage({ slug }: { slug: string }) {
                 </Button>
               </Link>
             </div>
-            <p className="text-xs font-medium text-muted-foreground/80">
-              {syncStatusText}
-            </p>
+            <div className="flex items-center gap-3">
+              <p className="text-xs font-medium text-muted-foreground/80">
+                {syncStatusText}
+              </p>
+              {isAuthenticated ? (
+                <Button variant="ghost" size="sm" onClick={() => void logout()}>
+                  Выйти
+                </Button>
+              ) : (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setLoginOpen(true)}
+                >
+                  Войти
+                </Button>
+              )}
+            </div>
           </header>
 
           {loadError && (
@@ -308,13 +341,15 @@ export default function WikiPageEditorPage({ slug }: { slug: string }) {
                   <input
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
-                    className="w-full border-0 bg-transparent p-0 text-lg font-semibold leading-tight text-foreground outline-none placeholder:text-muted-foreground/30"
+                    readOnly={!isAuthenticated}
+                    className="w-full border-0 bg-transparent p-0 text-lg font-semibold leading-tight text-foreground outline-none placeholder:text-muted-foreground/30 read-only:cursor-default"
                     placeholder="Без названия"
                   />
                   <input
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
-                    className="w-full border-0 bg-transparent p-0 text-xs leading-snug text-muted-foreground/60 outline-none placeholder:text-muted-foreground/30"
+                    readOnly={!isAuthenticated}
+                    className="w-full border-0 bg-transparent p-0 text-xs leading-snug text-muted-foreground/60 outline-none placeholder:text-muted-foreground/30 read-only:cursor-default"
                     placeholder="Добавить описание"
                   />
                 </div>
@@ -333,6 +368,8 @@ export default function WikiPageEditorPage({ slug }: { slug: string }) {
               </CommentThreadLauncher>
             </div>
           )}
+
+          <WikiLoginDialog open={loginOpen} onOpenChange={setLoginOpen} />
         </main>
       </SidebarProvider>
     </BlockViewerProvider>

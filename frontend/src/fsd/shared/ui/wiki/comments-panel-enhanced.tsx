@@ -1,29 +1,42 @@
-'use client';
+"use client";
 
-import { useState } from "react";
-import { 
-  MessageSquare, 
-  X, 
+import {
   Check,
-  Send,
-  History,
-  Trash2,
-  RotateCcw,
   ChevronDown,
   ChevronUp,
+  History,
+  MessageSquare,
+  RotateCcw,
+  Send,
   Shield,
+  Trash2,
   User,
-  Users
+  Users,
+  X,
 } from "lucide-react";
-
-import { Button } from "@/fsd/shared/ui/button";
-import { Textarea } from "@/fsd/shared/ui/textarea";
+import { useState } from "react";
+import {
+  useComments,
+  useCreateComment,
+  useDeleteComment,
+  useRestoreComment,
+  useUpdateComment,
+} from "@/fsd/shared/hooks/wiki";
+import {
+  usePageAccess,
+  useUpdatePageAccess,
+} from "@/fsd/shared/hooks/wiki/use-access-control";
+import { cn } from "@/fsd/shared/lib/utils";
+import {
+  type CommentPermission,
+  PERMISSION_LABELS,
+} from "@/fsd/shared/lib/wiki/access-control";
+import {
+  formatCommentDate,
+  type WikiComment,
+} from "@/fsd/shared/lib/wiki/comments";
 import { Avatar, AvatarFallback } from "@/fsd/shared/ui/avatar";
-import { ScrollArea } from "@/fsd/shared/ui/scroll-area";
-import { Skeleton } from "@/fsd/shared/ui/skeleton";
-import { Switch } from "@/fsd/shared/ui/switch";
-import { Label } from "@/fsd/shared/ui/label";
-import { RadioGroup, RadioGroupItem } from "@/fsd/shared/ui/radio-group";
+import { Button } from "@/fsd/shared/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -32,17 +45,13 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/fsd/shared/ui/dialog";
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@/fsd/shared/ui/tabs";
-import { cn } from "@/fsd/shared/lib/utils";
-import { useComments, useCreateComment, useUpdateComment, useDeleteComment, useRestoreComment } from "@/fsd/shared/hooks/wiki";
-import { usePageAccess, useUpdatePageAccess } from "@/fsd/shared/hooks/wiki/use-access-control";
-import { formatCommentDate, type WikiComment } from "@/fsd/shared/lib/wiki/comments";
-import { PERMISSION_LABELS, type CommentPermission } from "@/fsd/shared/lib/wiki/access-control";
+import { Label } from "@/fsd/shared/ui/label";
+import { RadioGroup, RadioGroupItem } from "@/fsd/shared/ui/radio-group";
+import { ScrollArea } from "@/fsd/shared/ui/scroll-area";
+import { Skeleton } from "@/fsd/shared/ui/skeleton";
+import { Switch } from "@/fsd/shared/ui/switch";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/fsd/shared/ui/tabs";
+import { Textarea } from "@/fsd/shared/ui/textarea";
 
 interface CommentsPanelProps {
   pageId: string | null;
@@ -51,13 +60,13 @@ interface CommentsPanelProps {
   isOpen: boolean;
   onClose: () => void;
   selectedText?: string;
-  selection?: WikiComment['selection'];
+  selection?: WikiComment["selection"];
   onClearSelection?: () => void;
 }
 
 // Comment thread item
-function CommentThread({ 
-  comment, 
+function CommentThread({
+  comment,
   onResolve,
   onDelete,
   onRestore,
@@ -65,8 +74,8 @@ function CommentThread({
   isDeleting,
   isRestoring,
   showResolved,
-}: { 
-  comment: WikiComment; 
+}: {
+  comment: WikiComment;
   onResolve: (id: string) => void;
   onDelete: (id: string) => void;
   onRestore: (id: string) => void;
@@ -77,15 +86,17 @@ function CommentThread({
 }) {
   const [isExpanded, setIsExpanded] = useState(false);
   const isDeleted = comment.content === "[deleted]";
-  
+
   if (isDeleted && !showResolved) return null;
-  
+
   return (
-    <div className={cn(
-      "border-b last:border-b-0",
-      comment.resolved && !isDeleted && "opacity-60 bg-muted/30",
-      isDeleted && "opacity-40 bg-red-50 dark:bg-red-950/10"
-    )}>
+    <div
+      className={cn(
+        "border-b last:border-b-0",
+        comment.resolved && !isDeleted && "opacity-60 bg-muted/30",
+        isDeleted && "opacity-40 bg-red-50 dark:bg-red-950/10",
+      )}
+    >
       <div className="p-4">
         <div className="flex items-start gap-3">
           <Avatar className="size-8">
@@ -93,46 +104,58 @@ function CommentThread({
               {isDeleted ? "✕" : comment.author.name.slice(0, 2).toUpperCase()}
             </AvatarFallback>
           </Avatar>
-          
+
           <div className="flex-1 min-w-0">
             <div className="flex items-center justify-between gap-2">
-              <span className={cn(
-                "font-medium text-sm truncate",
-                isDeleted && "text-muted-foreground line-through"
-              )}>
+              <span
+                className={cn(
+                  "font-medium text-sm truncate",
+                  isDeleted && "text-muted-foreground line-through",
+                )}
+              >
                 {isDeleted ? "Удалено" : comment.author.name}
               </span>
               <span className="text-xs text-muted-foreground whitespace-nowrap">
                 {formatCommentDate(comment.createdAt)}
               </span>
             </div>
-            
+
             {comment.selection?.selectedText && !isDeleted && (
               <div className="mt-2 p-2 bg-yellow-50 dark:bg-yellow-950/30 border-l-2 border-yellow-400 text-sm text-muted-foreground">
-                <button 
+                <button
                   onClick={() => setIsExpanded(!isExpanded)}
                   className="flex items-center gap-1 w-full text-left"
                 >
-                  <span className={cn("line-clamp-2", isExpanded && "line-clamp-none")}>
+                  <span
+                    className={cn(
+                      "line-clamp-2",
+                      isExpanded && "line-clamp-none",
+                    )}
+                  >
                     &ldquo;{comment.selection.selectedText}&rdquo;
                   </span>
-                  {comment.selection.selectedText.length > 100 && (
-                    isExpanded ? <ChevronUp className="size-3 shrink-0" /> : <ChevronDown className="size-3 shrink-0" />
-                  )}
+                  {comment.selection.selectedText.length > 100 &&
+                    (isExpanded ? (
+                      <ChevronUp className="size-3 shrink-0" />
+                    ) : (
+                      <ChevronDown className="size-3 shrink-0" />
+                    ))}
                 </button>
               </div>
             )}
-            
+
             {!isDeleted && (
-              <p className="mt-2 text-sm whitespace-pre-wrap">{comment.content}</p>
+              <p className="mt-2 text-sm whitespace-pre-wrap">
+                {comment.content}
+              </p>
             )}
-            
+
             {isDeleted && (
               <p className="mt-2 text-sm text-muted-foreground italic">
                 Комментарий удален
               </p>
             )}
-            
+
             <div className="mt-2 flex items-center gap-2">
               {!isDeleted && !comment.resolved ? (
                 <>
@@ -183,18 +206,19 @@ function CommentThread({
 }
 
 // Access settings dialog
-function AccessSettingsDialog({ 
-  pageId, 
+function AccessSettingsDialog({
+  pageId,
   currentPermission,
-  onUpdate 
-}: { 
+  onUpdate,
+}: {
   pageId: string;
   currentPermission: CommentPermission;
   onUpdate: (permission: CommentPermission) => void;
 }) {
-  const [permission, setPermission] = useState<CommentPermission>(currentPermission);
+  const [permission, setPermission] =
+    useState<CommentPermission>(currentPermission);
   const { updateAccess, isLoading } = useUpdatePageAccess();
-  
+
   const handleSave = async () => {
     const result = await updateAccess({
       pageId,
@@ -204,7 +228,7 @@ function AccessSettingsDialog({
       onUpdate(permission);
     }
   };
-  
+
   return (
     <Dialog>
       <DialogTrigger asChild>
@@ -220,9 +244,9 @@ function AccessSettingsDialog({
             Укажите, кто может добавлять комментарии к этой странице
           </DialogDescription>
         </DialogHeader>
-        
-        <RadioGroup 
-          value={permission} 
+
+        <RadioGroup
+          value={permission}
           onValueChange={(v) => setPermission(v as CommentPermission)}
           className="gap-4 mt-4"
         >
@@ -233,7 +257,7 @@ function AccessSettingsDialog({
               {PERMISSION_LABELS.everyone}
             </Label>
           </div>
-          
+
           <div className="flex items-center space-x-2">
             <RadioGroupItem value="authenticated" id="authenticated" />
             <Label htmlFor="authenticated" className="flex items-center gap-2">
@@ -241,7 +265,7 @@ function AccessSettingsDialog({
               {PERMISSION_LABELS.authenticated}
             </Label>
           </div>
-          
+
           <div className="flex items-center space-x-2">
             <RadioGroupItem value="creator_only" id="creator_only" />
             <Label htmlFor="creator_only" className="flex items-center gap-2">
@@ -250,10 +274,10 @@ function AccessSettingsDialog({
             </Label>
           </div>
         </RadioGroup>
-        
+
         <div className="flex justify-end gap-2 mt-4">
-          <Button 
-            onClick={handleSave} 
+          <Button
+            onClick={handleSave}
             disabled={isLoading || permission === currentPermission}
           >
             {isLoading ? "Сохранение..." : "Сохранить"}
@@ -264,57 +288,65 @@ function AccessSettingsDialog({
   );
 }
 
-export function CommentsPanelEnhanced({ 
-  pageId, 
+export function CommentsPanelEnhanced({
+  pageId,
   pageCreatorId,
   currentUserId,
-  isOpen, 
+  isOpen,
   onClose,
   selectedText,
   selection,
-  onClearSelection 
+  onClearSelection,
 }: CommentsPanelProps) {
   const [newComment, setNewComment] = useState("");
   const [activeTab, setActiveTab] = useState<"active" | "history">("active");
   const [showResolved, setShowResolved] = useState(false);
-  const [currentPermission, setCurrentPermission] = useState<CommentPermission>("everyone");
-  
+  const [_currentPermission, setCurrentPermission] =
+    useState<CommentPermission>("everyone");
+
   const { comments, unresolvedCount, isLoading, refetch } = useComments(pageId);
   const { createComment, isLoading: isCreating } = useCreateComment();
   const { updateComment, isLoading: isResolving } = useUpdateComment();
   const { deleteComment, isLoading: isDeleting } = useDeleteComment();
   const { restoreComment, isLoading: isRestoring } = useRestoreComment();
-  
+
   // Check permissions
   const { settings } = usePageAccess(pageId);
-  const canUserComment = !settings || settings.commentPermission === "everyone" || 
+  const canUserComment =
+    !settings ||
+    settings.commentPermission === "everyone" ||
     (settings.commentPermission === "authenticated" && currentUserId) ||
-    (settings.commentPermission === "creator_only" && currentUserId === pageCreatorId);
-  
+    (settings.commentPermission === "creator_only" &&
+      currentUserId === pageCreatorId);
+
   const isCreator = currentUserId === pageCreatorId;
-  
-  const activeComments = comments.filter(c => !c.resolved && c.content !== "[deleted]");
-  const resolvedComments = comments.filter(c => c.resolved && c.content !== "[deleted]");
-  const deletedComments = comments.filter(c => c.content === "[deleted]");
-  
+
+  const activeComments = comments.filter(
+    (c) => !c.resolved && c.content !== "[deleted]",
+  );
+  const resolvedComments = comments.filter(
+    (c) => c.resolved && c.content !== "[deleted]",
+  );
+  const deletedComments = comments.filter((c) => c.content === "[deleted]");
+
   const historyCount = resolvedComments.length + deletedComments.length;
-  
+
   const handleSubmit = async () => {
     if (!newComment.trim() || !pageId) return;
-    
+
     const success = await createComment({
       pageId,
       content: newComment,
       selection: selection || undefined,
     });
-    
+
     if (success) {
       setNewComment("");
       onClearSelection?.();
       refetch();
     }
   };
-  
+
   const handleResolve = async (commentId: string) => {
     const success = await updateComment({
       recordId: commentId,
@@ -322,19 +354,19 @@ export function CommentsPanelEnhanced({
     });
     if (success) refetch();
   };
-  
+
   const handleDelete = async (commentId: string) => {
     const success = await deleteComment(commentId);
     if (success) refetch();
   };
-  
+
   const handleRestore = async (commentId: string) => {
     const success = await restoreComment(commentId);
     if (success) refetch();
   };
-  
+
   if (!isOpen) return null;
-  
+
   return (
     <div className="w-80 border-l bg-background flex flex-col h-full">
       {/* Header */}
@@ -350,20 +382,28 @@ export function CommentsPanelEnhanced({
         </div>
         <div className="flex items-center gap-1">
           {isCreator && pageId && (
-            <AccessSettingsDialog 
-              pageId={pageId} 
+            <AccessSettingsDialog
+              pageId={pageId}
               currentPermission={settings?.commentPermission || "everyone"}
               onUpdate={setCurrentPermission}
             />
           )}
-          <Button variant="ghost" size="icon" className="size-8" onClick={onClose}>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="size-8"
+            onClick={onClose}
+          >
             <X className="size-4" />
           </Button>
         </div>
       </div>
-      
+
       {/* Tabs */}
-      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "active" | "history")}>
+      <Tabs
+        value={activeTab}
+        onValueChange={(v) => setActiveTab(v as "active" | "history")}
+      >
         <TabsList className="w-full rounded-none border-b">
           <TabsTrigger value="active" className="flex-1">
             Активные ({activeComments.length})
@@ -372,7 +412,7 @@ export function CommentsPanelEnhanced({
             История ({historyCount})
           </TabsTrigger>
         </TabsList>
-        
+
         <TabsContent value="active" className="m-0 flex-1 flex flex-col">
           {/* New comment input */}
           {selectedText && canUserComment && (
@@ -391,14 +431,10 @@ export function CommentsPanelEnhanced({
                 autoFocus
               />
               <div className="flex justify-end gap-2 mt-2">
-                <Button 
-                  variant="ghost" 
-                  size="sm"
-                  onClick={onClearSelection}
-                >
+                <Button variant="ghost" size="sm" onClick={onClearSelection}>
                   Отмена
                 </Button>
-                <Button 
+                <Button
                   size="sm"
                   onClick={handleSubmit}
                   disabled={!newComment.trim() || isCreating}
@@ -409,14 +445,14 @@ export function CommentsPanelEnhanced({
               </div>
             </div>
           )}
-          
+
           {!canUserComment && (
             <div className="p-3 bg-muted/50 text-center text-sm text-muted-foreground">
               <Shield className="size-4 mx-auto mb-1" />
               Комментирование ограничено
             </div>
           )}
-          
+
           {/* Active comments list */}
           <ScrollArea className="flex-1">
             {isLoading ? (
@@ -460,18 +496,18 @@ export function CommentsPanelEnhanced({
             )}
           </ScrollArea>
         </TabsContent>
-        
+
         <TabsContent value="history" className="m-0 flex-1 flex flex-col">
           <div className="p-2 border-b bg-muted/30">
             <label className="flex items-center gap-2 text-sm cursor-pointer">
-              <Switch 
-                checked={showResolved} 
+              <Switch
+                checked={showResolved}
                 onCheckedChange={setShowResolved}
               />
               <span>Показать удаленные</span>
             </label>
           </div>
-          
+
           <ScrollArea className="flex-1">
             {isLoading ? (
               <div className="p-4 space-y-4">
@@ -506,21 +542,22 @@ export function CommentsPanelEnhanced({
                     showResolved={showResolved}
                   />
                 ))}
-                
+
                 {/* Deleted comments */}
-                {showResolved && deletedComments.map((comment) => (
-                  <CommentThread
-                    key={comment.recordId}
-                    comment={comment}
-                    onResolve={handleResolve}
-                    onDelete={handleDelete}
-                    onRestore={handleRestore}
-                    isResolving={isResolving}
-                    isDeleting={isDeleting}
-                    isRestoring={isRestoring}
-                    showResolved={true}
-                  />
-                ))}
+                {showResolved &&
+                  deletedComments.map((comment) => (
+                    <CommentThread
+                      key={comment.recordId}
+                      comment={comment}
+                      onResolve={handleResolve}
+                      onDelete={handleDelete}
+                      onRestore={handleRestore}
+                      isResolving={isResolving}
+                      isDeleting={isDeleting}
+                      isRestoring={isRestoring}
+                      showResolved={true}
+                    />
+                  ))}
               </div>
             )}
           </ScrollArea>

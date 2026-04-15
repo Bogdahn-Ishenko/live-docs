@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import type { TablesRecord } from "@/fsd/shared/lib/tables-mw/api-types";
 
 const MWS_API_BASE = "https://tables.mws.ru/fusion/v1";
 
@@ -17,25 +16,25 @@ function getDatasheetId(): string | null {
 export async function GET(request: Request) {
   const apiKey = getApiKey();
   const datasheetId = getDatasheetId();
-  
+
   if (!apiKey) {
     return NextResponse.json(
       { error: "MWS_API_KEY not configured" },
-      { status: 500 }
+      { status: 500 },
     );
   }
-  
+
   if (!datasheetId) {
     return NextResponse.json(
       { error: "WIKI_DATASHEET_ID not configured" },
-      { status: 500 }
+      { status: 500 },
     );
   }
-  
+
   try {
     const { searchParams } = new URL(request.url);
     const viewId = searchParams.get("viewId") || "viw0Lfw3STnJg";
-    
+
     const response = await fetch(
       `${MWS_API_BASE}/datasheets/${datasheetId}/records?viewId=${viewId}&fieldKey=name&pageSize=1000`,
       {
@@ -43,23 +42,23 @@ export async function GET(request: Request) {
           Authorization: `Bearer ${apiKey}`,
           "Content-Type": "application/json",
         },
-      }
+      },
     );
-    
+
     if (!response.ok) {
       const error = await response.text();
       return NextResponse.json(
         { error: `MWS Tables error: ${error}` },
-        { status: response.status }
+        { status: response.status },
       );
     }
-    
+
     const data = await response.json();
     return NextResponse.json(data);
   } catch (error) {
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Unknown error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -68,24 +67,24 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   const apiKey = getApiKey();
   const datasheetId = getDatasheetId();
-  
+
   if (!apiKey) {
     return NextResponse.json(
       { error: "MWS_API_KEY not configured" },
-      { status: 500 }
+      { status: 500 },
     );
   }
-  
+
   if (!datasheetId) {
     return NextResponse.json(
       { error: "WIKI_DATASHEET_ID not configured" },
-      { status: 500 }
+      { status: 500 },
     );
   }
-  
+
   try {
     const body = await request.json();
-    
+
     const response = await fetch(
       `${MWS_API_BASE}/datasheets/${datasheetId}/records`,
       {
@@ -98,23 +97,23 @@ export async function POST(request: Request) {
           records: body.records,
           fieldKey: "name",
         }),
-      }
+      },
     );
-    
+
     if (!response.ok) {
       const error = await response.text();
       return NextResponse.json(
         { error: `MWS Tables error: ${error}` },
-        { status: response.status }
+        { status: response.status },
       );
     }
-    
+
     const data = await response.json();
     return NextResponse.json(data);
   } catch (error) {
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Unknown error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -123,24 +122,24 @@ export async function POST(request: Request) {
 export async function PATCH(request: Request) {
   const apiKey = getApiKey();
   const datasheetId = getDatasheetId();
-  
+
   if (!apiKey) {
     return NextResponse.json(
       { error: "MWS_API_KEY not configured" },
-      { status: 500 }
+      { status: 500 },
     );
   }
-  
+
   if (!datasheetId) {
     return NextResponse.json(
       { error: "WIKI_DATASHEET_ID not configured" },
-      { status: 500 }
+      { status: 500 },
     );
   }
-  
+
   try {
     const body = await request.json();
-    
+
     const response = await fetch(
       `${MWS_API_BASE}/datasheets/${datasheetId}/records`,
       {
@@ -153,23 +152,23 @@ export async function PATCH(request: Request) {
           records: body.records,
           fieldKey: "name",
         }),
-      }
+      },
     );
-    
+
     if (!response.ok) {
       const error = await response.text();
       return NextResponse.json(
         { error: `MWS Tables error: ${error}` },
-        { status: response.status }
+        { status: response.status },
       );
     }
-    
+
     const data = await response.json();
     return NextResponse.json(data);
   } catch (error) {
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Unknown error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -178,57 +177,57 @@ export async function PATCH(request: Request) {
 export async function DELETE(request: Request) {
   const apiKey = getApiKey();
   const datasheetId = getDatasheetId();
-  
+
   if (!apiKey) {
     return NextResponse.json(
       { error: "MWS_API_KEY not configured" },
-      { status: 500 }
+      { status: 500 },
     );
   }
-  
+
   if (!datasheetId) {
     return NextResponse.json(
       { error: "WIKI_DATASHEET_ID not configured" },
-      { status: 500 }
+      { status: 500 },
     );
   }
-  
+
   try {
     const { searchParams } = new URL(request.url);
     const recordIds = searchParams.getAll("recordIds");
-    
+
     if (recordIds.length === 0) {
       return NextResponse.json(
         { error: "No recordIds provided" },
-        { status: 400 }
+        { status: 400 },
       );
     }
-    
+
     const response = await fetch(
-      `${MWS_API_BASE}/datasheets/${datasheetId}/records?${recordIds.map(id => `recordIds=${id}`).join("&")}`,
+      `${MWS_API_BASE}/datasheets/${datasheetId}/records?${recordIds.map((id) => `recordIds=${id}`).join("&")}`,
       {
         method: "DELETE",
         headers: {
           Authorization: `Bearer ${apiKey}`,
           "Content-Type": "application/json",
         },
-      }
+      },
     );
-    
+
     if (!response.ok) {
       const error = await response.text();
       return NextResponse.json(
         { error: `MWS Tables error: ${error}` },
-        { status: response.status }
+        { status: response.status },
       );
     }
-    
+
     const data = await response.json();
     return NextResponse.json(data);
   } catch (error) {
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Unknown error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

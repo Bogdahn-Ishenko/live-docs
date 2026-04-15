@@ -12,11 +12,14 @@ export async function GET(request: NextRequest, { params }: Params) {
     const { slug } = await params;
     const backendUrl = `${getWikiBackendBaseUrl()}/api/pages/${encodeSlugPath(
       slug,
-    )}/backlinks`;
+    )}/versions`;
 
-    return await proxyToBackend(request, backendUrl, { method: "GET" });
+    return await proxyToBackend(request, backendUrl, {
+      method: "GET",
+      requiresAuth: true,
+    });
   } catch (error) {
-    console.error("Wiki backlinks fetch failed:", error);
+    console.error("Wiki versions fetch failed:", error);
     return NextResponse.json(
       { error: "Внутренняя ошибка сервера" },
       { status: 500 },

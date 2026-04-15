@@ -7,16 +7,22 @@ type Params = {
   params: Promise<{ slug: string }>;
 };
 
-export async function GET(request: NextRequest, { params }: Params) {
+export async function POST(request: NextRequest, { params }: Params) {
   try {
     const { slug } = await params;
+    const url = new URL(request.url);
+    const queryString = url.searchParams.toString();
+
     const backendUrl = `${getWikiBackendBaseUrl()}/api/pages/${encodeSlugPath(
       slug,
-    )}/backlinks`;
+    )}/draft/publish${queryString ? `?${queryString}` : ""}`;
 
-    return await proxyToBackend(request, backendUrl, { method: "GET" });
+    return await proxyToBackend(request, backendUrl, {
+      method: "POST",
+      requiresAuth: true,
+    });
   } catch (error) {
-    console.error("Wiki backlinks fetch failed:", error);
+    console.error("Wiki draft publish failed:", error);
     return NextResponse.json(
       { error: "Внутренняя ошибка сервера" },
       { status: 500 },

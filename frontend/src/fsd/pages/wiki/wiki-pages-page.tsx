@@ -51,7 +51,7 @@ import {
   useMemo,
   useState,
 } from "react";
-
+import { useWikiAuth } from "@/fsd/shared/hooks/wiki/use-wiki-auth";
 import {
   createWikiPage,
   deleteWikiPage,
@@ -86,6 +86,7 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@/fsd/shared/ui/dropdown-menu";
+import { WikiLoginDialog } from "@/fsd/shared/ui/wiki/login-dialog";
 
 const LOCAL_ORDER_KEY = "wikilive:docs-order:v3";
 
@@ -323,6 +324,7 @@ function Row({
   deletingId,
   overTarget,
   isOverlay,
+  canManage,
 }: {
   row: VisibleRow;
   expanded: Set<string>;
@@ -340,6 +342,7 @@ function Row({
   deletingId: number | null;
   overTarget: { pageId: number; placement: DropPlacement } | null;
   isOverlay?: boolean;
+  canManage?: boolean;
 }) {
   const router = useRouter();
   const {
@@ -478,15 +481,17 @@ function Row({
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-56">
-            <DropdownMenuItem
-              onClick={(event) => {
-                event.stopPropagation();
-                onStartRename(row.page);
-              }}
-            >
-              <Pencil className="size-4" />
-              Переименовать
-            </DropdownMenuItem>
+            {canManage && (
+              <DropdownMenuItem
+                onClick={(event) => {
+                  event.stopPropagation();
+                  onStartRename(row.page);
+                }}
+              >
+                <Pencil className="size-4" />
+                Переименовать
+              </DropdownMenuItem>
+            )}
             <DropdownMenuItem
               onClick={(event) => {
                 event.stopPropagation();
@@ -496,47 +501,51 @@ function Row({
               <Copy className="size-4" />
               Скопировать ссылку
             </DropdownMenuItem>
-            <DropdownMenuSub>
-              <DropdownMenuSubTrigger>
-                <FolderTree className="size-4" />
-                Переместить в
-              </DropdownMenuSubTrigger>
-              <DropdownMenuSubContent>
-                <DropdownMenuItem
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    onMove(row.page, null);
-                  }}
-                >
-                  В корень (без папки)
-                </DropdownMenuItem>
-                {folders
-                  .filter((folder) => folder.slug !== row.page.slug)
-                  .map((folder) => (
-                    <DropdownMenuItem
-                      key={folder.id}
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        onMove(row.page, folder.slug);
-                      }}
-                    >
-                      {folder.title || folder.slug}
-                    </DropdownMenuItem>
-                  ))}
-              </DropdownMenuSubContent>
-            </DropdownMenuSub>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem
-              variant="destructive"
-              disabled={deletingId === row.page.id}
-              onClick={(event) => {
-                event.stopPropagation();
-                onDelete(row.page);
-              }}
-            >
-              <Trash2 className="size-4" />
-              Удалить
-            </DropdownMenuItem>
+            {canManage && (
+              <DropdownMenuSub>
+                <DropdownMenuSubTrigger>
+                  <FolderTree className="size-4" />
+                  Переместить в
+                </DropdownMenuSubTrigger>
+                <DropdownMenuSubContent>
+                  <DropdownMenuItem
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      onMove(row.page, null);
+                    }}
+                  >
+                    В корень (без папки)
+                  </DropdownMenuItem>
+                  {folders
+                    .filter((folder) => folder.slug !== row.page.slug)
+                    .map((folder) => (
+                      <DropdownMenuItem
+                        key={folder.id}
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          onMove(row.page, folder.slug);
+                        }}
+                      >
+                        {folder.title || folder.slug}
+                      </DropdownMenuItem>
+                    ))}
+                </DropdownMenuSubContent>
+              </DropdownMenuSub>
+            )}
+            {canManage && <DropdownMenuSeparator />}
+            {canManage && (
+              <DropdownMenuItem
+                variant="destructive"
+                disabled={deletingId === row.page.id}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  onDelete(row.page);
+                }}
+              >
+                <Trash2 className="size-4" />
+                Удалить
+              </DropdownMenuItem>
+            )}
           </DropdownMenuContent>
         </DropdownMenu>
       )}
@@ -573,6 +582,8 @@ function Row({
 }
 
 export default function WikiPagesPage() {
+  const { isAuthenticated, logout } = useWikiAuth();
+  const [loginOpen, setLoginOpen] = useState(false);
   const [pages, setPages] = useState<WikiPage[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -945,6 +956,7 @@ export default function WikiPagesPage() {
       const { active, over } = event;
       setActiveId(null);
       setOverTarget(null);
+      if (!isAuthenticated) return;
       const dropTarget = parseDropTargetId(over?.id);
       if (!dropTarget || active.id === dropTarget.pageId) return;
 
@@ -1047,7 +1059,7 @@ export default function WikiPagesPage() {
         });
       }
     },
-    [bySlug, pages, resolvePlacement],
+    [bySlug, isAuthenticated, pages, resolvePlacement],
   );
 
   return (
@@ -1087,6 +1099,15 @@ export default function WikiPagesPage() {
             <FolderPlus className="size-4" />
             {isCreatingFolder ? "Создание..." : "Новая папка"}
           </Button>
+          {isAuthenticated ? (
+            <Button variant="ghost" onClick={() => void logout()}>
+              Выйти
+            </Button>
+          ) : (
+            <Button variant="outline" onClick={() => setLoginOpen(true)}>
+              Войти
+            </Button>
+          )}
         </div>
       </header>
 
@@ -1148,6 +1169,7 @@ export default function WikiPagesPage() {
                   onDelete={handleDelete}
                   deletingId={deletingId}
                   overTarget={overTarget}
+                  canManage={isAuthenticated}
                 />
               ))}
             </SortableContext>
@@ -1172,6 +1194,7 @@ export default function WikiPagesPage() {
                     deletingId={deletingId}
                     overTarget={overTarget}
                     isOverlay
+                    canManage={isAuthenticated}
                   />
                 </div>
               ) : null}
@@ -1221,6 +1244,8 @@ export default function WikiPagesPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <WikiLoginDialog open={loginOpen} onOpenChange={setLoginOpen} />
     </main>
   );
 }

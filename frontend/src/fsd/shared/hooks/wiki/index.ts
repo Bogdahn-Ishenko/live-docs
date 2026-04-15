@@ -1,30 +1,29 @@
 export {
-  useWikiPages,
-  useWikiPage,
-  useWikiPageById,
-  useCreateWikiPage,
-  useUpdateWikiPage,
-  useDeleteWikiPage,
-  useWikiBacklinks,
-  useWikiHierarchy,
-  useAutoSave,
-} from "./use-wiki-pages";
+  usePageAccess,
+  useUpdatePageAccess,
+} from "./use-access-control";
 
 export {
   useComments,
   useCreateComment,
-  useUpdateComment,
   useDeleteComment,
   useRestoreComment,
+  useUpdateComment,
 } from "./use-comments";
 
 export {
-  useVersions,
-  useCreateVersion,
   useAutoSaveVersion,
+  useCreateVersion,
+  useVersions,
 } from "./use-versions";
-
 export {
-  usePageAccess,
-  useUpdatePageAccess,
-} from "./use-access-control";
+  useAutoSave,
+  useCreateWikiPage,
+  useDeleteWikiPage,
+  useUpdateWikiPage,
+  useWikiBacklinks,
+  useWikiHierarchy,
+  useWikiPage,
+  useWikiPageById,
+  useWikiPages,
+} from "./use-wiki-pages";
