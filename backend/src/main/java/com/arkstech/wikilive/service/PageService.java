@@ -41,30 +41,25 @@ public class PageService {
         String currentSlug = baseSlug;
         int counter = 1;
 
-        while (true) {
-            try {
-                WikiPage page = WikiPage.builder()
-                        .title(request.getTitle())
-                        .content(request.getContent())
-                        .slug(currentSlug)
-                        .mwsTableId(request.getMwsTableId())
-                        .parentSlug(request.getParentSlug())
-                        .ownerId(SecurityContextHolder.getContext().getAuthentication().getName())
-                        .build();
-
-                //парсим ссылки и сохраняем.
-                attachWikiLinks(page);
-                WikiPage savedPage = pageRepository.saveAndFlush(page);
-                updateExistingRedLinks(savedPage);
-
-                sendWebSocketNotification(savedPage, "created");
-
-                return savedPage;
-
-            } catch (DataIntegrityViolationException e) {
-                currentSlug = baseSlug + "-" + counter++;
-            }
+        while (pageRepository.existsBySlug(currentSlug)) {
+            currentSlug = baseSlug + "-" + counter++;
         }
+
+        WikiPage page = WikiPage.builder()
+                .title(request.getTitle())
+                .content(request.getContent())
+                .slug(currentSlug)
+                .mwsTableId(request.getMwsTableId())
+                .parentSlug(request.getParentSlug())
+                .ownerId(SecurityContextHolder.getContext().getAuthentication().getName())
+                .build();
+
+        attachWikiLinks(page);
+        WikiPage savedPage = pageRepository.saveAndFlush(page);
+        updateExistingRedLinks(savedPage);
+        sendWebSocketNotification(savedPage, "created");
+
+        return savedPage;
     }
 
     @PreAuthorize("@pageAccessService.canEdit(#slug, authentication.name)")
