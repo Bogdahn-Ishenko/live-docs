@@ -50,28 +50,40 @@ Backend выступает как **единый источник бизнес-�
 
 
 
-# 🚀 Запуск проекта
+## 🚀 Запуск проекта
 
 Проект полностью контейнеризирован и запускается одной командой:
 
 ```bash
-docker compose up --build
-После запуска сервисы доступны:
-
-Сервис	URL
-Backend API	https://wiki-live.ru/api
-
-WebSocket (YJS)	wss://wiki-live.ru/yjs
-Adminer	http://<server-ip>:8080
+docker compose up -d --build
 ```
 
-| Сервис          | URL                                                  |
-| --------------- | ---------------------------------------------------- |
-| Backend API     | [https://wiki-live.ru/api](https://wiki-live.ru/api) |
-| WebSocket (YJS) | wss://wiki-live.ru/yjs                               |
-| Adminer         | http://<server-ip>:8080                              |
+---
 
-⚡ Production-ready: доступ через публичный домен без дополнительной настройки
+## 🌐 Доступ к сервисам (локально)
+
+После запуска сервисы доступны:
+
+| Сервис            | URL                       |
+|------------------|---------------------------|
+| Frontend         | http://localhost:3000     |
+| Backend API      | http://localhost:8085/api |
+| WebSocket (YJS)  | ws://localhost:1234       |
+| Adminer          | http://localhost:8080     |
+
+---
+
+## 🌍 Production (домен)
+
+В production (через reverse proxy) сервисы доступны по домену:
+
+| Сервис            | URL                       |
+|------------------|---------------------------|
+| Frontend         | https://wiki-live.ru      |
+| Backend API      | https://wiki-live.ru/api  |
+| WebSocket (YJS)  | wss://wiki-live.ru/yjs    |
+
+> ⚠️ Требуется настройка reverse proxy (например, Nginx)
 
 ---
 
