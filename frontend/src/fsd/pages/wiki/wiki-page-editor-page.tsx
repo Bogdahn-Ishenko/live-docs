@@ -558,6 +558,7 @@ export default function WikiPageEditorPage({ slug }: { slug: string }) {
                   key={`wiki-editor-${slug}-${editorInstanceKey}`}
                   editorSerializedState={initialEditorState}
                   onSerializedChange={setEditorState}
+                  collabId={slug}
                 />
               </CommentThreadLauncher>
             </div>
