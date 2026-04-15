@@ -107,7 +107,7 @@ function VersionPreviewDialog({
             Версия от {formatVersionDate(version.createdAt)}
           </DialogTitle>
           <DialogDescription>
-            {getActionLabel(version.action)} · {version.author}
+            {getActionLabel(version.action)} · {version.author ?? "Неизвестно"}
             {version.comment ? ` · ${version.comment}` : ""}
           </DialogDescription>
         </DialogHeader>
@@ -236,7 +236,7 @@ function VersionItem({
         <div className="flex items-start gap-3">
           <Avatar className="size-8">
             <AvatarFallback className="text-[10px] bg-secondary text-secondary-foreground">
-              {version.author.slice(0, 2).toUpperCase()}
+              {(version.author ?? "?").slice(0, 2).toUpperCase()}
             </AvatarFallback>
           </Avatar>
 
@@ -256,7 +256,7 @@ function VersionItem({
             </div>
 
             <div className="text-xs text-muted-foreground mt-0.5">
-              {version.author}
+              {version.author ?? "Неизвестно"}
             </div>
 
             {version.comment && (
