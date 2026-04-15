@@ -41,14 +41,17 @@ import {
   Pencil,
   Plus,
   Trash2,
+  Upload,
 } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import {
+  type ChangeEvent,
   type KeyboardEvent,
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 
@@ -56,6 +59,7 @@ import {
   createWikiPage,
   deleteWikiPage,
   fetchWikiPages,
+  importWikiFile,
   updateWikiPage,
 } from "@/fsd/shared/lib/wiki-pages/api";
 import {
@@ -573,6 +577,7 @@ function Row({
 }
 
 export default function WikiPagesPage() {
+  const router = useRouter();
   const [pages, setPages] = useState<WikiPage[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -587,6 +592,8 @@ export default function WikiPagesPage() {
   const [editingTitle, setEditingTitle] = useState("");
   const [isCreatingDocument, setIsCreatingDocument] = useState(false);
   const [isCreatingFolder, setIsCreatingFolder] = useState(false);
+  const [isImporting, setIsImporting] = useState(false);
+  const importInputRef = useRef<HTMLInputElement | null>(null);
   const [modal, setModal] = useState<ModalState>({
     open: false,
     title: "",
@@ -868,6 +875,50 @@ export default function WikiPagesPage() {
     [isCreatingDocument, isCreatingFolder, pages],
   );
 
+  const handleImportFile = useCallback(
+    async (event: ChangeEvent<HTMLInputElement>) => {
+      const file = event.target.files?.[0];
+      event.target.value = "";
+      if (!file || isImporting) return;
+
+      setIsImporting(true);
+      try {
+        const imported = await importWikiFile(file);
+        const rawTitle = imported.suggestedTitle?.trim() || "Импортированный документ";
+        const title = getNextDefaultTitle(pages, rawTitle);
+        const description = imported.originalFileName
+          ? `Импортировано из ${imported.originalFileName}`
+          : "Импортированный документ";
+
+        const created = await createWikiPage({
+          title,
+          description,
+          content: imported.content,
+          mwsTableId: null,
+          parentSlug: null,
+        });
+
+        setPages((prev) => {
+          const next = [created, ...prev];
+          saveOrder(next.map((item) => item.id));
+          return next;
+        });
+
+        router.push(`/wiki/${created.slug}`);
+      } catch (err) {
+        setModal({
+          open: true,
+          title: "Ошибка импорта",
+          description:
+            err instanceof Error ? err.message : "Не удалось импортировать файл",
+        });
+      } finally {
+        setIsImporting(false);
+      }
+    },
+    [isImporting, pages, router],
+  );
+
   const handleDragStart = useCallback((event: DragStartEvent) => {
     setActiveId(event.active.id as number);
     setOverTarget(null);
@@ -1059,6 +1110,7 @@ export default function WikiPagesPage() {
               src="/branding/logo.png"
               alt="WikiLive logo"
               fill
+              sizes="64px"
               className="object-cover"
               priority
             />
@@ -1070,9 +1122,25 @@ export default function WikiPagesPage() {
         </div>
 
         <div className="flex items-center gap-3">
+          <input
+            ref={importInputRef}
+            type="file"
+            accept=".md,.markdown,.txt,.docx,.pdf,text/plain,text/markdown,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+            className="hidden"
+            onChange={(event) => void handleImportFile(event)}
+          />
+          <Button
+            variant="outline"
+            className="gap-2"
+            disabled={isCreatingDocument || isCreatingFolder || isImporting}
+            onClick={() => importInputRef.current?.click()}
+          >
+            <Upload className="size-4" />
+            {isImporting ? "Импорт..." : "Импорт"}
+          </Button>
           <Button
             className="gap-2"
-            disabled={isCreatingDocument || isCreatingFolder}
+            disabled={isCreatingDocument || isCreatingFolder || isImporting}
             onClick={() => void handleCreateInRoot(false)}
           >
             <Plus className="size-4" />
@@ -1081,7 +1149,7 @@ export default function WikiPagesPage() {
           <Button
             variant="outline"
             className="gap-2"
-            disabled={isCreatingDocument || isCreatingFolder}
+            disabled={isCreatingDocument || isCreatingFolder || isImporting}
             onClick={() => void handleCreateInRoot(true)}
           >
             <FolderPlus className="size-4" />

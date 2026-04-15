@@ -95,3 +95,23 @@ export async function deleteWikiPage(slug: string): Promise<void> {
     throw new Error(message);
   }
 }
+
+export type ImportedWikiFile = {
+  sourceFormat: string;
+  suggestedTitle: string;
+  originalFileName: string;
+  markdown: string;
+  content: string;
+};
+
+export async function importWikiFile(file: File): Promise<ImportedWikiFile> {
+  const formData = new FormData();
+  formData.set("file", file, file.name);
+
+  const response = await fetch("/api/wiki/import", {
+    method: "POST",
+    body: formData,
+  });
+
+  return parseApiResponse<ImportedWikiFile>(response);
+}

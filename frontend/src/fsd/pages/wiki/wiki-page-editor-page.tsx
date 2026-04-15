@@ -114,6 +114,8 @@ export default function WikiPageEditorPage({ slug }: { slug: string }) {
   const latestParentSlugRef = useRef(parentSlug);
   const latestEditorStateRef = useRef<SerializedEditorState | null>(null);
   const syncedSignatureRef = useRef<string>("");
+  const loadingSinceRef = useRef<number | null>(Date.now());
+  const recoveryInFlightRef = useRef(false);
 
   useEffect(() => {
     latestTitleRef.current = title;
@@ -186,6 +188,85 @@ export default function WikiPageEditorPage({ slug }: { slug: string }) {
   useEffect(() => {
     void loadPage();
   }, [loadPage]);
+
+  useEffect(() => {
+    if (saveStatus === "loading") {
+      if (loadingSinceRef.current === null) {
+        loadingSinceRef.current = Date.now();
+      }
+      return;
+    }
+    loadingSinceRef.current = null;
+  }, [saveStatus]);
+
+  useEffect(() => {
+    const recover = (reason: "pageshow" | "visibility" | "watchdog") => {
+      const exportStartedAtRaw =
+        typeof window !== "undefined"
+          ? window.sessionStorage.getItem("wikilive:docx-export-started-at")
+          : null;
+      const exportStartedAt = exportStartedAtRaw
+        ? Number(exportStartedAtRaw)
+        : null;
+      const fromRecentDocxExport =
+        typeof exportStartedAt === "number" &&
+        Number.isFinite(exportStartedAt) &&
+        Date.now() - exportStartedAt < 5 * 60 * 1000;
+
+      console.info("[wiki-editor][recover]", {
+        reason,
+        saveStatus,
+        hasPage: Boolean(page),
+        hasInitialEditorState: Boolean(initialEditorState),
+        fromRecentDocxExport,
+      });
+
+      if (recoveryInFlightRef.current) return;
+      if (document.visibilityState === "hidden") return;
+
+      if (page && (initialEditorState || fromRecentDocxExport)) {
+        setSaveStatus((prev) => {
+          if (prev !== "loading") return prev;
+          return lastSyncedAt ? "saved" : "idle";
+        });
+        return;
+      }
+
+      if (saveStatus !== "loading") return;
+
+      const startedAt = loadingSinceRef.current ?? Date.now();
+      const loadingTooLong = Date.now() - startedAt > 5000;
+
+      if (loadingTooLong) {
+        console.info("[wiki-editor][recover] loadPage() retry");
+        recoveryInFlightRef.current = true;
+        void loadPage().finally(() => {
+          recoveryInFlightRef.current = false;
+        });
+      }
+    };
+
+    const onVisibility = () => {
+      if (document.visibilityState === "visible") {
+        recover("visibility");
+      }
+    };
+
+    const onPageShow = () => {
+      recover("pageshow");
+    };
+
+    window.addEventListener("pageshow", onPageShow);
+    document.addEventListener("visibilitychange", onVisibility);
+
+    const watchdog = window.setInterval(() => recover("watchdog"), 3000);
+
+    return () => {
+      window.removeEventListener("pageshow", onPageShow);
+      document.removeEventListener("visibilitychange", onVisibility);
+      window.clearInterval(watchdog);
+    };
+  }, [initialEditorState, lastSyncedAt, loadPage, page, saveStatus]);
 
   useEffect(() => {
     if (!page || !editorState || saveStatus === "loading") return;
@@ -329,6 +410,8 @@ export default function WikiPageEditorPage({ slug }: { slug: string }) {
                   key={`wiki-editor-${slug}-${editorInstanceKey}`}
                   editorSerializedState={initialEditorState}
                   onSerializedChange={setEditorState}
+                  documentTitle={resolveBaseTitle(title)}
+                  documentDescription={description}
                 />
               </CommentThreadLauncher>
             </div>

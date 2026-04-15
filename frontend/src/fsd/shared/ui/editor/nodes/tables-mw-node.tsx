@@ -7,6 +7,7 @@ import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext
 import { $insertNodeToNearestRoot } from "@lexical/utils";
 import {
   DecoratorNode,
+  type DOMExportOutput,
   type EditorConfig,
   type LexicalEditor,
   type LexicalNode,
@@ -103,6 +104,35 @@ export class TablesMwNode extends DecoratorNode<JSX.Element> {
       viewId: this.__viewId,
       version: 1,
     };
+  }
+
+  exportDOM(): DOMExportOutput {
+    const wrapper = document.createElement("div");
+    wrapper.setAttribute("data-lexical-tables-mw", "true");
+    wrapper.setAttribute("data-url", this.__url);
+    wrapper.setAttribute("data-datasheet-id", this.__datasheetId ?? "");
+    wrapper.setAttribute("data-view-id", this.__viewId ?? "");
+    wrapper.style.border = "1px solid #d1d5db";
+    wrapper.style.borderRadius = "8px";
+    wrapper.style.padding = "10px 12px";
+    wrapper.style.margin = "12px 0";
+    wrapper.style.background = "#f9fafb";
+
+    const title = document.createElement("div");
+    title.textContent = "Tables.mws.ru table";
+    title.style.fontWeight = "600";
+    title.style.marginBottom = "4px";
+    wrapper.appendChild(title);
+
+    const link = document.createElement("a");
+    link.href = this.__url;
+    link.textContent = this.__url;
+    link.target = "_blank";
+    link.rel = "noopener noreferrer";
+    link.style.wordBreak = "break-all";
+    wrapper.appendChild(link);
+
+    return { element: wrapper };
   }
 
   getUrl(): string {

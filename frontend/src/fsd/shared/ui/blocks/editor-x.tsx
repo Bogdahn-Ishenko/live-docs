@@ -16,13 +16,6 @@ import {
   LinkExtension,
 } from "@lexical/link";
 import { CheckListExtension, ListExtension } from "@lexical/list";
-import {
-  CHECK_LIST,
-  ELEMENT_TRANSFORMERS,
-  MULTILINE_ELEMENT_TRANSFORMERS,
-  TEXT_FORMAT_TRANSFORMERS,
-  TEXT_MATCH_TRANSFORMERS,
-} from "@lexical/markdown";
 import { OverflowNode } from "@lexical/overflow";
 import { CharacterLimitPlugin } from "@lexical/react/LexicalCharacterLimitPlugin";
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
@@ -134,11 +127,7 @@ import { ToolbarPlugin } from "@/fsd/shared/ui/editor/plugins/toolbar/toolbar-pl
 import { TypingPerfPlugin } from "@/fsd/shared/ui/editor/plugins/typing-pref-plugin";
 import { WikiLinksPlugin } from "@/fsd/shared/ui/editor/plugins/wiki-links-plugin";
 import { editorTheme } from "@/fsd/shared/ui/editor/themes/editor-theme";
-import { EMOJI } from "@/fsd/shared/ui/editor/transformers/markdown-emoji-transformer";
-import { HR } from "@/fsd/shared/ui/editor/transformers/markdown-hr-transformer";
-import { IMAGE } from "@/fsd/shared/ui/editor/transformers/markdown-image-transformer";
-import { TABLE } from "@/fsd/shared/ui/editor/transformers/markdown-table-transformer";
-import { TWEET } from "@/fsd/shared/ui/editor/transformers/markdown-tweet-transformer";
+import { MARKDOWN_TRANSFORMERS } from "@/fsd/shared/ui/editor/transformers/markdown-transformers";
 import { validateUrl } from "@/fsd/shared/ui/editor/utils/url";
 import { Separator } from "@/fsd/shared/ui/separator";
 import { TooltipProvider } from "@/fsd/shared/ui/tooltip";
@@ -172,11 +161,15 @@ export function Editor({
   editorSerializedState,
   onChange,
   onSerializedChange,
+  documentTitle,
+  documentDescription,
 }: {
   editorState?: EditorState;
   editorSerializedState?: SerializedEditorState | null;
   onChange?: (editorState: EditorState) => void;
   onSerializedChange?: (editorSerializedState: SerializedEditorState) => void;
+  documentTitle?: string;
+  documentDescription?: string;
 }) {
   const {
     toolbarItems,
@@ -213,18 +206,7 @@ export function Editor({
           configExtension(ListExtension, { shouldPreserveNumbering: false }),
           CheckListExtension,
           configExtension(MarkdownShortcutsExtension, {
-            transformers: [
-              TABLE,
-              HR,
-              IMAGE,
-              EMOJI,
-              TWEET,
-              CHECK_LIST,
-              ...ELEMENT_TRANSFORMERS,
-              ...MULTILINE_ELEMENT_TRANSFORMERS,
-              ...TEXT_FORMAT_TRANSFORMERS,
-              ...TEXT_MATCH_TRANSFORMERS,
-            ],
+            transformers: MARKDOWN_TRANSFORMERS,
           }),
           AutoFocusExtension,
           ClearEditorExtension,
@@ -593,22 +575,16 @@ export function Editor({
                   <TablesMwBrowserButton />
                   {footerItems.speechToText && <SpeechToTextPlugin />}
                   {footerItems.shareContent && <ShareContentPlugin />}
-                  {footerItems.exportImport && <ImportExportPlugin />}
+                  {footerItems.exportImport && (
+                    <ImportExportPlugin
+                      documentTitle={documentTitle}
+                      documentDescription={documentDescription}
+                    />
+                  )}
                   {footerItems.markdownToggle && (
                     <MarkdownTogglePlugin
                       shouldPreserveNewLinesInMarkdown={true}
-                      transformers={[
-                        TABLE,
-                        HR,
-                        IMAGE,
-                        EMOJI,
-                        TWEET,
-                        CHECK_LIST,
-                        ...ELEMENT_TRANSFORMERS,
-                        ...MULTILINE_ELEMENT_TRANSFORMERS,
-                        ...TEXT_FORMAT_TRANSFORMERS,
-                        ...TEXT_MATCH_TRANSFORMERS,
-                      ]}
+                      transformers={MARKDOWN_TRANSFORMERS}
                     />
                   )}
                   {footerItems.viewOnly && <EditModeTogglePlugin />}
