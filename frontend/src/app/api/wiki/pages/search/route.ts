@@ -1,8 +1,8 @@
-import { NextResponse } from "next/server";
-
+import { type NextRequest, NextResponse } from "next/server";
 import { getWikiBackendBaseUrl } from "@/app/api/wiki/_lib/backend-config";
+import { proxyToBackend } from "@/app/api/wiki/_lib/proxy";
 
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
   try {
     const url = new URL(request.url);
     const query = url.searchParams.get("query") ?? "";
@@ -10,26 +10,11 @@ export async function GET(request: Request) {
       query,
     )}`;
 
-    const response = await fetch(backendUrl, {
-      method: "GET",
-      cache: "no-store",
-    });
-
-    const data = await response.json().catch(() => null);
-    if (!response.ok) {
-      return NextResponse.json(
-        data ?? { error: "Не удалось выполнить поиск" },
-        { status: response.status },
-      );
-    }
-
-    return NextResponse.json(data, { status: response.status });
+    return await proxyToBackend(request, backendUrl, { method: "GET" });
   } catch (error) {
     console.error("Wiki page search failed:", error);
     return NextResponse.json(
-      {
-        error: "Внутренняя ошибка сервера",
-      },
+      { error: "Внутренняя ошибка сервера" },
       { status: 500 },
     );
   }

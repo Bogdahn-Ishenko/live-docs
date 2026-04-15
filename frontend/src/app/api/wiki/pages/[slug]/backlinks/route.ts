@@ -1,38 +1,24 @@
-import { NextResponse } from "next/server";
-
+import { type NextRequest, NextResponse } from "next/server";
 import { getWikiBackendBaseUrl } from "@/app/api/wiki/_lib/backend-config";
+import { proxyToBackend } from "@/app/api/wiki/_lib/proxy";
 import { encodeSlugPath } from "@/app/api/wiki/_lib/slug";
 
 type Params = {
   params: Promise<{ slug: string }>;
 };
 
-export async function GET(_request: Request, { params }: Params) {
+export async function GET(request: NextRequest, { params }: Params) {
   try {
     const { slug } = await params;
-    const response = await fetch(
-      `${getWikiBackendBaseUrl()}/api/pages/${encodeSlugPath(slug)}/backlinks`,
-      {
-        method: "GET",
-        cache: "no-store",
-      },
-    );
+    const backendUrl = `${getWikiBackendBaseUrl()}/api/pages/${encodeSlugPath(
+      slug,
+    )}/backlinks`;
 
-    const data = await response.json().catch(() => null);
-    if (!response.ok) {
-      return NextResponse.json(
-        data ?? { error: "Не удалось получить обратные ссылки" },
-        { status: response.status },
-      );
-    }
-
-    return NextResponse.json(data, { status: response.status });
+    return await proxyToBackend(request, backendUrl, { method: "GET" });
   } catch (error) {
     console.error("Wiki backlinks fetch failed:", error);
     return NextResponse.json(
-      {
-        error: "Внутренняя ошибка сервера",
-      },
+      { error: "Внутренняя ошибка сервера" },
       { status: 500 },
     );
   }

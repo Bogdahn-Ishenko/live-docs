@@ -1,23 +1,26 @@
-'use client';
+"use client";
 
-import { useState } from "react";
-import { 
-  History, 
-  X, 
-  RotateCcw,
-  Clock,
+import type { SerializedEditorState } from "lexical";
+import {
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  Clock,
+  History,
+  RotateCcw,
+  X,
 } from "lucide-react";
-
-import { Button } from "@/fsd/shared/ui/button";
+import { useState } from "react";
+import { useVersions } from "@/fsd/shared/hooks/wiki";
+import { cn } from "@/fsd/shared/lib/utils";
+import {
+  formatVersionDate,
+  getActionLabel,
+  type WikiPageVersion,
+} from "@/fsd/shared/lib/wiki/versions";
 import { Avatar, AvatarFallback } from "@/fsd/shared/ui/avatar";
+import { Button } from "@/fsd/shared/ui/button";
 import { ScrollArea } from "@/fsd/shared/ui/scroll-area";
 import { Skeleton } from "@/fsd/shared/ui/skeleton";
-import { cn } from "@/fsd/shared/lib/utils";
-import { useVersions } from "@/fsd/shared/hooks/wiki";
-import { formatVersionDate, getActionLabel, type WikiPageVersion } from "@/fsd/shared/lib/wiki/versions";
-import type { SerializedEditorState } from "lexical";
 
 interface VersionsPanelProps {
   pageId: string | null;
@@ -27,14 +30,14 @@ interface VersionsPanelProps {
   currentContent?: SerializedEditorState | null;
 }
 
-function VersionItem({ 
-  version, 
+function VersionItem({
+  version,
   isSelected,
   isExpanded,
   onToggle,
   onRestore,
-  isRestoring 
-}: { 
+  isRestoring,
+}: {
   version: WikiPageVersion;
   isSelected: boolean;
   isExpanded: boolean;
@@ -43,10 +46,9 @@ function VersionItem({
   isRestoring: boolean;
 }) {
   return (
-    <div className={cn(
-      "border-b last:border-b-0",
-      isSelected && "bg-primary/5"
-    )}>
+    <div
+      className={cn("border-b last:border-b-0", isSelected && "bg-primary/5")}
+    >
       <button
         onClick={onToggle}
         className="w-full p-4 text-left hover:bg-muted/50 transition-colors"
@@ -57,7 +59,7 @@ function VersionItem({
               {version.author.name.slice(0, 2).toUpperCase()}
             </AvatarFallback>
           </Avatar>
-          
+
           <div className="flex-1 min-w-0">
             <div className="flex items-center justify-between gap-2">
               <span className="font-medium text-sm truncate">
@@ -69,16 +71,16 @@ function VersionItem({
                 <ChevronDown className="size-4 text-muted-foreground" />
               )}
             </div>
-            
+
             <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
               <Clock className="size-3" />
               <span>{formatVersionDate(version.createdAt)}</span>
             </div>
-            
+
             <div className="text-xs text-muted-foreground mt-0.5">
               {version.author.name}
             </div>
-            
+
             {version.description && (
               <p className="text-xs text-muted-foreground mt-2 line-clamp-2">
                 {version.description}
@@ -87,7 +89,7 @@ function VersionItem({
           </div>
         </div>
       </button>
-      
+
       {isExpanded && (
         <div className="px-4 pb-4">
           <Button
@@ -106,23 +108,23 @@ function VersionItem({
   );
 }
 
-export function VersionsPanel({ 
-  pageId, 
-  isOpen, 
+export function VersionsPanel({
+  pageId,
+  isOpen,
   onClose,
   onRestore,
-  currentContent
+  currentContent,
 }: VersionsPanelProps) {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [restoringId, setRestoringId] = useState<string | null>(null);
-  
+
   const { versions, isLoading, refetch } = useVersions(pageId);
-  
+
   const handleRestore = async (version: WikiPageVersion) => {
     if (!onRestore) return;
-    
+
     setRestoringId(version.recordId);
-    
+
     try {
       onRestore(version.content);
       // Save current state as new version before restoring
@@ -131,9 +133,9 @@ export function VersionsPanel({
       setRestoringId(null);
     }
   };
-  
+
   if (!isOpen) return null;
-  
+
   return (
     <div className="w-80 border-l bg-background flex flex-col h-full">
       {/* Header */}
@@ -142,19 +144,24 @@ export function VersionsPanel({
           <History className="size-4" />
           <h3 className="font-medium">Машина времени</h3>
         </div>
-        <Button variant="ghost" size="icon" className="size-8" onClick={onClose}>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="size-8"
+          onClick={onClose}
+        >
           <X className="size-4" />
         </Button>
       </div>
-      
+
       {/* Info */}
       <div className="px-4 py-3 border-b bg-muted/30">
         <p className="text-xs text-muted-foreground">
-          Здесь хранится история изменений страницы. 
-          Вы можете просмотреть любую версию и восстановить её.
+          Здесь хранится история изменений страницы. Вы можете просмотреть любую
+          версию и восстановить её.
         </p>
       </div>
-      
+
       {/* Versions list */}
       <ScrollArea className="flex-1">
         {isLoading ? (
@@ -185,9 +192,11 @@ export function VersionsPanel({
                 version={version}
                 isSelected={index === 0}
                 isExpanded={expandedId === version.recordId}
-                onToggle={() => setExpandedId(
-                  expandedId === version.recordId ? null : version.recordId
-                )}
+                onToggle={() =>
+                  setExpandedId(
+                    expandedId === version.recordId ? null : version.recordId,
+                  )
+                }
                 onRestore={() => handleRestore(version)}
                 isRestoring={restoringId === version.recordId}
               />

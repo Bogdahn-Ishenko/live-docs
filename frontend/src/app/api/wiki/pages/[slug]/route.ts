@@ -1,47 +1,49 @@
 import { type NextRequest, NextResponse } from "next/server";
-
+import { getWikiBackendBaseUrl } from "@/app/api/wiki/_lib/backend-config";
 import {
-  getWikiBackendBaseUrl,
-  getWikiWriteAuthHeader,
-} from "@/app/api/wiki/_lib/backend-config";
-import { buildWritePayload, normalizePageShape } from "@/app/api/wiki/_lib/page";
+  buildWritePayload,
+  normalizePageShape,
+} from "@/app/api/wiki/_lib/page";
+import { proxyToBackend } from "@/app/api/wiki/_lib/proxy";
 import { encodeSlugPath } from "@/app/api/wiki/_lib/slug";
 
 type Params = {
   params: Promise<{ slug: string }>;
 };
 
+function buildPageUrl(slug: string): string {
+  return `${getWikiBackendBaseUrl()}/api/pages/${encodeSlugPath(slug)}`;
+}
+
 export async function GET(_request: NextRequest, { params }: Params) {
   try {
     const { slug } = await params;
-    const response = await fetch(
-      `${getWikiBackendBaseUrl()}/api/pages/${encodeSlugPath(slug)}`,
-      {
-        method: "GET",
-        cache: "no-store",
-      },
-    );
+    const response = await fetch(buildPageUrl(slug), {
+      method: "GET",
+      cache: "no-store",
+    });
 
     const data = await response.json().catch(() => null);
 
     if (!response.ok) {
+      const headers = new Headers(response.headers);
+      headers.delete("www-authenticate");
       return NextResponse.json(
-        data ?? {
-          error: "Не удалось получить документ",
-        },
-        { status: response.status },
+        data ?? { error: "Не удалось получить документ" },
+        { status: response.status, headers },
       );
     }
 
+    const headers = new Headers(response.headers);
+    headers.delete("www-authenticate");
     return NextResponse.json(normalizePageShape(data), {
       status: response.status,
+      headers,
     });
   } catch (error) {
     console.error("Wiki page fetch failed:", error);
     return NextResponse.json(
-      {
-        error: "Внутренняя ошибка сервера",
-      },
+      { error: "Внутренняя ошибка сервера" },
       { status: 500 },
     );
   }
@@ -51,49 +53,17 @@ export async function PUT(request: NextRequest, { params }: Params) {
   try {
     const { slug } = await params;
     const payload = await request.json();
-    const writeAuthHeader = getWikiWriteAuthHeader();
 
-    if (!writeAuthHeader) {
-      return NextResponse.json(
-        {
-          error: "На сервере не настроены учетные данные для записи",
-        },
-        { status: 500 },
-      );
-    }
-
-    const response = await fetch(
-      `${getWikiBackendBaseUrl()}/api/pages/${encodeSlugPath(slug)}`,
-      {
-        method: "PUT",
-        headers: {
-          Authorization: writeAuthHeader,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(buildWritePayload(payload)),
-      },
-    );
-
-    const data = await response.json().catch(() => null);
-
-    if (!response.ok) {
-      return NextResponse.json(
-        data ?? {
-          error: "Не удалось обновить документ",
-        },
-        { status: response.status },
-      );
-    }
-
-    return NextResponse.json(normalizePageShape(data), {
-      status: response.status,
+    return await proxyToBackend(request, buildPageUrl(slug), {
+      method: "PUT",
+      requiresAuth: true,
+      body: JSON.stringify(buildWritePayload(payload)),
+      extraHeaders: { "Content-Type": "application/json" },
     });
   } catch (error) {
     console.error("Wiki page update failed:", error);
     return NextResponse.json(
-      {
-        error: "Внутренняя ошибка сервера",
-      },
+      { error: "Внутренняя ошибка сервера" },
       { status: 500 },
     );
   }
@@ -102,44 +72,15 @@ export async function PUT(request: NextRequest, { params }: Params) {
 export async function DELETE(_request: NextRequest, { params }: Params) {
   try {
     const { slug } = await params;
-    const writeAuthHeader = getWikiWriteAuthHeader();
 
-    if (!writeAuthHeader) {
-      return NextResponse.json(
-        {
-          error: "На сервере не настроены учетные данные для записи",
-        },
-        { status: 500 },
-      );
-    }
-
-    const response = await fetch(
-      `${getWikiBackendBaseUrl()}/api/pages/${encodeSlugPath(slug)}`,
-      {
-        method: "DELETE",
-        headers: {
-          Authorization: writeAuthHeader,
-        },
-      },
-    );
-
-    if (!response.ok) {
-      const data = await response.json().catch(() => null);
-      return NextResponse.json(
-        data ?? {
-          error: "Не удалось удалить документ",
-        },
-        { status: response.status },
-      );
-    }
-
-    return new NextResponse(null, { status: 204 });
+    return await proxyToBackend(_request, buildPageUrl(slug), {
+      method: "DELETE",
+      requiresAuth: true,
+    });
   } catch (error) {
     console.error("Wiki page delete failed:", error);
     return NextResponse.json(
-      {
-        error: "Внутренняя ошибка сервера",
-      },
+      { error: "Внутренняя ошибка сервера" },
       { status: 500 },
     );
   }

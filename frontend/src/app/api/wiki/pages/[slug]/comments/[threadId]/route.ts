@@ -1,9 +1,6 @@
-﻿import { type NextRequest, NextResponse } from "next/server";
-
-import {
-  getWikiBackendBaseUrl,
-  getWikiWriteAuthHeader,
-} from "@/app/api/wiki/_lib/backend-config";
+import { type NextRequest, NextResponse } from "next/server";
+import { getWikiBackendBaseUrl } from "@/app/api/wiki/_lib/backend-config";
+import { proxyToBackend } from "@/app/api/wiki/_lib/proxy";
 import { encodeSlugPath } from "@/app/api/wiki/_lib/slug";
 
 type Params = {
@@ -14,38 +11,38 @@ export async function PATCH(request: NextRequest, { params }: Params) {
   try {
     const { slug, threadId } = await params;
     const payload = await request.json();
-    const writeAuthHeader = getWikiWriteAuthHeader();
+    const backendUrl = `${getWikiBackendBaseUrl()}/api/pages/${encodeSlugPath(
+      slug,
+    )}/comments/${threadId}`;
 
-    if (!writeAuthHeader) {
-      return NextResponse.json(
-        { error: "На сервере не настроены учетные данные для записи" },
-        { status: 500 },
-      );
-    }
-
-    const response = await fetch(
-      `${getWikiBackendBaseUrl()}/api/pages/${encodeSlugPath(slug)}/comments/${threadId}`,
-      {
-        method: "PATCH",
-        headers: {
-          Authorization: writeAuthHeader,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
-      },
-    );
-
-    const data = await response.json().catch(() => null);
-    if (!response.ok) {
-      return NextResponse.json(
-        data ?? { error: "Не удалось обновить ветку комментариев" },
-        { status: response.status },
-      );
-    }
-
-    return NextResponse.json(data, { status: response.status });
+    return await proxyToBackend(request, backendUrl, {
+      method: "PATCH",
+      requiresAuth: true,
+      body: JSON.stringify(payload),
+      extraHeaders: { "Content-Type": "application/json" },
+    });
   } catch (error) {
     console.error("Wiki comment thread patch failed:", error);
+    return NextResponse.json(
+      { error: "Внутренняя ошибка сервера" },
+      { status: 500 },
+    );
+  }
+}
+
+export async function DELETE(request: NextRequest, { params }: Params) {
+  try {
+    const { slug, threadId } = await params;
+    const backendUrl = `${getWikiBackendBaseUrl()}/api/pages/${encodeSlugPath(
+      slug,
+    )}/comments/${threadId}`;
+
+    return await proxyToBackend(request, backendUrl, {
+      method: "DELETE",
+      requiresAuth: true,
+    });
+  } catch (error) {
+    console.error("Wiki comment thread delete failed:", error);
     return NextResponse.json(
       { error: "Внутренняя ошибка сервера" },
       { status: 500 },

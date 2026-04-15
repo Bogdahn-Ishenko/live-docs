@@ -1,9 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server";
-
-import {
-  getWikiBackendBaseUrl,
-  getWikiWriteAuthHeader,
-} from "@/app/api/wiki/_lib/backend-config";
+import { getWikiBackendBaseUrl } from "@/app/api/wiki/_lib/backend-config";
+import { proxyToBackend } from "@/app/api/wiki/_lib/proxy";
 import { encodeSlugPath } from "@/app/api/wiki/_lib/slug";
 
 type Params = {
@@ -14,41 +11,25 @@ export async function POST(request: NextRequest, { params }: Params) {
   try {
     const { slug } = await params;
     const payload = await request.json();
-    const writeAuthHeader = getWikiWriteAuthHeader();
 
-    if (!writeAuthHeader) {
-      return NextResponse.json(
-        { error: "На сервере не настроены учетные данные для записи" },
-        { status: 500 },
-      );
-    }
-
+    const extraHeaders: Record<string, string> = {
+      "Content-Type": "application/json",
+    };
     const demoUser = request.headers.get("x-demo-user");
     const demoUserName = request.headers.get("x-demo-user-name");
+    if (demoUser) extraHeaders["X-Demo-User"] = demoUser;
+    if (demoUserName) extraHeaders["X-Demo-User-Name"] = demoUserName;
 
-    const response = await fetch(
-      `${getWikiBackendBaseUrl()}/api/pages/${encodeSlugPath(slug)}/comments/import`,
-      {
-        method: "POST",
-        headers: {
-          Authorization: writeAuthHeader,
-          "Content-Type": "application/json",
-          ...(demoUser ? { "X-Demo-User": demoUser } : {}),
-          ...(demoUserName ? { "X-Demo-User-Name": demoUserName } : {}),
-        },
-        body: JSON.stringify(payload),
-      },
-    );
+    const backendUrl = `${getWikiBackendBaseUrl()}/api/pages/${encodeSlugPath(
+      slug,
+    )}/comments/import`;
 
-    const data = await response.json().catch(() => null);
-    if (!response.ok) {
-      return NextResponse.json(
-        data ?? { error: "Не удалось импортировать комментарии" },
-        { status: response.status },
-      );
-    }
-
-    return NextResponse.json(data, { status: response.status });
+    return await proxyToBackend(request, backendUrl, {
+      method: "POST",
+      requiresAuth: true,
+      body: JSON.stringify(payload),
+      extraHeaders,
+    });
   } catch (error) {
     console.error("Wiki comments import failed:", error);
     return NextResponse.json(

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-
+import { useWikiAuth } from "@/fsd/shared/hooks/wiki/use-wiki-auth";
 import {
   createWikiPage,
   fetchWikiPages,
@@ -20,11 +20,14 @@ import type { WikiPage } from "@/fsd/shared/lib/wiki-pages/types";
 import { Button } from "@/fsd/shared/ui/button";
 import { Input } from "@/fsd/shared/ui/input";
 import { Label } from "@/fsd/shared/ui/label";
+import { WikiLoginDialog } from "@/fsd/shared/ui/wiki/login-dialog";
 
 /**
  * Page for creating a new Wiki document.
  */
 export default function WikiPageCreatePage() {
+  const { isAuthenticated, logout } = useWikiAuth();
+  const [loginOpen, setLoginOpen] = useState(false);
   const router = useRouter();
   const searchParams = useSearchParams();
   const isFolder = searchParams.get("asFolder") === "1";
@@ -108,9 +111,20 @@ export default function WikiPageCreatePage() {
             {isFolder ? "Новая папка WikiLive" : "Новый документ WikiLive"}
           </h1>
         </div>
-        <Link href="/wiki">
-          <Button variant="outline">К документам</Button>
-        </Link>
+        <div className="flex items-center gap-2">
+          <Link href="/wiki">
+            <Button variant="outline">К документам</Button>
+          </Link>
+          {isAuthenticated ? (
+            <Button variant="ghost" onClick={() => void logout()}>
+              Выйти
+            </Button>
+          ) : (
+            <Button variant="outline" onClick={() => setLoginOpen(true)}>
+              Войти
+            </Button>
+          )}
+        </div>
       </header>
 
       <section className="rounded-md border bg-card p-4 shadow-sm">
@@ -164,6 +178,8 @@ export default function WikiPageCreatePage() {
           </Button>
         </div>
       </section>
+
+      <WikiLoginDialog open={loginOpen} onOpenChange={setLoginOpen} />
     </main>
   );
 }

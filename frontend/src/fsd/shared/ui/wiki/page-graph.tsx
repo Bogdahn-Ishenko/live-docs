@@ -1,22 +1,23 @@
-'use client';
+"use client";
 
-import { useMemo, useCallback } from "react";
+import { useCallback, useMemo } from "react";
 import ReactFlow, {
   Background,
   Controls,
-  MiniMap,
-  useNodesState,
-  useEdgesState,
-  type Node,
   type Edge,
+  MiniMap,
+  type Node,
   type NodeTypes,
+  useEdgesState,
+  useNodesState,
 } from "reactflow";
+import { MarkerType } from "@reactflow/core";
 import "reactflow/dist/style.css";
 import { useRouter } from "next/navigation";
 
 import { useWikiPages } from "@/fsd/shared/hooks/wiki";
-import { extractLinksFromContent } from "@/fsd/shared/lib/wiki/types";
 import { cn } from "@/fsd/shared/lib/utils";
+import { extractLinksFromContent } from "@/fsd/shared/lib/wiki/types";
 
 interface PageGraphProps {
   currentPageId?: string;
@@ -36,9 +37,9 @@ function PageNode({ data }: { data: GraphNodeData }) {
     <div
       className={cn(
         "px-3 py-2 rounded-lg border shadow-sm text-sm font-medium cursor-pointer transition-colors",
-        data.isCurrent 
-          ? "bg-primary text-primary-foreground border-primary" 
-          : "bg-background hover:bg-accent border-border"
+        data.isCurrent
+          ? "bg-primary text-primary-foreground border-primary"
+          : "bg-background hover:bg-accent border-border",
       )}
     >
       {data.label}
@@ -50,29 +51,37 @@ const nodeTypes: NodeTypes = {
   page: PageNode,
 };
 
-export function PageGraph({ currentPageId, className, miniMode = false }: PageGraphProps) {
+export function PageGraph({
+  currentPageId,
+  className,
+  miniMode = false,
+}: PageGraphProps) {
   const router = useRouter();
   const { pages } = useWikiPages();
-  
+
   // Build graph data
   const { nodes: initialNodes, edges: initialEdges } = useMemo(() => {
     const nodes: Node<GraphNodeData>[] = [];
     const edges: Edge[] = [];
-    
+
     // Create page map for quick lookup
-    const pageMap = new Map(pages.map(p => [p.recordId, p]));
-    const slugToId = new Map(pages.map(p => [p.slug, p.recordId]));
-    
+    const pageMap = new Map(pages.map((p) => [p.recordId, p]));
+    const slugToId = new Map(pages.map((p) => [p.slug, p.recordId]));
+
     // Create nodes
     pages.forEach((page, index) => {
       const isCurrent = page.recordId === currentPageId;
-      
+
       nodes.push({
         id: page.recordId,
         type: "page",
-        position: { 
-          x: isCurrent ? 0 : Math.cos(index * 2 * Math.PI / pages.length) * 200,
-          y: isCurrent ? 0 : Math.sin(index * 2 * Math.PI / pages.length) * 200
+        position: {
+          x: isCurrent
+            ? 0
+            : Math.cos((index * 2 * Math.PI) / pages.length) * 200,
+          y: isCurrent
+            ? 0
+            : Math.sin((index * 2 * Math.PI) / pages.length) * 200,
         },
         data: {
           label: page.title || "(Без названия)",
@@ -81,11 +90,11 @@ export function PageGraph({ currentPageId, className, miniMode = false }: PageGr
         },
       });
     });
-    
+
     // Create edges from links in content
     pages.forEach((page) => {
       const links = extractLinksFromContent(page.content);
-      
+
       links.forEach((targetSlug) => {
         const targetId = slugToId.get(targetSlug);
         if (targetId && targetId !== page.recordId) {
@@ -94,43 +103,63 @@ export function PageGraph({ currentPageId, className, miniMode = false }: PageGr
             source: page.recordId,
             target: targetId,
             animated: true,
-            style: { stroke: "#94a3b8", strokeWidth: 1 },
+            style: { stroke: "#ffffff", strokeWidth: 1 },
+            markerEnd: {
+              type: MarkerType.ArrowClosed,
+              width: 15,
+              height: 15,
+              color: "#ffffff",
+            },
           });
         }
       });
-      
+
       // Also add parent-child relationships
       if (page.parentId && pageMap.has(page.parentId)) {
         edges.push({
           id: `${page.parentId}-${page.recordId}-parent`,
           source: page.parentId,
           target: page.recordId,
-          style: { stroke: "#64748b", strokeWidth: 2 },
+          style: { stroke: "#ffffff", strokeWidth: 2 },
+          markerEnd: {
+            type: MarkerType.ArrowClosed,
+            width: 18,
+            height: 18,
+            color: "#ffffff",
+          },
         });
       }
     });
-    
+
     return { nodes, edges };
   }, [pages, currentPageId]);
-  
-  const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
-  const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
-  
+
+  const [nodes, _setNodes, onNodesChange] = useNodesState(initialNodes);
+  const [edges, _setEdges, onEdgesChange] = useEdgesState(initialEdges);
+
   // Handle node click
-  const onNodeClick = useCallback((_: React.MouseEvent, node: Node<GraphNodeData>) => {
-    if (node.data.slug) {
-      router.push(`/wiki/${node.data.slug}`);
-    }
-  }, [router]);
-  
+  const onNodeClick = useCallback(
+    (_: React.MouseEvent, node: Node<GraphNodeData>) => {
+      if (node.data.slug) {
+        router.push(`/wiki/${node.data.slug}`);
+      }
+    },
+    [router],
+  );
+
   if (pages.length === 0) {
     return (
-      <div className={cn("flex items-center justify-center text-muted-foreground text-sm", className)}>
+      <div
+        className={cn(
+          "flex items-center justify-center text-muted-foreground text-sm",
+          className,
+        )}
+      >
         Нет страниц для отображения
       </div>
     );
   }
-  
+
   return (
     <div className={cn("relative", className)}>
       <ReactFlow
@@ -149,8 +178,8 @@ export function PageGraph({ currentPageId, className, miniMode = false }: PageGr
         {!miniMode && (
           <>
             <Controls />
-            <MiniMap 
-              nodeColor={(node) => 
+            <MiniMap
+              nodeColor={(node) =>
                 node.data?.isCurrent ? "#3b82f6" : "#94a3b8"
               }
               className="bg-background border rounded-lg shadow-sm"
@@ -166,8 +195,8 @@ export function PageGraph({ currentPageId, className, miniMode = false }: PageGr
 export function MiniPageGraph({ currentPageId, className }: PageGraphProps) {
   return (
     <div className={cn("h-48 border rounded-lg overflow-hidden", className)}>
-      <PageGraph 
-        currentPageId={currentPageId} 
+      <PageGraph
+        currentPageId={currentPageId}
         className="h-full w-full"
         miniMode
       />
