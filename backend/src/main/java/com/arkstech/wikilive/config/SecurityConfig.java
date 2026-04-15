@@ -44,7 +44,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.DELETE, "/api/pages/**").authenticated()
 
                         // вебсокет авторизованным
-                        .requestMatchers("/ws/**").authenticated()
+                        .requestMatchers("/ws/**").permitAll()
 
                         //остальное
                         .anyRequest().authenticated()
