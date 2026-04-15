@@ -42,14 +42,13 @@ services:
       - wikilive_db
 
   yjs:
-    image: node:20
+    build: ../yjs-server
     container_name: wikilive_yjs
-    working_dir: /app
-    volumes:
-      - ../yjs-server:/app
-    command: npm start
     ports:
       - "1234:1234"
+    environment:
+      - HOST=0.0.0.0
+      - PORT=1234
     restart: unless-stopped
 
 volumes:

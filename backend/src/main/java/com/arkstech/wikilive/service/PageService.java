@@ -31,7 +31,6 @@ import java.util.regex.Pattern;
 
 @Service
 @RequiredArgsConstructor
-@Transactional(readOnly = true)
 public class PageService {
 
     private final PageRepository pageRepository;
@@ -59,6 +58,7 @@ public class PageService {
 
         return saved;
     }
+    @Transactional
     public WikiPage createPage(PageRequest request) {
         String baseSlug = toSlug(request.getTitle());
         String currentSlug = baseSlug;
