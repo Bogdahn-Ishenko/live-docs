@@ -16,6 +16,7 @@ import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
@@ -35,31 +36,36 @@ public class PageService {
     private final SimpMessagingTemplate messagingTemplate;
     private final ObjectMapper objectMapper;
 
-    @Transactional
-    public WikiPage createPage(PageRequest request) {
-        String baseSlug = toSlug(request.getTitle());
-        String currentSlug = baseSlug;
-        int counter = 1;
-
-        while (pageRepository.existsBySlug(currentSlug)) {
-            currentSlug = baseSlug + "-" + counter++;
-        }
-
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public WikiPage createSingle(PageRequest request, String slug) {
         WikiPage page = WikiPage.builder()
                 .title(request.getTitle())
                 .content(request.getContent())
-                .slug(currentSlug)
+                .slug(slug)
                 .mwsTableId(request.getMwsTableId())
                 .parentSlug(request.getParentSlug())
                 .ownerId(SecurityContextHolder.getContext().getAuthentication().getName())
                 .build();
 
         attachWikiLinks(page);
-        WikiPage savedPage = pageRepository.saveAndFlush(page);
-        updateExistingRedLinks(savedPage);
-        sendWebSocketNotification(savedPage, "created");
+        WikiPage saved = pageRepository.saveAndFlush(page);
+        updateExistingRedLinks(saved);
+        sendWebSocketNotification(saved, "created");
 
-        return savedPage;
+        return saved;
+    }
+    public WikiPage createPage(PageRequest request) {
+        String baseSlug = toSlug(request.getTitle());
+        String currentSlug = baseSlug;
+        int counter = 1;
+
+        while (true) {
+            try {
+                return createSingle(request, currentSlug);
+            } catch (DataIntegrityViolationException e) {
+                currentSlug = baseSlug + "-" + counter++;
+            }
+        }
     }
 
     @PreAuthorize("@pageAccessService.canEdit(#slug, authentication.name)")
