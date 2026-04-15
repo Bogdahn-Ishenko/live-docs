@@ -2,6 +2,11 @@ export {
   usePageAccess,
   useUpdatePageAccess,
 } from "./use-access-control";
+export {
+  useAddPageEditor,
+  usePageEditors,
+  useRemovePageEditor,
+} from "./use-page-editors";
 
 export {
   useComments,

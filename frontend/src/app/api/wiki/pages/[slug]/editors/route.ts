@@ -7,6 +7,26 @@ type Params = {
   params: Promise<{ slug: string }>;
 };
 
+export async function GET(request: NextRequest, { params }: Params) {
+  try {
+    const { slug } = await params;
+    const backendUrl = `${getWikiBackendBaseUrl()}/api/pages/${encodeSlugPath(
+      slug,
+    )}/editors`;
+
+    return await proxyToBackend(request, backendUrl, {
+      method: "GET",
+      requiresAuth: true,
+    });
+  } catch (error) {
+    console.error("Wiki editors fetch failed:", error);
+    return NextResponse.json(
+      { error: "Внутренняя ошибка сервера" },
+      { status: 500 },
+    );
+  }
+}
+
 export async function POST(request: NextRequest, { params }: Params) {
   try {
     const { slug } = await params;

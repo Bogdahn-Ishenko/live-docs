@@ -1,4 +1,5 @@
 import type {
+  PageEditor,
   UpsertWikiPagePayload,
   WikiPage,
   WikiPageDraft,
@@ -241,4 +242,61 @@ export async function publishPageDraft(
   );
 
   return parseApiResponse<WikiPage>(response);
+}
+
+export async function fetchPageEditors(slug: string): Promise<PageEditor[]> {
+  const response = await fetch(
+    `/api/wiki/pages/${encodeSlugPath(slug)}/editors`,
+    {
+      method: "GET",
+      cache: "no-store",
+    },
+  );
+
+  const data = await parseApiResponse<PageEditor[] | string[]>(response);
+  return data.map((item) =>
+    typeof item === "string" ? { username: item } : item,
+  );
+}
+
+export async function addPageEditor(
+  slug: string,
+  username: string,
+): Promise<PageEditor> {
+  const response = await fetch(
+    `/api/wiki/pages/${encodeSlugPath(slug)}/editors`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ username }),
+    },
+  );
+
+  const data = await parseApiResponse<PageEditor | string>(response);
+  return typeof data === "string" ? { username: data } : data;
+}
+
+export async function removePageEditor(
+  slug: string,
+  username: string,
+): Promise<void> {
+  const response = await fetch(
+    `/api/wiki/pages/${encodeSlugPath(slug)}/editors/${encodeURIComponent(username)}`,
+    {
+      method: "DELETE",
+    },
+  );
+
+  if (!response.ok) {
+    const payload = (await response.json().catch(() => null)) as {
+      error?: string;
+    } | null;
+    const message =
+      payload && typeof payload.error === "string"
+        ? payload.error
+        : `Ошибка запроса (статус ${response.status})`;
+    throw new Error(message);
+  }
 }

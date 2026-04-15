@@ -59,3 +59,7 @@ export type WikiPageGraph = {
   nodes: WikiPageGraphNode[];
   edges: WikiPageGraphEdge[];
 };
+
+export type PageEditor = {
+  username: string;
+};

@@ -1,7 +1,7 @@
 "use client";
 
 import type { SerializedEditorState } from "lexical";
-import { FileText, History, Trash2, Upload } from "lucide-react";
+import { FileText, History, Trash2, Upload, Users } from "lucide-react";
 import dynamic from "next/dynamic";
 import Image from "next/image";
 import Link from "next/link";
@@ -40,6 +40,7 @@ import {
 } from "@/fsd/shared/ui/dropdown-menu";
 import { SidebarProvider } from "@/fsd/shared/ui/sidebar";
 import { WikiLoginDialog } from "@/fsd/shared/ui/wiki/login-dialog";
+import { PageEditorsPanel } from "@/fsd/shared/ui/wiki/page-editors-panel";
 import { PageVersionsPanel } from "@/fsd/shared/ui/wiki/page-versions-panel";
 
 const Editor = dynamic(
@@ -119,6 +120,7 @@ export default function WikiPageEditorPage({ slug }: { slug: string }) {
   const { isAuthenticated, logout } = useWikiAuth();
   const [loginOpen, setLoginOpen] = useState(false);
   const [versionsOpen, setVersionsOpen] = useState(false);
+  const [editorsOpen, setEditorsOpen] = useState(false);
   const [page, setPage] = useState<WikiPage | null>(null);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -446,6 +448,16 @@ export default function WikiPageEditorPage({ slug }: { slug: string }) {
                     История
                   </Button>
 
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setEditorsOpen(true)}
+                    className="gap-1.5"
+                  >
+                    <Users className="size-4" />
+                    Редакторы
+                  </Button>
+
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button variant="ghost" size="sm" className="gap-1.5">
@@ -552,6 +564,11 @@ export default function WikiPageEditorPage({ slug }: { slug: string }) {
           )}
 
           <WikiLoginDialog open={loginOpen} onOpenChange={setLoginOpen} />
+          <PageEditorsPanel
+            slug={slug}
+            isOpen={editorsOpen}
+            onClose={() => setEditorsOpen(false)}
+          />
           <PageVersionsPanel
             slug={slug}
             isOpen={versionsOpen}
