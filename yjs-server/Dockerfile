@@ -13,4 +13,4 @@ ENV PORT=1234
 EXPOSE 1234
 
 # Запускаем готовый бинарник из пакета
-CMD ["npx", "y-websocket"]
+CMD ["node", "node_modules/y-websocket/bin/server.js"]
