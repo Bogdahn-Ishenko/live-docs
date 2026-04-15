@@ -29,6 +29,7 @@ import {
   configExtension,
   defineExtension,
   type EditorState,
+  type LexicalEditor,
   type SerializedEditorState,
 } from "lexical";
 import { useMemo, useRef, useState } from "react";
@@ -253,6 +254,10 @@ export function Editor({
           TablesMwNode,
         ],
         $initialEditorState(editor) {
+          // При коллаборации начальное состояние задаёт CollaborationPlugin,
+          // чтобы не было race condition с Yjs. В обычном режиме (без collabId)
+          // загружаем начальное состояние напрямую.
+          if (collabId) return;
           if (initialSerializedStateRef.current) {
             const parsedState = editor.parseEditorState(initialSerializedStateRef.current);
             editor.setEditorState(parsedState);
@@ -262,7 +267,7 @@ export function Editor({
         },
         theme: editorTheme,
       }),
-    [],
+    [collabId],
   );
 
   return (
@@ -287,6 +292,10 @@ export function Editor({
                   console.log('[YJS] status', event.status);
                 });
 
+                provider.on('sync', (isSynced: boolean) => {
+                  console.log('[YJS] sync', isSynced);
+                });
+
                 provider.on('connection-error', (event: Event) => {
                   console.error('[YJS] connection-error', event);
                 });
@@ -294,6 +303,14 @@ export function Editor({
                 return provider as any;
               }}
               shouldBootstrap={true}
+              initialEditorState={(editor: LexicalEditor) => {
+                if (editorSerializedState) {
+                  const parsedState = editor.parseEditorState(editorSerializedState);
+                  editor.setEditorState(parsedState);
+                } else if (editorState) {
+                  editor.setEditorState(editorState);
+                }
+              }}
             />
           )}
         <TooltipProvider>
