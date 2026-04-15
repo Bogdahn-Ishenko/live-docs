@@ -143,6 +143,7 @@ import { validateUrl } from "@/fsd/shared/ui/editor/utils/url";
 import { Separator } from "@/fsd/shared/ui/separator";
 import { TooltipProvider } from "@/fsd/shared/ui/tooltip";
 import { CollaborationPlugin } from '@lexical/react/LexicalCollaborationPlugin';
+import { LexicalCollaboration } from '@lexical/react/LexicalCollaborationContext';
 import { WebsocketProvider } from 'y-websocket';
 import * as Y from 'yjs';
 
@@ -286,8 +287,9 @@ export function Editor({
   return (
     <div className="bg-background flex min-h-0 w-full flex-1 flex-col overflow-hidden rounded-lg border shadow">
       <LexicalExtensionComposer extension={AppExtension} contentEditable={null}>
-        <CollaborationPlugin
-          id="unique_page_id" // Тот самый slug или ID страницы
+        <LexicalCollaboration>
+          <CollaborationPlugin
+          id="test-room" // Тот самый slug или ID страницы
           providerFactory={(id, yjsDocMap) => {
             const doc = new Y.Doc();
             yjsDocMap.set(id, doc);
@@ -645,6 +647,7 @@ export function Editor({
             }}
           />
         </TooltipProvider>
+      </LexicalCollaboration>
       </LexicalExtensionComposer>
     </div>
   );
