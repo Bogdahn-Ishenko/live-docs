@@ -7,6 +7,6 @@
     "ws": "^8.0.0"
   },
   "scripts": {
-    "dev": "node node_modules/y-websocket/bin/server.js"
+    "dev": "node server.js"
   }
 }
