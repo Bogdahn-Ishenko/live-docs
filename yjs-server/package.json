@@ -5,8 +5,5 @@
   "dependencies": {
     "y-websocket": "1.4.5",
     "ws": "^8.11.0"
-  },
-  "scripts": {
-    "start": "node server.js"
   }
 }

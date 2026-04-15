@@ -3,14 +3,14 @@ FROM node:20-alpine
 
 WORKDIR /app
 
-# Копируем файлы манифеста
-COPY package*.json ./
+# Устанавливаем только нужные пакеты
+RUN npm install yjs y-websocket
 
-# Устанавливаем зависимости
-RUN npm install
+# HOST=0.0.0.0 обязателен, чтобы порт был виден снаружи контейнера
+ENV HOST=0.0.0.0
+ENV PORT=1234
 
-# Копируем исходный код (server.js)
-COPY server.js ./
+EXPOSE 1234
 
-# Запускаем сервер
-CMD ["node", "server.js"]
+# Запускаем готовый бинарник из пакета
+CMD ["npx", "y-websocket"]
