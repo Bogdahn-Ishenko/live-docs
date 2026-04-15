@@ -142,6 +142,9 @@ import { TWEET } from "@/fsd/shared/ui/editor/transformers/markdown-tweet-transf
 import { validateUrl } from "@/fsd/shared/ui/editor/utils/url";
 import { Separator } from "@/fsd/shared/ui/separator";
 import { TooltipProvider } from "@/fsd/shared/ui/tooltip";
+import { CollaborationPlugin } from '@lexical/react/LexicalCollaborationPlugin';
+import { WebsocketProvider } from 'y-websocket';
+import * as Y from 'yjs';
 
 const placeholder = "Нажмите / для команд...";
 const maxLength = 30 * 1000;
@@ -229,7 +232,7 @@ export function Editor({
           AutoFocusExtension,
           ClearEditorExtension,
           DecoratorTextExtension,
-          HistoryExtension,
+          // HistoryExtension, // !!!
           KeywordsExtension,
           HashtagExtension,
           DateTimeExtension,
@@ -283,6 +286,21 @@ export function Editor({
   return (
     <div className="bg-background flex min-h-0 w-full flex-1 flex-col overflow-hidden rounded-lg border shadow">
       <LexicalExtensionComposer extension={AppExtension} contentEditable={null}>
+        <CollaborationPlugin
+          id="unique_page_id" // Тот самый slug или ID страницы
+          providerFactory={(id, yjsDocMap) => {
+            const doc = new Y.Doc();
+            yjsDocMap.set(id, doc);
+            
+            // Подключаемся к нашему новому Node-серверу
+            return new WebsocketProvider(
+              process.env.NEXT_PUBLIC_WIKILIVE_YJS_URL || 'wss://wiki-live.ru/yjs', // С учетом вашего домена и WSS
+              id, 
+              doc
+            ) as any;
+          }}
+          shouldBootstrap={true} 
+        />
         <TooltipProvider>
           <div className="relative flex min-h-0 flex-1 flex-col">
             <ToolbarPlugin>

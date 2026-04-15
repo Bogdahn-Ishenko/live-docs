@@ -12,6 +12,18 @@ export {
 } from "./use-comments";
 
 export {
+  useDeletePageDraft,
+  usePageDraft,
+  usePublishPageDraft,
+  useSavePageDraft,
+} from "./use-page-draft";
+export {
+  usePageAllVersions,
+  usePageVersion,
+  usePageVersions,
+  useRestorePageVersion,
+} from "./use-page-versions";
+export {
   useAutoSaveVersion,
   useCreateVersion,
   useVersions,

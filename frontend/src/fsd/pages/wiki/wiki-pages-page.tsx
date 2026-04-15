@@ -87,6 +87,7 @@ import {
   DropdownMenuTrigger,
 } from "@/fsd/shared/ui/dropdown-menu";
 import { WikiLoginDialog } from "@/fsd/shared/ui/wiki/login-dialog";
+import { WikiPagesGraph } from "@/fsd/shared/ui/wiki/wiki-pages-graph";
 
 const LOCAL_ORDER_KEY = "wikilive:docs-order:v3";
 
@@ -1244,6 +1245,13 @@ export default function WikiPagesPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {!isLoading && !error && (
+        <section className="flex flex-col gap-3">
+          <h2 className="text-xl font-semibold">Граф связей страниц</h2>
+          <WikiPagesGraph />
+        </section>
+      )}
 
       <WikiLoginDialog open={loginOpen} onOpenChange={setLoginOpen} />
     </main>

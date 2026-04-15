@@ -1,14 +1,25 @@
-﻿"use client";
+"use client";
 
 import type { SerializedEditorState } from "lexical";
+import { FileText, History, Trash2, Upload } from "lucide-react";
 import dynamic from "next/dynamic";
 import Image from "next/image";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { BlockViewerProvider } from "@/fsd/app/providers/block-viewer-provider";
+import {
+  useDeletePageDraft,
+  usePageDraft,
+  usePublishPageDraft,
+  useSavePageDraft,
+} from "@/fsd/shared/hooks/wiki/use-page-draft";
 import { useWikiAuth } from "@/fsd/shared/hooks/wiki/use-wiki-auth";
-import { fetchWikiPage, updateWikiPage } from "@/fsd/shared/lib/wiki-pages/api";
+import {
+  fetchPageDraft,
+  fetchWikiPage,
+  updateWikiPage,
+} from "@/fsd/shared/lib/wiki-pages/api";
 import {
   buildPageSignature,
   parseStoredEditorState,
@@ -20,8 +31,16 @@ import type {
 } from "@/fsd/shared/lib/wiki-pages/types";
 import { Button } from "@/fsd/shared/ui/button";
 import { CommentThreadLauncher } from "@/fsd/shared/ui/comment-thread-launcher";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/fsd/shared/ui/dropdown-menu";
 import { SidebarProvider } from "@/fsd/shared/ui/sidebar";
 import { WikiLoginDialog } from "@/fsd/shared/ui/wiki/login-dialog";
+import { PageVersionsPanel } from "@/fsd/shared/ui/wiki/page-versions-panel";
 
 const Editor = dynamic(
   () => import("@/fsd/shared/ui/blocks/editor-x").then((mod) => mod.Editor),
@@ -99,6 +118,7 @@ function resolveBaseTitle(title: string): string {
 export default function WikiPageEditorPage({ slug }: { slug: string }) {
   const { isAuthenticated, logout } = useWikiAuth();
   const [loginOpen, setLoginOpen] = useState(false);
+  const [versionsOpen, setVersionsOpen] = useState(false);
   const [page, setPage] = useState<WikiPage | null>(null);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -112,6 +132,13 @@ export default function WikiPageEditorPage({ slug }: { slug: string }) {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("loading");
   const [lastSyncedAt, setLastSyncedAt] = useState<string | null>(null);
+
+  const { draft, refetch: refetchDraft, clearDraft } = usePageDraft(slug);
+  const { save: saveDraft, isLoading: isSavingDraft } = useSavePageDraft();
+  const { remove: deleteDraft, isLoading: isDeletingDraft } =
+    useDeletePageDraft();
+  const { publish: publishDraft, isLoading: isPublishingDraft } =
+    usePublishPageDraft();
 
   const latestTitleRef = useRef(title);
   const latestDescriptionRef = useRef(description);
@@ -137,7 +164,10 @@ export default function WikiPageEditorPage({ slug }: { slug: string }) {
       setSaveStatus("loading");
       setLoadError(null);
 
-      const data = await fetchWikiPage(slug);
+      const [data, serverDraft] = await Promise.all([
+        fetchWikiPage(slug),
+        fetchPageDraft(slug).catch(() => null),
+      ]);
 
       const remoteState = parseStoredEditorState(data.content);
       const remoteSignature = buildPageSignature(
@@ -150,22 +180,46 @@ export default function WikiPageEditorPage({ slug }: { slug: string }) {
       let nextTitle = data.title;
       let nextDescription = data.description || "";
       let nextState = remoteState;
+      let usedDraftSource: "server" | "local" | null = null;
 
-      const localDraft = readLocalDraft(slug);
-      if (localDraft) {
-        const draftState = parseStoredEditorState(localDraft.content);
+      if (serverDraft) {
+        const draftState = parseStoredEditorState(serverDraft.content);
         const draftSignature = buildPageSignature(
-          localDraft.title,
-          localDraft.description,
+          serverDraft.title,
+          serverDraft.description,
           draftState,
         );
+        const draftUpdatedAt = new Date(serverDraft.updatedAt).getTime();
 
-        if (draftSignature === remoteSignature) {
-          clearLocalDraft(slug);
-        } else if (localDraft.updatedAt > remoteUpdatedAt) {
-          nextTitle = localDraft.title;
-          nextDescription = localDraft.description || "";
+        if (
+          draftSignature !== remoteSignature &&
+          draftUpdatedAt > remoteUpdatedAt
+        ) {
+          nextTitle = serverDraft.title;
+          nextDescription = serverDraft.description || "";
           nextState = draftState;
+          usedDraftSource = "server";
+        }
+      }
+
+      if (!usedDraftSource) {
+        const localDraft = readLocalDraft(slug);
+        if (localDraft) {
+          const draftState = parseStoredEditorState(localDraft.content);
+          const draftSignature = buildPageSignature(
+            localDraft.title,
+            localDraft.description,
+            draftState,
+          );
+
+          if (draftSignature === remoteSignature) {
+            clearLocalDraft(slug);
+          } else if (localDraft.updatedAt > remoteUpdatedAt) {
+            nextTitle = localDraft.title;
+            nextDescription = localDraft.description || "";
+            nextState = draftState;
+            usedDraftSource = "local";
+          }
         }
       }
 
@@ -285,6 +339,82 @@ export default function WikiPageEditorPage({ slug }: { slug: string }) {
     [lastSyncedAt, saveStatus],
   );
 
+  const handleSaveDraft = useCallback(async () => {
+    if (!page || !editorState) return;
+    const normalizedTitle = resolveBaseTitle(title);
+    const content = stringifyEditorState(editorState);
+    await saveDraft(slug, {
+      title: normalizedTitle,
+      description,
+      content,
+    });
+    await refetchDraft();
+  }, [page, editorState, title, description, slug, saveDraft, refetchDraft]);
+
+  const handlePublishDraft = useCallback(async () => {
+    if (!page) return;
+    const published = await publishDraft(slug);
+    clearLocalDraft(slug);
+    clearDraft();
+    await refetchDraft();
+    setPage(published);
+    setTitle(published.title);
+    setDescription(published.description || "");
+    const state = parseStoredEditorState(published.content);
+    setInitialEditorState(state);
+    setEditorState(state);
+    setEditorInstanceKey((v) => v + 1);
+    syncedSignatureRef.current = buildPageSignature(
+      published.title,
+      published.description,
+      state,
+    );
+    setLastSyncedAt(published.updatedAt);
+  }, [page, slug, publishDraft, refetchDraft, clearDraft]);
+
+  const handleDeleteDraft = useCallback(async () => {
+    await deleteDraft(slug);
+    clearLocalDraft(slug);
+    clearDraft();
+    await refetchDraft();
+  }, [slug, deleteDraft, refetchDraft, clearDraft]);
+
+  const handleRestoreVersion = useCallback(
+    (restored: {
+      title: string;
+      description: string | null;
+      content: string | null;
+      updatedAt: string;
+    }) => {
+      setTitle(restored.title);
+      setDescription(restored.description || "");
+      const state = parseStoredEditorState(restored.content);
+      setInitialEditorState(state);
+      setEditorState(state);
+      setEditorInstanceKey((v) => v + 1);
+      setPage((prev) =>
+        prev
+          ? {
+              ...prev,
+              title: restored.title,
+              description: restored.description,
+              content: restored.content ?? prev.content,
+              updatedAt: restored.updatedAt,
+            }
+          : prev,
+      );
+      setLastSyncedAt(restored.updatedAt);
+      syncedSignatureRef.current = buildPageSignature(
+        restored.title,
+        restored.description,
+        state,
+      );
+      clearLocalDraft(slug);
+      void refetchDraft();
+    },
+    [slug, refetchDraft],
+  );
+
   return (
     <BlockViewerProvider>
       <SidebarProvider
@@ -304,6 +434,58 @@ export default function WikiPageEditorPage({ slug }: { slug: string }) {
               <p className="text-xs font-medium text-muted-foreground/80">
                 {syncStatusText}
               </p>
+              {page && isAuthenticated && (
+                <>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setVersionsOpen(true)}
+                    className="gap-1.5"
+                  >
+                    <History className="size-4" />
+                    История
+                  </Button>
+
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="sm" className="gap-1.5">
+                        <FileText className="size-4" />
+                        Черновик
+                        {draft && (
+                          <span className="ml-1 inline-flex h-2 w-2 rounded-full bg-primary" />
+                        )}
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem
+                        onClick={() => void handleSaveDraft()}
+                        disabled={isSavingDraft}
+                      >
+                        <Upload className="size-4 mr-2" />
+                        {isSavingDraft ? "Сохранение..." : "Сохранить черновик"}
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => void handlePublishDraft()}
+                        disabled={isPublishingDraft || !draft}
+                      >
+                        <FileText className="size-4 mr-2" />
+                        {isPublishingDraft
+                          ? "Публикация..."
+                          : "Опубликовать черновик"}
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem
+                        onClick={() => void handleDeleteDraft()}
+                        disabled={isDeletingDraft || !draft}
+                        className="text-destructive focus:text-destructive"
+                      >
+                        <Trash2 className="size-4 mr-2" />
+                        {isDeletingDraft ? "Удаление..." : "Удалить черновик"}
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </>
+              )}
               {isAuthenticated ? (
                 <Button variant="ghost" size="sm" onClick={() => void logout()}>
                   Выйти
@@ -370,6 +552,12 @@ export default function WikiPageEditorPage({ slug }: { slug: string }) {
           )}
 
           <WikiLoginDialog open={loginOpen} onOpenChange={setLoginOpen} />
+          <PageVersionsPanel
+            slug={slug}
+            isOpen={versionsOpen}
+            onClose={() => setVersionsOpen(false)}
+            onRestore={handleRestoreVersion}
+          />
         </main>
       </SidebarProvider>
     </BlockViewerProvider>
