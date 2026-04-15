@@ -163,6 +163,7 @@ export function Editor({
   onSerializedChange,
   documentTitle,
   documentDescription,
+  collabId,
 }: {
   editorState?: EditorState;
   editorSerializedState?: SerializedEditorState | null;
@@ -170,6 +171,8 @@ export function Editor({
   onSerializedChange?: (editorSerializedState: SerializedEditorState) => void;
   documentTitle?: string;
   documentDescription?: string;
+  collabId?: string;
+
 }) {
   const {
     toolbarItems,
@@ -265,6 +268,34 @@ export function Editor({
   return (
     <div className="bg-background flex min-h-0 w-full flex-1 flex-col overflow-hidden rounded-lg border shadow">
       <LexicalExtensionComposer extension={AppExtension} contentEditable={null}>
+        <LexicalCollaboration>
+          {collabId && (
+            <CollaborationPlugin
+              id={collabId}
+              providerFactory={(id, yjsDocMap) => {
+                console.log('Инициализация провайдера для ID:', id)
+                const doc = new Y.Doc();
+                yjsDocMap.set(id, doc);
+
+                const provider = new WebsocketProvider(
+                  process.env.NEXT_PUBLIC_WIKILIVE_YJS_URL || 'wss://wiki-live.ru/yjs',
+                  id,
+                  doc,
+                );
+
+                provider.on('status', (event: { status: string }) => {
+                  console.log('[YJS] status', event.status);
+                });
+
+                provider.on('connection-error', (event: Event) => {
+                  console.error('[YJS] connection-error', event);
+                });
+
+                return provider as any;
+              }}
+              shouldBootstrap={true}
+            />
+          )}
         <TooltipProvider>
           <div className="relative flex min-h-0 flex-1 flex-col">
             <ToolbarPlugin>

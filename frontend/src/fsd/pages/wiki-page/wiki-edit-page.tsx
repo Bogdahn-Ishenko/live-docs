@@ -426,6 +426,7 @@ export default function WikiEditPage({ slug, isNew }: WikiEditPageProps) {
                 <Editor
                   editorSerializedState={content}
                   onSerializedChange={handleContentChange}
+                  collabId={isNew ? undefined : slug}
                 />
                 {!isNew && (
                   <CommentSelectionPlugin onAddComment={handleAddComment} />
