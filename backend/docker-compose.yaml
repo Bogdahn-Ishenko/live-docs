@@ -1,3 +1,4 @@
+version: "2.4"
 services:
   wikilive_db:
     image: postgres:16-alpine
@@ -10,25 +11,36 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - "pgdata:/var/lib/postgresql/data"
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d wikilive_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
   wikilive_app:
     build: .
     container_name: wikilive_app_cont
+    restart: always
     ports:
       - "8085:8085"
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://wikilive_db:5432/wikilive_db
       SPRING_DATASOURCE_USERNAME: postgres
       SPRING_DATASOURCE_PASSWORD: password
+      SPRING_JPA_DATABASE_PLATFORM: org.hibernate.dialect.PostgreSQLDialect
     depends_on:
-      - wikilive_db
+      wikilive_db:
+        condition: service_healthy
 
   adminer:
     image: adminer
+    container_name: wikilive_adminer
     restart: always
     ports:
       - "8080:8080"
+    depends_on:
+      - wikilive_db
 
 volumes:
   pgdata:

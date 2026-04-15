@@ -1,0 +1,103 @@
+import { type NextRequest, NextResponse } from "next/server";
+
+import {
+  getWikiBackendBaseUrl,
+  getWikiWriteAuthHeader,
+} from "@/app/api/wiki/_lib/backend-config";
+import { encodeSlugPath } from "@/app/api/wiki/_lib/slug";
+
+type Params = {
+  params: Promise<{ slug: string }>;
+};
+
+export async function GET(_request: NextRequest, { params }: Params) {
+  try {
+    const { slug } = await params;
+    const writeAuthHeader = getWikiWriteAuthHeader();
+
+    if (!writeAuthHeader) {
+      return NextResponse.json(
+        {
+          error:
+            "На сервере не настроены учетные данные для чтения комментариев",
+        },
+        { status: 500 },
+      );
+    }
+
+    const response = await fetch(
+      `${getWikiBackendBaseUrl()}/api/pages/${encodeSlugPath(slug)}/comments`,
+      {
+        method: "GET",
+        headers: {
+          Authorization: writeAuthHeader,
+        },
+        cache: "no-store",
+      },
+    );
+
+    const data = await response.json().catch(() => null);
+    if (!response.ok) {
+      return NextResponse.json(
+        data ?? { error: "Не удалось получить комментарии" },
+        { status: response.status },
+      );
+    }
+
+    return NextResponse.json(data, { status: response.status });
+  } catch (error) {
+    console.error("Wiki comments fetch failed:", error);
+    return NextResponse.json(
+      { error: "Внутренняя ошибка сервера" },
+      { status: 500 },
+    );
+  }
+}
+
+export async function POST(request: NextRequest, { params }: Params) {
+  try {
+    const { slug } = await params;
+    const payload = await request.json();
+    const writeAuthHeader = getWikiWriteAuthHeader();
+
+    if (!writeAuthHeader) {
+      return NextResponse.json(
+        { error: "На сервере не настроены учетные данные для записи" },
+        { status: 500 },
+      );
+    }
+
+    const demoUser = request.headers.get("x-demo-user");
+    const demoUserName = request.headers.get("x-demo-user-name");
+
+    const response = await fetch(
+      `${getWikiBackendBaseUrl()}/api/pages/${encodeSlugPath(slug)}/comments/threads`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: writeAuthHeader,
+          "Content-Type": "application/json",
+          ...(demoUser ? { "X-Demo-User": demoUser } : {}),
+          ...(demoUserName ? { "X-Demo-User-Name": demoUserName } : {}),
+        },
+        body: JSON.stringify(payload),
+      },
+    );
+
+    const data = await response.json().catch(() => null);
+    if (!response.ok) {
+      return NextResponse.json(
+        data ?? { error: "Не удалось создать ветку комментариев" },
+        { status: response.status },
+      );
+    }
+
+    return NextResponse.json(data, { status: response.status });
+  } catch (error) {
+    console.error("Wiki comment thread create failed:", error);
+    return NextResponse.json(
+      { error: "Внутренняя ошибка сервера" },
+      { status: 500 },
+    );
+  }
+}

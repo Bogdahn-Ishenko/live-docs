@@ -1,4 +1,5 @@
 node_modules/
+.42c/
 
 .env*
 !.env.example
@@ -21,9 +22,33 @@ build/
 
 coverage/
 *.log
+logs/
+*.log.*
 
 .DS_Store
 Thumbs.db
 
 .vscode/
 .idea/
+
+front/.env.local
+front/.env
+front/.next
+front/node_modules
+
+# Maven build
+target/
+*.jar
+*.war
+*.ear
+
+# Java bytecode
+*.class
+
+*.zip
+*.tar
+*.tar.gz
+
+target/site/
+surefire-reports/
+failsafe-reports/

@@ -6,8 +6,6 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
-
-//сущность для ХРАНЕНИЯ данных
 @Entity
 @Table(name = "pages")
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
@@ -15,6 +13,7 @@ public class WikiPage {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @EqualsAndHashCode.Include
     private Long id;
 
     @Column(nullable = false)
@@ -25,6 +24,9 @@ public class WikiPage {
 
     @Column(columnDefinition = "TEXT")
     private String content;
+
+    @Column(columnDefinition = "TEXT")
+    private String description;
 
     private String parentSlug;
 
