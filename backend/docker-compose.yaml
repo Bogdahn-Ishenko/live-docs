@@ -47,7 +47,7 @@ services:
     working_dir: /app
     volumes:
       - ../yjs-server:/app
-    command: sh -c "npm install && node /app/server.js"
+    command: npm start
     ports:
       - "1234:1234"
     restart: unless-stopped

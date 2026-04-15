@@ -4,9 +4,9 @@
   "type": "module",
   "dependencies": {
     "y-websocket": "1.4.5",
-    "ws": "^8.0.0"
+    "ws": "^8.11.0"
   },
   "scripts": {
-    "dev": "node server.js"
+    "start": "node server.js"
   }
 }
