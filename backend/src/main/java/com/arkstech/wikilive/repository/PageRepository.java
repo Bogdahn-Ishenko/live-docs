@@ -9,8 +9,6 @@ import org.springframework.stereotype.Repository;
 import java.util.List;
 import java.util.Optional;
 
-// автоматом генерирует SQL запросы
-
 @Repository
 public interface PageRepository extends JpaRepository<WikiPage, Long> {
     Optional<WikiPage> findBySlug(String slug);     //по "slug" ищет

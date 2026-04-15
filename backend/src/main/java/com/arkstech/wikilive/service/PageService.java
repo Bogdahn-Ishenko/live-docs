@@ -7,31 +7,36 @@ import com.arkstech.wikilive.dto.WsMessage;
 import com.arkstech.wikilive.model.PageLink;
 import com.arkstech.wikilive.model.WikiPage;
 import com.arkstech.wikilive.repository.CommentRepository;
+import com.arkstech.wikilive.repository.CommentThreadRepository;
 import com.arkstech.wikilive.repository.PageLinkRepository;
 import com.arkstech.wikilive.repository.PageRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.HashSet;
-import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class PageService {
 
     private final PageRepository pageRepository;
     private final PageLinkRepository pageLinkRepository;
+    private final CommentRepository commentRepository;
+    private final CommentThreadRepository commentThreadRepository;
     private final SimpMessagingTemplate messagingTemplate;
     private final ObjectMapper objectMapper;
 
@@ -68,6 +73,7 @@ public class PageService {
         WikiPage page = getBySlug(slug);
 
         page.setTitle(request.getTitle());
+        page.setDescription(request.getDescription());
         page.setContent(request.getContent());
         page.setMwsTableId(request.getMwsTableId());
         page.setParentSlug(request.getParentSlug());
@@ -83,12 +89,14 @@ public class PageService {
     }
 
     private void attachWikiLinks(WikiPage page) {
+        page.getLinks().clear();
 
-        if (page.getContent() == null) return;
+        if (page.getContent() == null) {
+            return;
+        }
 
         Pattern pattern = Pattern.compile("\\[\\[(.*?)\\]\\]");
         Matcher matcher = pattern.matcher(page.getContent());
-
         Set<String> uniqueSlugs = new HashSet<>();
 
         while (matcher.find()) {
@@ -127,6 +135,14 @@ public class PageService {
         }
     }
 
+    private String resolveOwnerId() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || authentication.getName() == null) {
+            return null;
+        }
+        return authentication.getName();
+    }
+
     @Transactional(readOnly = true)
     public WikiPage getBySlug(String slug) {
         return pageRepository.findBySlug(slug)
@@ -139,22 +155,25 @@ public class PageService {
 
     public List<PageDTO> getBacklinks(String slug) {
         return pageLinkRepository.findBacklinks(slug).stream()
-                .map(p -> new PageDTO(p.getSlug(), p.getTitle(), null))
+                .map(p -> new PageDTO(p.getSlug(), p.getTitle(), p.getParentSlug()))
                 .toList();
     }
 
-    private final CommentRepository commentRepository;
     @PreAuthorize("@pageAccessService.canDelete(#slug, authentication.name)")
     @Transactional
     public void deletePage(String slug) {
         WikiPage page = getBySlug(slug);
 
         commentRepository.deleteByPageSlug(slug);
+        commentThreadRepository.deleteByPage_Slug(slug);
         pageRepository.delete(page);
     }
 
     public List<PageDTO> search(String query) {
-        if (query == null || query.isBlank()) return List.of();
+        if (query == null || query.isBlank()) {
+            return List.of();
+        }
+
         return pageRepository.smartSearch(query).stream()
                 .map(p -> new PageDTO(p.getSlug(), p.getTitle(), p.getParentSlug()))
                 .toList();
@@ -176,30 +195,31 @@ public class PageService {
         return new GraphDTO(nodes, edges);
     }
 
-    private String toSlug(String input) {
-        if (input == null || input.isBlank()) return "untitled";
-
-        String s = input.toLowerCase(Locale.ROOT);
-        s = s.replace("а","a").replace("б","b").replace("в","v").replace("г","g")
-                .replace("д","d").replace("е","e").replace("ё","e").replace("ж","zh")
-                .replace("з","z").replace("и","i").replace("й","y").replace("к","k")
-                .replace("л","l").replace("м","m").replace("н","n").replace("о","o")
-                .replace("п","p").replace("р","r").replace("с","s").replace("т","t")
-                .replace("у","u").replace("ф","f").replace("х","h").replace("ц","c")
-                .replace("ч","ch").replace("ш","sh").replace("щ","sch").replace("ы","y")
-                .replace("э","e").replace("ю","yu").replace("я","ya");
-
-        return s.replaceAll("[^a-z0-9]", "-")
-                .replaceAll("-+", "-")
-                .replaceAll("^-|-$", "");
-    }
-
     public List<PageDTO> getAllAsTreeDTO() {
         return pageRepository.findAll().stream()
                 .map(p -> new PageDTO(p.getSlug(), p.getTitle(), p.getParentSlug()))
                 .toList();
     }
 
+    private String toSlug(String input) {
+        if (input == null || input.isBlank()) {
+            return "untitled";
+        }
+
+        String s = input.toLowerCase(Locale.ROOT);
+        s = s.replace("а", "a").replace("б", "b").replace("в", "v").replace("г", "g")
+                .replace("д", "d").replace("е", "e").replace("ё", "e").replace("ж", "zh")
+                .replace("з", "z").replace("и", "i").replace("й", "y").replace("к", "k")
+                .replace("л", "l").replace("м", "m").replace("н", "n").replace("о", "o")
+                .replace("п", "p").replace("р", "r").replace("с", "s").replace("т", "t")
+                .replace("у", "u").replace("ф", "f").replace("х", "h").replace("ц", "c")
+                .replace("ч", "ch").replace("ш", "sh").replace("щ", "sch").replace("ы", "y")
+                .replace("э", "e").replace("ю", "yu").replace("я", "ya");
+
+        return s.replaceAll("[^a-z0-9]", "-")
+                .replaceAll("-+", "-")
+                .replaceAll("^-|-$", "");
+    }
 
     @Transactional
     public WikiPage updatePageInternal(String slug, WikiPage updatedPage) {
