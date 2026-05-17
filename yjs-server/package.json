@@ -1,0 +1,9 @@
+{
+  "name": "yjs-server",
+  "version": "1.0.0",
+  "type": "module",
+  "dependencies": {
+    "y-websocket": "1.4.5",
+    "ws": "^8.11.0"
+  }
+}

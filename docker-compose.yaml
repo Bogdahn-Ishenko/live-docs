@@ -1,0 +1,76 @@
+version: "3.9"
+
+services:
+  wikilive_db:
+    image: postgres:16-alpine
+    container_name: wikilive_db_cont
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: wikilive_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d wikilive_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  wikilive_backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: wikilive_backend_cont
+    restart: always
+    ports:
+      - "8085:8085"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://wikilive_db:5432/wikilive_db
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: password
+      SPRING_JPA_DATABASE_PLATFORM: org.hibernate.dialect.PostgreSQLDialect
+    depends_on:
+      wikilive_db:
+        condition: service_healthy
+
+  wikilive_frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_WIKILIVE_YJS_URL: ws://localhost:1234
+        WIKILIVE_BACKEND_URL: http://wikilive_backend:8085
+    container_name: wikilive_frontend_cont
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      WIKILIVE_BACKEND_URL: http://wikilive_backend:8085
+      WIKILIVE_YJS_URL: ws://wikilive_yjs:1234
+    depends_on:
+      - wikilive_backend
+      - wikilive_yjs
+
+  wikilive_yjs:
+    build:
+      context: ./yjs-server
+      dockerfile: Dockerfile
+    container_name: wikilive_yjs
+    ports:
+      - "1234:1234"
+    restart: unless-stopped
+
+  adminer:
+    image: adminer
+    container_name: wikilive_adminer
+    restart: always
+    ports:
+      - "8080:8080"
+    depends_on:
+      - wikilive_db
+
+volumes:
+  pgdata:
