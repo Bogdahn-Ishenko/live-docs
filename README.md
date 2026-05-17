@@ -1,5 +1,17 @@
 <div align="center">
+
   <img src="assets/README/HEADER/main.png" width="100%" alt="WikiLive Header">
+  <br><br>
+
+  <p>
+    Проект разработан командой <b>Аркстех</b> в рамках хакатона
+    <a href="https://truetecharena.ru/contests/true-tech-hack2026#overview">
+      MTC True Tech Hack 2026
+    </a>
+    в треке <b>WikiLive — живые таблицы в тексте</b>.
+  </p>
+
+
 
   <br>
 
